@@ -67,7 +67,7 @@ class Container(BaseContainer):
             self.expose_public("Proxmox", "server", "虚拟化环境", self.load_nginx_url(
                 "PVE_DOMAIN",
                 proxy_name="pve",
-                proxy_url=utils.lazy_load(self.get_config("PVE_LOCAL_URL")),
+                proxy_url=utils.lazy_load(self.get_config, "PVE_LOCAL_URL"),
             )),
             self.expose_private("Proxmox", "server", "虚拟化环境", self.load_config_url(
                 "PVE_LOCAL_URL"
