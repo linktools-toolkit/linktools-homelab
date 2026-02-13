@@ -1,0 +1,12 @@
+services:
+  shadowsocks-client:
+    image: 'ghcr.io/shadowsocks/sslocal-rust:{{ SHADOWSOCKS_CLIENT_TAG }}'
+    ports:
+      - '{{ SHADOWSOCKS_CLIENT_PORT }}:1080/tcp'
+    volumes:
+      - '{{ APP_PATH/"config.json" }}:/etc/shadowsocks-rust/config.json'
+    networks:
+      - shadowsocks
+
+networks:
+  shadowsocks:

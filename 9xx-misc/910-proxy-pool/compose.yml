@@ -1,0 +1,23 @@
+services:
+  proxy-pool:
+    image: jhao104/proxy_pool:{{ PROXY_POOL_TAG }}
+#   {% if PROXY_POOL_EXPOSE_PORT > 0 %}
+    ports:
+      - '{{ PROXY_POOL_EXPOSE_PORT }}:5010'
+#   {% endif %}
+    links:
+      - proxy-pool-redis
+    environment:
+      - DB_CONN=redis://@proxy-pool-redis:6379/0
+    networks:
+      - nginx
+      - proxy-pool
+
+  proxy-pool-redis:
+    image: redis
+    networks:
+      - proxy-pool
+
+networks:
+  nginx:
+  proxy-pool:

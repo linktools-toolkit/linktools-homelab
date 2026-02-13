@@ -1,0 +1,19 @@
+services:
+  redroid-builder:
+    user: '{{ DOCKER_UID }}:{{ DOCKER_GID }}'
+    volumes:
+      - '{{ REDROID_BUILD_PATH | mkdir | chown(docker_user) }}:/src'
+      - '{{ (SOURCE_PATH/"scripts") | chown(docker_user) }}:/scripts:ro'
+#     {% if DOCKER_UID != 0 %}
+      - '{{ mkdir(REDROID_HOME_PATH/".ssh") | chown(docker_user) }}:/home/{{ DOCKER_USER }}/.ssh:ro'
+#     {% else %}
+      - '{{ mkdir(REDROID_HOME_PATH/".ssh") | chown(docker_user) }}:/root/.ssh:ro'
+#     {% endif %}
+    environment:
+      - 'LANG=en_US.UTF-8'
+    working_dir: "/src"
+    networks:
+      - build
+
+networks:
+  build:

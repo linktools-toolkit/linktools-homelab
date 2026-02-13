@@ -1,0 +1,31 @@
+services:
+# {% for index in range(REDROID_COUNT) %}
+# {% with name = 'redroid' + (REDROID_ADB_PORT + index * 2 - 1)|string %}
+  {{ name }}:
+    image: {{ REDROID_IMAGE }}
+    privileged: true
+    networks:
+      - redroid
+    volumes:
+      - '{{ mkdir(APP_PATH/"data"/name) | chown }}:/data'
+      - '/dev/mali0:/dev/mali0'
+      - '/dev/net/tun:/dev/tun'
+#     {% for key, value in container.overlay_files.items() %}
+      - '{{ key }}:{{ value }}'
+#     {% endfor %}
+    ports:
+      - '{{ REDROID_ADB_PORT + index * 2 }}:5555'
+    command:
+      - androidboot.redroid_width={{ REDROID_WIDTH }}
+      - androidboot.redroid_height={{ REDROID_HEIGHT }}
+      - androidboot.redroid_dpi={{ REDROID_DPI }}
+      - androidboot.redroid_gpu_mode={{ REDROID_GPU_MODE }}
+      - androidboot.redroid_radio={{ 1 if REDROID_RADIO else 0 }}
+      - androidboot.redroid_wifi={{ 1 if REDROID_WIFI else 0 }}
+      - androidboot.redroid_wifi_gateway={{ REDROID_WIFI_GATEWAY }}
+      - androidboot.redroid_magisk={{ 1 if REDROID_MAGISK else 0 }}
+# {% endwith %}
+# {% endfor %}
+
+networks:
+  redroid:

@@ -1,0 +1,18 @@
+services:
+  code-server:
+    user: '{{ DOCKER_UID }}:{{ DOCKER_GID }}'
+    environment:
+      - 'TZ=Etc/UTC'
+      - 'PASSWORD={{ VSCODE_PASSWORD }}'
+#   {% if VSCODE_EXPOSE_PORT > 0 %}
+    ports:
+      - '{{ VSCODE_EXPOSE_PORT }}:8080'
+#   {% endif %}
+    volumes:
+      - '{{ mkdir(APP_PATH/"home") | chown(docker_user) }}:/home/coder'
+      - '{{ mkdir(APP_DATA_PATH/"project") | chown(docker_user) }}:/home/coder/project'
+    networks:
+      - nginx
+
+networks:
+  nginx:

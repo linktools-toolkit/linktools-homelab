@@ -1,0 +1,11 @@
+services:
+  ws-scrcpy:
+    build:
+      context: '{{ container.source_path }}'
+      dockerfile: '{{ container.get_docker_file_path() }}'
+    environment:
+      - 'WS_SCRCPY_CONFIG=/ws-scrcpy/config.yaml'
+    volumes:
+      - '{{ chown(APP_PATH/"config.yaml") }}:/ws-scrcpy/config.yaml:ro'
+    network_mode: host
+    privileged: true
