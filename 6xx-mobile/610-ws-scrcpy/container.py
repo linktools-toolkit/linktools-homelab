@@ -78,7 +78,7 @@ class Container(BaseContainer):
                     shutil.rmtree(source_path, ignore_errors=True)
                     raise
 
-        self.start_hooks.append(init_source_code)
+        self.prepare_hooks.append(init_source_code)
         return os.path.join(source_path, f"ws-scrcpy-{tag.lstrip('v')}")
 
     def on_starting(self):

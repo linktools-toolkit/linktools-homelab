@@ -10,7 +10,7 @@ services:
       TTL: "600"
       TIMEZONE: '8.0'
       TYPE: 'A,AAAA'
-      CHECKLOCAL: '{{ "true" if ALI_DDNS_CHECKLOCAL else "false" }}'
+      CHECKLOCAL: '{{ "true" if ALI_DDNS_CHECKLOCAL is true else "false" }}'
       IPV4NETS: '{{ ALI_DDNS_IPV4NETS }}'
       IPV6NETS: '{{ ALI_DDNS_IPV6NETS }}'
 #   {% if ALI_DDNS_CHECKLOCAL %}

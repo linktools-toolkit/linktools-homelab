@@ -2,9 +2,9 @@ services:
 
   home-assistant:
     image: homeassistant/home-assistant:{{ HOME_ASSISTANT_TAG }}
-#   {% if HOME_ASSISTANT_EXPOSE_PORT > 0 %}
+#   {% if HOME_ASSISTANT_PORT > 0 %}
     ports:
-      - '{{ HOME_ASSISTANT_EXPOSE_PORT }}:8123'
+      - '{{ HOME_ASSISTANT_PORT }}:8123'
 #   {% endif %}
     volumes:
       - '{{ (APP_PATH/"config") | mkdir | chown }}:/config'

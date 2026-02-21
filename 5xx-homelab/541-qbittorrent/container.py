@@ -44,7 +44,7 @@ class Container(BaseContainer):
         return dict(
             QBITTORRENT_TAG="latest",
             QBITTORRENT_DOMAIN=self.get_nginx_domain(),
-            QBITTORRENT_EXPOSE_PORT=Config.Alias(type=int, default=0),
+            QBITTORRENT_PORT=Config.Alias(type=int, default=0),
             QBITTORRENT_TORRENTING_PORT=Config.Alias(type=int, default=6881),
         )
 
@@ -52,7 +52,7 @@ class Container(BaseContainer):
     def exposes(self) -> Iterable[ExposeLink]:
         return [
             self.expose_container("qBittorrent", "tools", "", self.load_port_url(
-                "QBITTORRENT_EXPOSE_PORT",
+                "QBITTORRENT_PORT",
                 https=False
             )),
             self.expose_public("qBittorrent", "tools", "", self.load_nginx_url(

@@ -4,7 +4,7 @@ services:
     environment:
       GITLAB_ROOT_PASSWORD: '{{ GITLAB_ROOT_PASSWORD }}'
       GITLAB_OMNIBUS_CONFIG: |
-          external_url 'https://{{ GITLAB_DOMAIN }}:{{ HTTPS_PORT }}'
+          external_url 'https://{{ GITLAB_DOMAIN }}:{{ NGINX_HTTPS_PORT }}'
           gitlab_rails['gitlab_shell_ssh_port'] = {{ GITLAB_SSH_PORT }}
 
           # nginx['enable'] = true

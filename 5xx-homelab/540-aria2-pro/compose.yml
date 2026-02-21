@@ -8,9 +8,9 @@ services:
       - 'RPC_SECRET={{ ARIA2_RPC_SECRET }}'
       - 'RPC_PORT=6800'
       - 'LISTEN_PORT=6888'
-#    {% if ARIA2_EXPOSE_PORT > 0 %}
+#    {% if ARIA2_PORT > 0 %}
     ports:
-      - '{{ ARIA2_EXPOSE_PORT }}:6800'
+      - '{{ ARIA2_PORT }}:6800'
 #    {% endif %}
     volumes:
       - '{{ mkdir(APP_PATH/"config") | chown(docker_user) }}:/config'

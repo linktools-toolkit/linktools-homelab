@@ -44,7 +44,7 @@ class Container(BaseContainer):
         return dict(
             HOME_ASSISTANT_TAG="stable",
             HOME_ASSISTANT_DOMAIN=self.get_nginx_domain("homeassistant"),
-            HOME_ASSISTANT_EXPOSE_PORT=Config.Alias(type=int, default=8123),
+            HOME_ASSISTANT_PORT=Config.Alias(type=int, default=8123),
         )
 
     @cached_property
@@ -55,7 +55,7 @@ class Container(BaseContainer):
                 proxy_conf=self.get_source_path("nginx.conf"),
             )),
             self.expose_container("HomeAssistant", "homeAssistant", "Home Assistant", self.load_port_url(
-                "HOME_ASSISTANT_EXPOSE_PORT",
+                "HOME_ASSISTANT_PORT",
                 https=False,
             )),
         ]

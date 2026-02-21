@@ -2,9 +2,9 @@ services:
 
   pypi-server:
     image: pypiserver/pypiserver:{{ PYPISERVER_TAG }}
-#   {% if PYPISERVER_EXPOSE_PORT > 0 %}
+#   {% if PYPISERVER_PORT > 0 %}
     ports:
-      - '{{ PYPISERVER_EXPOSE_PORT }}:8080'
+      - '{{ PYPISERVER_PORT }}:8080'
 #   {% endif %}
     volumes:
       - '{{ mkdir(APP_DATA_PATH/"auth") | chown }}:/data/auth'

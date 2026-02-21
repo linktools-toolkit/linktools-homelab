@@ -4,9 +4,9 @@ services:
     environment:
       - 'TZ=Etc/UTC'
       - 'PASSWORD={{ VSCODE_PASSWORD }}'
-#   {% if VSCODE_EXPOSE_PORT > 0 %}
+#   {% if VSCODE_PORT > 0 %}
     ports:
-      - '{{ VSCODE_EXPOSE_PORT }}:8080'
+      - '{{ VSCODE_PORT }}:8080'
 #   {% endif %}
     volumes:
       - '{{ mkdir(APP_PATH/"home") | chown(docker_user) }}:/home/coder'

@@ -38,8 +38,8 @@ class Container(BaseContainer):
     def configs(self):
         return dict(
             ALI_DDNS_TAG="latest",
-            ALI_DDNS_DOMAIN=Config.Alias("ROOT_DOMAIN") | Config.Prompt(cached=True),
-            ALI_DDNS_ROOT_DOMAIN=Config.Alias("ROOT_DOMAIN") | Config.Prompt(cached=True),
+            ALI_DDNS_DOMAIN=Config.Alias("ROOT_DOMAIN", "NGINX_ROOT_DOMAIN") | Config.Prompt(cached=True),
+            ALI_DDNS_ROOT_DOMAIN=Config.Alias("ROOT_DOMAIN", "NGINX_ROOT_DOMAIN") | Config.Prompt(cached=True),
             ALI_DDNS_KEY=Config.Alias("Ali_Key") | Config.Prompt(cached=True),
             ALI_DDNS_SECRET=Config.Alias("Ali_Secret") | Config.Prompt(cached=True),
             ALI_DDNS_CHECKLOCAL=Config.Alias(type=bool) | False,

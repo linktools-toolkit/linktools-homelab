@@ -43,7 +43,7 @@ class Container(BaseContainer):
             ALIST_DATA_PATH=Config.Prompt(cached=True, type="path") | self.get_app_data_path("data"),
             ALIST_ADMIN_PASSWORD=Config.Prompt(cached=True) | utils.make_uuid()[:12],
             ALIST_DOMAIN=self.get_nginx_domain(),
-            ALIST_EXPOSE_PORT=Config.Alias(type=int) | 0,
+            ALIST_PORT=Config.Alias(type=int) | 0,
         )
 
     @subcommand("config", help="exec rclone config", prefix_chars=chr(1))

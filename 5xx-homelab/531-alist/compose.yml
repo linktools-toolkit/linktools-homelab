@@ -4,9 +4,9 @@ services:
     volumes:
       - '{{ mkdir(APP_DATA_PATH/"config") | chown }}:/opt/alist/data'
       - '{{ ALIST_DATA_PATH | mkdir | chown }}:/data'
-#   {% if ALIST_EXPOSE_PORT > 0 %}
+#   {% if ALIST_PORT > 0 %}
     ports:
-      - '{{ ALIST_EXPOSE_PORT }}:5244'
+      - '{{ ALIST_PORT }}:5244'
 #   {% endif %}
     environment:
       - PUID=0

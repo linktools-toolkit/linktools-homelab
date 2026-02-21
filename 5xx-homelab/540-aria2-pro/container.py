@@ -40,18 +40,18 @@ class Container(BaseContainer):
         return dict(
             ARIA2_TAG="latest",
             ARIA2_DOMAIN=self.get_nginx_domain(),
-            ARIA2_EXPOSE_PORT=Config.Alias(type=int, default=0),
+            ARIA2_PORT=Config.Alias(type=int, default=0),
             ARIA2_RPC_SECRET=Config.Prompt(default="159753", type=str, cached=True),
         )
 
     @cached_property
     def exposes(self) -> Iterable[ExposeLink]:
         return [
-            self.expose_container("aria2", "tools", "", self.load_port_url("ARIA2_EXPOSE_PORT", https=False)),
+            self.expose_container("aria2", "tools", "", self.load_port_url("ARIA2_PORT", https=False)),
         ]
 
     def on_starting(self):
         self.write_nginx_conf(
             self.get_config("ARIA2_DOMAIN"),
-            self.get_source_path("nginx.conf"),
+            proxy_conf=self.get_source_path("nginx.conf"),
         )

@@ -1,9 +1,9 @@
 services:
   proxy-pool:
     image: jhao104/proxy_pool:{{ PROXY_POOL_TAG }}
-#   {% if PROXY_POOL_EXPOSE_PORT > 0 %}
+#   {% if PROXY_POOL_PORT > 0 %}
     ports:
-      - '{{ PROXY_POOL_EXPOSE_PORT }}:5010'
+      - '{{ PROXY_POOL_PORT }}:5010'
 #   {% endif %}
     links:
       - proxy-pool-redis

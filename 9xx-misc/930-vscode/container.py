@@ -44,7 +44,7 @@ class Container(BaseContainer):
         return dict(
             VSCODE_TAG="latest",
             VSCODE_DOMAIN=self.get_nginx_domain(),
-            VSCODE_EXPOSE_PORT=Config.Alias(type=int, default=0),
+            VSCODE_PORT=Config.Alias(type=int, default=0),
             VSCODE_PASSWORD=Config.Prompt(cached=True),
         )
 
@@ -56,7 +56,7 @@ class Container(BaseContainer):
                 proxy_conf=self.get_source_path("nginx.conf"),
             )),
             self.expose_container("VS Code", "microsoftVisualStudioCode", "在线vscode", self.load_port_url(
-                "VSCODE_EXPOSE_PORT",
+                "VSCODE_PORT",
                 https=False
             )),
         ]

@@ -44,7 +44,7 @@ class Container(BaseContainer):
         return dict(
             PYPISERVER_TAG="latest",
             PYPISERVER_DOMAIN=self.get_nginx_domain("pypi"),
-            PYPISERVER_EXPOSE_PORT=Config.Alias(type=int, default=0),
+            PYPISERVER_PORT=Config.Alias(type=int, default=0),
             PYPISERVER_USERNAME=Config.Prompt(cached=True),
             PYPISERVER_PASSWORD=Config.Prompt(cached=True),
             PYPISERVER_AUTHENTICATE="update",  # "update,download,list"
@@ -58,7 +58,7 @@ class Container(BaseContainer):
                 proxy_conf=self.get_source_path("nginx.conf"),
             )),
             self.expose_container("pypiserver", "languagePython", "pypiserver", self.load_port_url(
-                "PYPISERVER_EXPOSE_PORT",
+                "PYPISERVER_PORT",
                 https=False
             )),
         ]

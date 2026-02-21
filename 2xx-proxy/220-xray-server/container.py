@@ -59,5 +59,5 @@ class Container(BaseContainer):
 
         self.write_nginx_conf(
             self.get_config("XRAY_DOMAIN"),
-            self.get_source_path("nginx.conf"),
+            proxy_conf=self.get_source_path("nginx.conf"),
         )

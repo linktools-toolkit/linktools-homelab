@@ -44,7 +44,7 @@ class Container(BaseContainer):
         return dict(
             PROXY_POOL_TAG="latest",
             PROXY_POOL_DOMAIN=self.get_nginx_domain(),
-            PROXY_POOL_EXPOSE_PORT=Config.Alias(type=int, default=0),
+            PROXY_POOL_PORT=Config.Alias(type=int, default=0),
         )
 
     @cached_property
@@ -55,7 +55,7 @@ class Container(BaseContainer):
                 proxy_conf=self.get_source_path("nginx.conf"),
             )),
             self.expose_container("Proxy Pool", "tools", "代理池", self.load_port_url(
-                "PROXY_POOL_EXPOSE_PORT",
+                "PROXY_POOL_PORT",
                 https=False
             )),
         ]

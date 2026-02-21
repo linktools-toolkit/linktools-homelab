@@ -44,7 +44,7 @@ class Container(BaseContainer):
         return dict(
             DSM_TAG="latest",
             DSM_DOMAIN="",
-            DSM_EXPOSE_PORT=Config.Alias(type=int, default=5000),
+            DSM_PORT=Config.Alias(type=int, default=5000),
             DSM_DISK_FMT="qcow2",
             DSM_DISK_SIZE="6G",
         )
@@ -57,7 +57,7 @@ class Container(BaseContainer):
                 proxy_url="http://dsm:5000",
             )),
             self.expose_private("DSM", "nas", "群晖系统", self.load_port_url(
-                "DSM_EXPOSE_PORT",
+                "DSM_PORT",
                 https=False,
             )),
         ]
