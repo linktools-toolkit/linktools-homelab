@@ -62,7 +62,11 @@ class Container(BaseContainer):
         return [
             self.expose_public("Gitlab", "git", "代码仓库管理", self.load_nginx_url(
                 "GITLAB_DOMAIN",
-                proxy_conf=self.get_source_path("nginx.conf"),
+                proxy_url="http://gitlab:8181",
+                auth_enable=True,
+                auth_extra={
+                    "oidc_redirect_uris": ["/users/auth/openid_connect/callback"]
+                }
             )),
         ]
 

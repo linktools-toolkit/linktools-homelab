@@ -69,7 +69,7 @@ class Container(BaseContainer):
         service = self.choose_service()
         name = service.get("container_name")
         path = self.get_app_path("data", name)
-        if confirm(f"Clean {name} data files", default=False) is False:
+        if not confirm(f"Clean {name} data files", default=False):
             self.logger.warning(f"Cancel clean {path}")
             return -1
         shutil.rmtree(path, ignore_errors=True)

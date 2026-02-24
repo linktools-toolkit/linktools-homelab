@@ -132,9 +132,9 @@ class Container(BaseContainer):
 
         finally:
             if p1:
-                utils.ignore_error(p1.kill)
+                utils.ignore_errors(p1.kill)
             if p2:
-                utils.ignore_error(p2.kill)
+                utils.ignore_errors(p2.kill)
 
             self.manager.create_process(
                 "sh", "-c", "umount system vendor",

@@ -89,7 +89,7 @@ services:
   gitlab-postgres:
     image: postgres:16-alpine
     volumes:
-      - '{{ mkdir(APP_PATH/"postgres") | chown }}:/var/lib/postgresql/data'
+      - '{{ (APP_PATH/"postgres") | mkdir | chown }}:/var/lib/postgresql/data'
     environment:
       POSTGRES_DB: '{{ GITLAB_DB_DATABASE }}'
       POSTGRES_USER: '{{ GITLAB_DB_USERNAME }}'

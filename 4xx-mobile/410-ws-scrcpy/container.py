@@ -44,7 +44,8 @@ class Container(BaseContainer):
     @cached_property
     def configs(self):
         return dict(
-            WS_SCRCPY_TAG="v0.8.1",
+            WS_SCRCPY_TAG="2a9ae70684ef0ce6acbd4c8ba1cfbba208e31dba",
+            WS_SCRCPY_URL="https://github.com/n1n3b1t/ws-scrcpy/archive/{tag}.zip",
             WS_SCRCPY_PORT=Config.Alias(default=8000, type=int),
         )
 
@@ -57,7 +58,7 @@ class Container(BaseContainer):
         ]
 
     @cached_property
-    def source_path(self):
+    def code_path(self):
         tag = self.get_config("WS_SCRCPY_TAG")
 
         zip_path = self.get_app_path(f"ws-scrcpy-{tag}.zip")
@@ -66,7 +67,7 @@ class Container(BaseContainer):
         def init_source_code():
             if not os.path.isdir(source_path):
                 file = self.manager.environ.get_url_file(
-                    f"https://github.com/NetrisTV/ws-scrcpy/archive/refs/tags/{tag}.zip")
+                    self.get_config("WS_SCRCPY_URL").format(tag=tag))
                 file.save(zip_path.parent, zip_path.name)
                 os.makedirs(source_path, exist_ok=True)
                 try:
@@ -74,7 +75,7 @@ class Container(BaseContainer):
                         for names in f.namelist():
                             f.extract(names, source_path)
                 except:
-                    utils.ignore_error(os.remove, args=(zip_path,))
+                    utils.ignore_errors(os.remove, args=(zip_path,))
                     shutil.rmtree(source_path, ignore_errors=True)
                     raise
 

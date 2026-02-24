@@ -28,9 +28,8 @@
 """
 from typing import Iterable
 
-from linktools import utils
-from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, ExposeLink
+from linktools.decorator import cached_property
 
 
 class Container(BaseContainer):
@@ -113,7 +112,7 @@ class Container(BaseContainer):
                 "XIAOYA_ALIST_DOMAIN",
                 proxy_name="xiaoya-alist",
                 proxy_url=self.get_config_later("XIAOYA_ALIST_LOCAL_URL"),
-                auth_enable=True,
+                # auth_enable=True,
             )),
             self.expose_private("Xiaoya-Alist", "folderSync", "小雅Alist", self.load_config_url(
                 "XIAOYA_ALIST_LOCAL_URL"
