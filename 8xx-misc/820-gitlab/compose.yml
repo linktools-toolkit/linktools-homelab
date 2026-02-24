@@ -65,13 +65,43 @@ services:
           gitlab_rails['sentry_enabled'] = false
           # grafana['reporting_enabled'] = false
 
+          # {% if NGINX_AUTH_ENABLE %}
+          # {% with client = manager.containers['authelia'].oidc_clients[0] %}
+          gitlab_rails['omniauth_providers'] = [
+            {
+              name: "openid_connect",
+              label: "sso",
+              icon: "https://www.authelia.com/images/branding/logo-cropped.png",
+              args: {
+                name: "openid_connect",
+                strategy_class: "OmniAuth::Strategies::OpenIDConnect",
+                issuer: "{{ client['IssuerURL'] }}",
+                discovery: true,
+                scope: ["openid","profile","email","groups"],
+                client_auth_method: "basic",
+                response_type: "code",
+                response_mode: "query",
+                uid_field: "preferred_username",
+                send_scope_to_token_endpoint: true,
+                pkce: true,
+                client_options: {
+                  identifier: "{{ client['ClientID'] }}",
+                  secret: "{{ client['ClientSecret'] }}",
+                  redirect_uri: "{{ utils.make_url("https", GITLAB_DOMAIN, NGINX_HTTPS_PORT, "/users/auth/openid_connect/callback") }}"
+                }
+              }
+            }
+          ]
+          # {% endwith %}
+          # {% endif %}
+
     ports:
       - '{{ GITLAB_SSH_PORT }}:22'
     volumes:
-      - '{{ mkdir(APP_PATH/"config") | chown }}:/etc/gitlab'
-      - '{{ mkdir(APP_PATH/"logs") | chown }}:/var/log/gitlab'
-      - '{{ mkdir(APP_PATH/"data") | chown }}:/var/opt/gitlab'
-      - '{{ mkdir(APP_DATA_PATH/"data"/"git-data") | chown }}:/var/opt/gitlab/git-data'
+      - '{{ (APP_PATH/"config") | mkdir | chown }}:/etc/gitlab'
+      - '{{ (APP_PATH/"logs") | mkdir | chown }}:/var/log/gitlab'
+      - '{{ (APP_PATH/"data") | mkdir | chown }}:/var/opt/gitlab'
+      - '{{ (APP_DATA_PATH/"data"/"git-data") | mkdir | chown }}:/var/opt/gitlab/git-data'
     networks:
       - nginx
       - gitlab
