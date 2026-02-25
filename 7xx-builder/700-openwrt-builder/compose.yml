@@ -1,12 +1,13 @@
 services:
   openwrt_builder:
-    image: p3terx/openwrt-build-env:latest
     user: '{{ DOCKER_UID }}:{{ DOCKER_GID }}'
     volumes:
-      - '{{ OPENWRT_BUILD_PATH | mkdir | chown(docker_user) }}:/home/user/openwrt'
-      - '{{ chown(SOURCE_PATH/"configs", docker_user) }}:/home/user/configs'
-      - '{{ chown(SOURCE_PATH/"patchs", docker_user) }}:/home/user/patchs'
-    working_dir: "/home/user/openwrt"
+      - '{{ OPENWRT_BUILD_PATH | mkdir | chown(docker_user) }}:/data/openwrt'
+      - '{{ (SOURCE_PATH/"configs") | chown(docker_user) }}:/data/configs'
+      - '{{ (SOURCE_PATH/"patchs") | chown(docker_user) }}:/data/patchs'
+    working_dir: "/data/openwrt"
+    environment:
+      - 'LANG=en_US.UTF-8'
     networks:
       - build
 

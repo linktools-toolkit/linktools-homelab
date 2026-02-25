@@ -48,7 +48,13 @@ class Container(BaseContainer):
     @subcommand("update")
     def on_exec_update(self):
         self.manager.create_docker_process(
+            "exec", self.get_service_name("openwrt_builder"), "git", "stash"
+        ).check_call()
+        self.manager.create_docker_process(
             "exec", self.get_service_name("openwrt_builder"), "git", "pull"
+        ).check_call()
+        self.manager.create_docker_process(
+            "exec", self.get_service_name("openwrt_builder"), "git", "stash", "pop"
         ).check_call()
         self.manager.create_docker_process(
             "exec", self.get_service_name("openwrt_builder"), "./scripts/feeds", "update", "-a"
@@ -80,27 +86,37 @@ class Container(BaseContainer):
             "exec", "-it", self.get_service_name("openwrt_builder"),
             "sh", "-c", utils.list2cmdline([
                 "ln", "-sf",
-                f"/home/user/configs/{config_name}.config",
-                f"/home/user/openwrt/.config"
+                f"/data/configs/{config_name}.config",
+                f"/data/openwrt/.config"
             ])
         ).call()
 
-    @subcommand("download")
+    @subcommand("download", pass_args=True)
     @subcommand_argument("-j", "--jobs")
     def on_exec_download(self, jobs: int = 8):
+        args = ["make", "download", f"-j{jobs}"]
+        if self.manager.debug:
+            args.append("V=s")
         self.manager.create_docker_process(
-            "exec", "-it", self.get_service_name("openwrt_builder"), "make", "download", f"-j{jobs}"
+            "exec", "-it", self.get_service_name("openwrt_builder"), *args,
         ).call()
 
     @subcommand("build")
     @subcommand_argument("-j", "--jobs")
     def on_exec_build(self, jobs: int = 8):
+        args = ["make", "V=s", f"-j{jobs}"]
+        if self.manager.debug:
+            args.append("V=s")
         self.manager.create_docker_process(
-            "exec", "-it", self.get_service_name("openwrt_builder"), "make", "V=s", f"-j{jobs}"
+            "exec", "-it", self.get_service_name("openwrt_builder"), *args,
         ).call()
 
     def on_started(self):
         self.manager.create_docker_process(
             "exec", self.get_service_name("openwrt_builder"),
             "git", "config", "--global", "http.sslverify", "false"
+        ).call()
+        self.manager.create_docker_process(
+            "exec", self.get_service_name("openwrt_builder"),
+            "git", "config", "pull.rebase", "true"
         ).call()

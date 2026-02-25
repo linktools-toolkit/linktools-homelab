@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -e
+
+export TARGET_BOARD_PLATFORM_GPU=${TARGET_BOARD_PLATFORM_GPU:-mali-G52}
+export TARGET_RK_GRALLOC_VERSION=${TARGET_RK_GRALLOC_VERSION:-4}
+
+. build/envsetup.sh
+lunch redroid_arm64-userdebug
+
+# start to build
+m

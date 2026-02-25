@@ -1,0 +1,13 @@
+diff --git a/libs/glib2/Makefile b/libs/glib2/Makefile
+index 5ded2fb..90b3b4a 100644
+--- a/libs/glib2/Makefile
++++ b/libs/glib2/Makefile
+@@ -26,7 +26,7 @@ PKG_FORTIFY_SOURCE:=0
+ PKG_BUILD_FLAGS:=gc-sections
+ 
+ HOST_BUILD_DIR:=$(BUILD_DIR_HOST)/glib-$(PKG_VERSION)
+-HOST_BUILD_DEPENDS:=pcre2/host libffi/host
++# HOST_BUILD_DEPENDS:=pcre2/host libffi/host
+ 
+ include $(INCLUDE_DIR)/host-build.mk
+ include $(INCLUDE_DIR)/package.mk
