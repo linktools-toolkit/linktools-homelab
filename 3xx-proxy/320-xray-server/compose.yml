@@ -1,11 +1,9 @@
 services:
   xray-server:
-    image: 'teddysun/xray:{{ XRAY_TAG }}'
-    environment:
-      - 'XRAY_VMESS_AEAD_FORCED=false'
-      - 'xray.vmess.aead.forced=false'
+    image: 'ghcr.io/xtls/xray-core:{{ XRAY_TAG }}'
+    command: ["run", "-c", "/etc/xray/config.json"]
     volumes:
-      - '{{ mkdir(APP_PATH/"etc"/"xray") | chown }}:/etc/xray'
+      - '{{ (APP_PATH/"config.json") | chown }}:/etc/xray/config.json'
     networks:
       - nginx
 

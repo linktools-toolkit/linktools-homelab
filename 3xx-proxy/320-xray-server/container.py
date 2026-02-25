@@ -26,13 +26,12 @@
   / ==ooooooooooooooo==.o.  ooo= //   ,``--{)B     ,"
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
-import os
 import uuid
 from typing import Iterable
 
+from linktools.cntr import BaseContainer
 from linktools.core import Config
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer
 
 
 class Container(BaseContainer):
@@ -53,8 +52,8 @@ class Container(BaseContainer):
 
     def on_starting(self):
         self.render_template(
-            os.path.join(self.root_path, "config.json"),
-            self.get_app_path("etc", "xray", "config.json", create_parent=True),
+            self.get_source_path("config.json"),
+            self.get_app_path("config.json", create_parent=True),
         )
 
         self.write_nginx_conf(
