@@ -65,7 +65,7 @@ class Container(BaseContainer):
                 proxy_url="http://gitlab:8181",
                 auth_enable=True,
                 auth_extra={
-                    "oidc_redirect_uris": ["/users/auth/openid_connect/callback"]
+                    "oidc_redirect_uris": ["{base_url}/users/auth/openid_connect/callback"]
                 }
             )),
         ]
