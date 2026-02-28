@@ -51,7 +51,7 @@ class Container(BaseContainer):
         return [
             self.expose_public("fnOS", "nas", "飞牛系统", self.load_nginx_url(
                 "FNOS_DOMAIN",
-                proxy_url=self.get_config_later("FNOS_LOCAL_URL"),
+                proxy_url=self.get_config("FNOS_LOCAL_URL"),
             )),
             self.expose_private("fnOS", "nas", "飞牛系统", self.load_config_url(
                 "FNOS_LOCAL_URL",

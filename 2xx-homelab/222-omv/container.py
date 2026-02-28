@@ -51,7 +51,7 @@ class Container(BaseContainer):
         return [
             self.expose_public("OpenMediaVault", "nas", "OMV系统", self.load_nginx_url(
                 "OMV_DOMAIN",
-                proxy_url=self.get_config_later("OMV_LOCAL_URL")
+                proxy_url=self.get_config("OMV_LOCAL_URL")
             )),
             self.expose_private("OpenMediaVault", "nas", "OMV系统", self.load_config_url(
                 "OMV_LOCAL_URL"
