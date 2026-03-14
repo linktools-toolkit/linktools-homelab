@@ -130,7 +130,7 @@ services:
 
 # {% if GITLAB_REDIS_HOST == 'gitlab-redis' %}
   gitlab-redis:
-    image: redis
+    image: redis:alpine
     command: redis-server --requirepass {{ GITLAB_REDIS_PASSWORD }}
     networks:
       - gitlab

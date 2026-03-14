@@ -44,8 +44,10 @@ class Container(BaseContainer):
     @cached_property
     def configs(self):
         return dict(
-            WS_SCRCPY_TAG="2a9ae70684ef0ce6acbd4c8ba1cfbba208e31dba",
-            WS_SCRCPY_URL="https://github.com/n1n3b1t/ws-scrcpy/archive/{tag}.zip",
+            WS_SCRCPY_TAG="512b7db2a0dc48044358cf69d46456ec8846eb9e",
+            WS_SCRCPY_URL="https://github.com/{user}/{name}/archive/{tag}.zip",
+            WS_SCRCPY_NAME="ws-scrcpy",
+            WS_SCRCPY_USER="redroid-rockchip",
             WS_SCRCPY_PORT=Config.Alias(default=8000, type=int),
         )
 
@@ -60,14 +62,16 @@ class Container(BaseContainer):
     @cached_property
     def code_path(self):
         tag = self.get_config("WS_SCRCPY_TAG")
+        name = self.get_config("WS_SCRCPY_NAME")
+        user = self.get_config("WS_SCRCPY_USER")
 
-        zip_path = self.get_app_path(f"ws-scrcpy-{tag}.zip")
+        zip_path = self.get_app_path("source", f"{name}-{user}-{tag}.zip")
         source_path = str(zip_path) + ".unzip"
 
         def init_source_code():
             if not os.path.isdir(source_path):
-                file = self.manager.environ.get_url_file(
-                    self.get_config("WS_SCRCPY_URL").format(tag=tag))
+                url = self.get_config("WS_SCRCPY_URL").format(tag=tag, name=name, user=user)
+                file = self.manager.environ.get_url_file(url)
                 file.save(zip_path.parent, zip_path.name)
                 os.makedirs(source_path, exist_ok=True)
                 try:
@@ -79,8 +83,8 @@ class Container(BaseContainer):
                     shutil.rmtree(source_path, ignore_errors=True)
                     raise
 
-        self.prepare_hooks.append(init_source_code)
-        return os.path.join(source_path, f"ws-scrcpy-{tag.lstrip('v')}")
+        self.start_hooks.append(init_source_code)
+        return os.path.join(source_path, f"{name}-{tag.lstrip('v')}")
 
     def on_starting(self):
         with open(self.get_app_path("config.yaml"), "wt") as fd:

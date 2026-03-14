@@ -16,6 +16,7 @@ services:
     ports:
       - '{{ REDROID_ADB_PORT + index * 2 }}:5555'
     command:
+      - androidboot.container_name={{ container.get_service_name(name) }}
       - androidboot.redroid_width={{ REDROID_WIDTH }}
       - androidboot.redroid_height={{ REDROID_HEIGHT }}
       - androidboot.redroid_dpi={{ REDROID_DPI }}
