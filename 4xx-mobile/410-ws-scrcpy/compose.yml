@@ -6,6 +6,7 @@ services:
     environment:
       - 'WS_SCRCPY_CONFIG=/ws-scrcpy/config.yaml'
     volumes:
-      - '{{ chown(APP_PATH/"config.yaml") }}:/ws-scrcpy/config.yaml:ro'
+      - '{{ manager.container_host }}:/var/run/docker.sock'
+      - '{{ (APP_PATH/"config.yaml") | chown }}:/ws-scrcpy/config.yaml:ro'
     network_mode: host
     privileged: true

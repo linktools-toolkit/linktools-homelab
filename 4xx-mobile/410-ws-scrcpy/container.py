@@ -44,7 +44,7 @@ class Container(BaseContainer):
     @cached_property
     def configs(self):
         return dict(
-            WS_SCRCPY_TAG="512b7db2a0dc48044358cf69d46456ec8846eb9e",
+            WS_SCRCPY_TAG="c3100dd802e6dee7b87db855684d53b7a8dfe458",
             WS_SCRCPY_URL="https://github.com/{user}/{name}/archive/{tag}.zip",
             WS_SCRCPY_NAME="ws-scrcpy",
             WS_SCRCPY_USER="redroid-rockchip",
