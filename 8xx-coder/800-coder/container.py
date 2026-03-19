@@ -26,37 +26,28 @@
   / ==ooooooooooooooo==.o.  ooo= //   ,``--{)B     ,"
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
-from typing import Iterable
+from pathlib import Path
 
+from linktools.cntr import BaseContainer, ExposeLink
 from linktools.core import Config
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, ExposeLink
 
 
 class Container(BaseContainer):
 
-    @property
-    def dependencies(self) -> Iterable[str]:
-        return ["nginx"]
+    @classmethod
+    def _get_ssh_path(cls, cfg: Config):
+        try:
+            import pwd
+            passwd = pwd.getpwnam(cfg.get("DOCKER_USER"))
+            return Path(passwd.pw_dir).joinpath(".ssh")
+        except ImportError:
+            return Path.home().joinpath(".ssh")
 
     @cached_property
     def configs(self):
         return dict(
-            VSCODE_TAG="latest",
-            VSCODE_DOMAIN=self.get_nginx_domain(),
-            VSCODE_PORT=Config.Alias(type=int, default=0),
-            VSCODE_PASSWORD=Config.Prompt(cached=True),
+            CODER_SSH_PATH=Config.Alias(type="path") | Config.Lazy(lambda cfg: self._get_ssh_path(cfg)),
+            CODER_LLM_PATH=Config.Alias(type="path") | self.get_app_path("llm"),
+            CODER_PROJECT_PATH=Config.Alias("PROJECT_PATH", type="path") | Config.Prompt(cached=True) | self.get_app_path("projects"),
         )
-
-    @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_public("VS Code", "microsoftVisualStudioCode", "在线vscode", self.load_nginx_url(
-                "VSCODE_DOMAIN",
-                proxy_conf=self.get_source_path("nginx.conf"),
-            )),
-            self.expose_container("VS Code", "microsoftVisualStudioCode", "在线vscode", self.load_port_url(
-                "VSCODE_PORT",
-                https=False
-            )),
-        ]

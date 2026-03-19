@@ -29,6 +29,7 @@
 import os.path
 import subprocess
 from pathlib import Path
+from typing import Iterable
 
 from linktools import utils
 from linktools.cli import subcommand, subcommand_argument
@@ -40,20 +41,14 @@ from linktools.decorator import cached_property
 class Container(BaseContainer):
     """build android image"""
 
-    @classmethod
-    def _get_home_path(cls, cfg: Config):
-        try:
-            import pwd
-            passwd = pwd.getpwnam(cfg.get("DOCKER_USER"))
-            return Path(passwd.pw_dir)
-        except ImportError:
-            return Path.home()
+    @property
+    def dependencies(self) -> Iterable[str]:
+        return ["coder"]
 
     @cached_property
     def configs(self):
         return dict(
-            REDROID_BUILD_PATH=Config.Prompt(cached=True, type="path"),
-            REDROID_HOME_PATH=Config.Lazy(self._get_home_path),
+            REDROID_BUILD_PATH=Config.Lazy(lambda cfg: utils.join_path(cfg.get("CODER_PROJECT_PATH"), "redroid")),
         )
 
     @subcommand("init-repo", help="Initialize redroid repo")

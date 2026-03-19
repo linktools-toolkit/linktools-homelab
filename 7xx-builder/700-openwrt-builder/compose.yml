@@ -2,6 +2,7 @@ services:
   openwrt_builder:
     user: '{{ DOCKER_UID }}:{{ DOCKER_GID }}'
     volumes:
+      - '{{ CODER_SSH_PATH | mkdir | chown(docker_user) }}:/workspace/.ssh'
       - '{{ OPENWRT_BUILD_PATH | mkdir | chown(docker_user) }}:/data/openwrt'
       - '{{ (SOURCE_PATH/"configs") | chown(docker_user) }}:/data/configs'
       - '{{ (SOURCE_PATH/"patchs") | chown(docker_user) }}:/data/patchs'

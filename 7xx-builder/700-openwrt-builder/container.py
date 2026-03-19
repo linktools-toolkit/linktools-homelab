@@ -27,6 +27,7 @@
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
 import os
+from typing import Iterable
 
 from linktools import utils
 from linktools.cli import subcommand, subcommand_argument
@@ -39,10 +40,14 @@ from linktools.rich import choose
 class Container(BaseContainer):
     """build openwrt image"""
 
+    @property
+    def dependencies(self) -> Iterable[str]:
+        return ["coder"]
+
     @cached_property
     def configs(self):
         return dict(
-            OPENWRT_BUILD_PATH=Config.Prompt(cached=True, type="path"),
+            OPENWRT_BUILD_PATH=Config.Lazy(lambda cfg: utils.join_path(cfg.get("CODER_PROJECT_PATH"), "openwrt")),
         )
 
     @subcommand("update")

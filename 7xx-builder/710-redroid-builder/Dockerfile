@@ -19,24 +19,10 @@ RUN apt-get update \
 
 RUN apt-get install -y vim git git-lfs
 
-# {% if DOCKER_UID != 0 %}
-
-RUN (groupadd -g {{ DOCKER_GID }} {{ DOCKER_USER }} || true) \
-    && useradd -m -u {{ DOCKER_UID }} -g {{ DOCKER_GID }} {{ DOCKER_USER }} \
-    && echo "{{ DOCKER_USER }} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
-    && echo {{ DOCKER_USER }} >/root/username \
-    && echo "{{ DOCKER_USER }}:{{ DOCKER_USER }}" | chpasswd && adduser {{ DOCKER_USER }} sudo
-
-USER {{ DOCKER_UID }}
-
-ENV HOME=/home/{{ DOCKER_USER }} \
-    USER={{ DOCKER_USER }}
-
-# {% else %}
-
-ENV HOME=/root
-
-# {% endif %}
+ENV HOME=/workspace
+ARG USER_DIR=/workspace
+{% include "Dockerfile_ADD_SUDO_USER" %}
+{% include "Dockerfile_USER" %}
 
 ENV PATH=/src/.repo/repo:/scripts:/src/prebuilts/jdk/jdk8/linux-x86/bin/:$PATH
 

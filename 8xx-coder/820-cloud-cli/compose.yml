@@ -1,0 +1,26 @@
+services:
+  cloud-cli:
+    build:
+      context: '{{ container.code_path }}'
+      dockerfile: '{{ container.get_docker_file_path() }}'
+#   {% if CLOUD_CLI_PORT > 0 %}
+    ports:
+      - '{{ CLOUD_CLI_PORT }}:3001'
+#   {% endif %}
+    environment:
+      - NODE_ENV=production
+      - VITE_IS_PLATFORM={{ 'true' if NGINX_AUTH_ENABLE else 'false' }}
+    user: '{{ DOCKER_UID }}:{{ DOCKER_GID }}'
+    volumes:
+      - '{{ (APP_PATH/"data") | mkdir | chown(docker_user) }}:/app/data'
+      - '{{ utils.join_path(CODER_LLM_PATH, ".codex") | mkdir | chown(docker_user) }}:/workspace/.codex'
+      - '{{ utils.join_path(CODER_LLM_PATH, ".claude") | mkdir | chown(docker_user) }}:/workspace/.claude'
+      - '{{ utils.join_path(CODER_LLM_PATH, ".cursor") | mkdir | chown(docker_user) }}:/workspace/.cursor'
+      - '{{ utils.join_path(CODER_LLM_PATH, ".gemini") | mkdir | chown(docker_user) }}:/workspace/.gemini'
+      - '{{ CODER_SSH_PATH | mkdir | chown(docker_user) }}:/workspace/.ssh'
+      - '{{ CODER_PROJECT_PATH }}:/workspace/projects'
+    networks:
+      nginx:
+
+networks:
+  nginx:
