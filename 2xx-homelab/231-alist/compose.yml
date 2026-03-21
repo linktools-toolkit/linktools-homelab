@@ -2,8 +2,8 @@ services:
   alist:
     image: 'xhofe/alist:{{ ALIST_TAG }}'
     volumes:
-      - '{{ mkdir(APP_DATA_PATH/"config") | chown }}:/opt/alist/data'
-      - '{{ ALIST_DATA_PATH | mkdir | chown }}:/data'
+      - '{{ (APP_DATA_PATH/"config") | mkdir | chown }}:/opt/alist/data'
+      - '{{ ALIST_DATA_PATH }}:/data'
 #   {% if ALIST_PORT > 0 %}
     ports:
       - '{{ ALIST_PORT }}:5244'
