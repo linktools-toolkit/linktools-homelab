@@ -7,15 +7,12 @@ RUN apt-get update && \
 
 RUN npm install -g @anthropic-ai/claude-code @openai/codex @google/gemini-cli
 
-ENV HOME=/workspace
-ENV PATH=/workspace/.local/bin:$PATH
-ENV USER={{ DOCKER_USER }}
-
-ARG USER_DIR=/workspace
+ARG ARG_USER="{{ DOCKER_USER }}"
+ARG ARG_USER_UID="{{ DOCKER_UID }}"
+ARG ARG_USER_GID="{{ DOCKER_GID }}"
+ARG ARG_USER_DIR=/workspace
 {% include "Dockerfile_ADD_SUDO_USER" %}
 {% include "Dockerfile_USER" %}
 
-RUN sudo mkdir -p /workspace/.claude /workspace/.cloudcli /workspace/.cursor /workspace/.gemini /workspace/projects
-RUN sudo chown -R {{ DOCKER_UID }}:{{ DOCKER_GID }} /workspace
-
+ENV PATH=/workspace/.local/bin:$PATH
 WORKDIR /workspace

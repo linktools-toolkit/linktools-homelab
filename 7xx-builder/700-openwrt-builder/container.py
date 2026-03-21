@@ -115,13 +115,3 @@ class Container(BaseContainer):
         self.manager.create_docker_process(
             "exec", "-it", self.get_service_name("openwrt_builder"), *args,
         ).call()
-
-    def on_started(self):
-        self.manager.create_docker_process(
-            "exec", self.get_service_name("openwrt_builder"),
-            "git", "config", "--global", "http.sslverify", "false"
-        ).call()
-        self.manager.create_docker_process(
-            "exec", self.get_service_name("openwrt_builder"),
-            "git", "config", "pull.rebase", "true"
-        ).call()

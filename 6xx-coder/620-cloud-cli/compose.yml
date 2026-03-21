@@ -13,12 +13,10 @@ services:
     user: '{{ DOCKER_UID }}:{{ DOCKER_GID }}'
     volumes:
       - '{{ (APP_PATH/"data") | mkdir | chown(docker_user) }}:/app/data'
-      - '{{ utils.join_path(CODER_LLM_PATH, ".codex") | mkdir | chown(docker_user) }}:/workspace/.codex'
-      - '{{ utils.join_path(CODER_LLM_PATH, ".claude") | mkdir | chown(docker_user) }}:/workspace/.claude'
-      - '{{ utils.join_path(CODER_LLM_PATH, ".cursor") | mkdir | chown(docker_user) }}:/workspace/.cursor'
-      - '{{ utils.join_path(CODER_LLM_PATH, ".gemini") | mkdir | chown(docker_user) }}:/workspace/.gemini'
-      - '{{ CODER_SSH_PATH | mkdir | chown(docker_user) }}:/workspace/.ssh'
       - '{{ CODER_PROJECT_PATH }}:/workspace/projects'
+      {% for name, path in containers["coder"].home_files.items() -%}
+      - '{{ path }}:/workspace/{{ name }}'
+      {% endfor %}
     networks:
       nginx:
 

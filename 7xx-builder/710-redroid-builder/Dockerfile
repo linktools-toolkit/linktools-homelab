@@ -19,10 +19,16 @@ RUN apt-get update \
 
 RUN apt-get install -y vim git git-lfs
 
-ENV HOME=/workspace
-ARG USER_DIR=/workspace
+ARG ARG_USER={{ DOCKER_USER }}
+ARG ARG_USER_UID={{ DOCKER_UID }}
+ARG ARG_USER_GID={{ DOCKER_GID }}
+ARG ARG_USER_DIR=/workspace
 {% include "Dockerfile_ADD_SUDO_USER" %}
 {% include "Dockerfile_USER" %}
+
+ARG ARG_GIT_NAME={{ CODER_GIT_NAME }}
+ARG ARG_GIT_EMAIL={{ CODER_GIT_EMAIL }}
+{% include "Dockerfile_GIT_CONFIG" %}
 
 ENV PATH=/src/.repo/repo:/scripts:/src/prebuilts/jdk/jdk8/linux-x86/bin/:$PATH
 

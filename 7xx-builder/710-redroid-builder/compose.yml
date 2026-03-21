@@ -2,9 +2,11 @@ services:
   redroid-builder:
     user: '{{ DOCKER_UID }}:{{ DOCKER_GID }}'
     volumes:
-      - '{{ CODER_SSH_PATH | mkdir | chown(docker_user) }}:/workspace/.ssh'
       - '{{ REDROID_BUILD_PATH | mkdir | chown(docker_user) }}:/src'
       - '{{ (SOURCE_PATH/"scripts") | chown(docker_user) }}:/scripts:ro'
+      {% for name, path in containers["coder"].base_home_files.items() -%}
+      - '{{ path }}:/workspace/{{ name }}'
+      {% endfor %}
     environment:
       - 'LANG=en_US.UTF-8'
     working_dir: "/src"

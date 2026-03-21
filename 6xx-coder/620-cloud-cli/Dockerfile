@@ -48,26 +48,26 @@ COPY --from=build /app/scripts ./scripts
 COPY --from=build /app/package*.json ./
 COPY --from=build /app/node_modules ./node_modules
 
-# Create directories for persistence
-RUN mkdir -p /workspace/.claude /workspace/.cloudcli /workspace/.cursor /workspace/.gemini
-RUN chown -R {{ DOCKER_UID }}:{{ DOCKER_GID }} /workspace
-
-ARG USER_DIR=/workspace
-ARG USER_SHELL=/bin/bash
+ARG ARG_USER={{ DOCKER_USER }}
+ARG ARG_USER_UID={{ DOCKER_UID }}
+ARG ARG_USER_GID={{ DOCKER_GID }}
+ARG ARG_USER_DIR=/workspace
 {% include "Dockerfile_ADD_SUDO_USER" %}
 {% include "Dockerfile_USER" %}
 
-ENV HOME=/workspace
+ARG ARG_GIT_NAME="{{ CODER_GIT_NAME }}"
+ARG ARG_GIT_EMAIL="{{ CODER_GIT_EMAIL }}"
+{% include "Dockerfile_GIT_CONFIG" %}
+
 WORKDIR /workspace
-
-RUN sudo npm install -g task-master-ai react react-dom
-RUN sudo npm install -g @anthropic-ai/claude-code @openai/codex @google/gemini-cli && \
-    curl https://cursor.com/install -fsSL | bash
-
 ENV HOST 0.0.0.0
 ENV PORT 3001
 EXPOSE 3001
 ENV DATABASE_PATH=/app/data/cloudcli.db
 ENV GEMINI_PATH=/workspace/.gemini
+
+RUN sudo npm install -g task-master-ai react react-dom
+RUN sudo npm install -g @anthropic-ai/claude-code @openai/codex @google/gemini-cli && \
+    curl https://cursor.com/install -fsSL | bash
 
 CMD ["/app/server/index.js"]

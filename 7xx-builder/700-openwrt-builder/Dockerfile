@@ -11,9 +11,16 @@ RUN apt-get update -y \
         python3 python3-pyelftools python3-setuptools qemu-utils rsync scons squashfs-tools subversion \
         swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev
 
-ENV HOME=/workspace
-ARG USER_DIR=/workspace
+ARG ARG_USER={{ DOCKER_USER }}
+ARG ARG_USER_UID={{ DOCKER_UID }}
+ARG ARG_USER_GID={{ DOCKER_GID }}
+ARG ARG_USER_DIR=/workspace
 {% include "Dockerfile_ADD_SUDO_USER" %}
 {% include "Dockerfile_USER" %}
+
+ARG ARG_GIT_NAME={{ CODER_GIT_NAME }}
+ARG ARG_GIT_EMAIL={{ CODER_GIT_EMAIL }}
+ARG ARG_GIT_HTTP_SSLVERIFY=false
+{% include "Dockerfile_GIT_CONFIG" %}
 
 CMD ["tail", "-f", "/dev/null"]
