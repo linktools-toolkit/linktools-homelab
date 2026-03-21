@@ -14,9 +14,7 @@ COPY overlay/docker-entrypoint-hooks.d/post-upgrade/* /docker-entrypoint-hooks.d
 RUN mkdir -p /usr/local/etc/php/conf.d/ && \
     chmod 777 /usr/local/etc/php/conf.d/
 
-# {% if DOCKER_UID != 0 %}
-
-RUN (groupadd -g {{ DOCKER_GID }} {{ DOCKER_USER }} || true) && \
-    useradd -m -u {{ DOCKER_UID }} -g {{ DOCKER_GID }} {{ DOCKER_USER }}
-
-# {% endif %}
+ARG ARG_USER="{{ DOCKER_USER }}"
+ARG ARG_USER_UID="{{ DOCKER_UID }}"
+ARG ARG_USER_GID="{{ DOCKER_GID }}"
+{% include "Dockerfile_ADD_USER" %}

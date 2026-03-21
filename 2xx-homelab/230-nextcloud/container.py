@@ -40,7 +40,7 @@ class Container(BaseContainer):
 
     @property
     def dependencies(self) -> Iterable[str]:
-        return ["nginx"]
+        return ["nginx", "storage", "download"]
 
     @cached_property
     def configs(self):

@@ -8,8 +8,8 @@ services:
       - 'WEBUI_PORT=8080'
       - 'TORRENTING_PORT={{ QBITTORRENT_TORRENTING_PORT }}'
     volumes:
-      - '{{ mkdir(APP_PATH/"config") | chown(docker_user) }}:/config'
-      - '{{ mkdir(DOWNLOAD_PATH/"qbittorrent") | chown(docker_user) }}:/downloads'
+      - '{{ (APP_PATH/"config") | mkdir | chown(docker_user) }}:/config'
+      - '{{ (DOWNLOAD_USER_PATH/"qbittorrent") | mkdir | chown(docker_user) }}:/downloads'
 #   {% if QBITTORRENT_PORT > 0 %}
     ports:
       - '{{ QBITTORRENT_PORT }}:8080'

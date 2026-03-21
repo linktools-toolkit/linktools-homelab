@@ -27,10 +27,10 @@ services:
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=0 # Allow an unprivileged user to listen on any port (https://github.com/nextcloud/docker/issues/359)
     volumes:
-      - '{{ mkdir(APP_PATH/"html") | chown(docker_user) }}:/var/www/html'
-      - '{{ mkdir(APP_PATH/"data") | chown(docker_user) }}:/var/www/html/data'
-      - '{{ mkdir(USER_DATA_PATH) | chown(docker_user) }}:/data'
-      - '{{ mkdir(DOWNLOAD_PATH) | chown(docker_user) }}:/downloads'
+      - '{{ (APP_PATH/"html") | mkdir | chown(docker_user) }}:/var/www/html'
+      - '{{ (APP_PATH/"data") | mkdir | chown(docker_user) }}:/var/www/html/data'
+      - '{{ STORAGE_USER_PATH | mkdir | chown(docker_user) }}:/data'
+      - '{{ DOWNLOAD_USER_PATH | mkdir | chown(docker_user) }}:/downloads'
     networks:
       - nextcloud
       - nginx

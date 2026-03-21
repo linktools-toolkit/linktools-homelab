@@ -13,8 +13,8 @@ services:
       - '{{ ARIA2_PORT }}:6800'
 #    {% endif %}
     volumes:
-      - '{{ mkdir(APP_PATH/"config") | chown(docker_user) }}:/config'
-      - '{{ mkdir(DOWNLOAD_PATH) | chown(docker_user) }}:/downloads'
+      - '{{ (APP_PATH/"config") | mkdir | chown(docker_user) }}:/config'
+      - '{{ (DOWNLOAD_USER_PATH/"aria2") | mkdir | chown(docker_user) }}:/downloads'
     networks:
       - nginx
 

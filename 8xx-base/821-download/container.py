@@ -26,37 +26,18 @@
   / ==ooooooooooooooo==.o.  ooo= //   ,``--{)B     ,"
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
-from typing import Iterable
 
-from linktools.cntr import BaseContainer, ExposeLink
+from linktools.cntr import BaseContainer
 from linktools.core import Config
 from linktools.decorator import cached_property
 
 
 class Container(BaseContainer):
 
-    @property
-    def dependencies(self) -> Iterable[str]:
-        return ["nginx", "download"]
-
     @cached_property
     def configs(self):
         return dict(
-            QBITTORRENT_TAG="latest",
-            QBITTORRENT_DOMAIN=self.get_nginx_domain(),
-            QBITTORRENT_PORT=Config.Alias(type=int, default=0),
-            QBITTORRENT_TORRENTING_PORT=Config.Alias(type=int, default=6881),
+            DOWNLOAD_USER_PATH=Config.Alias("DOCKER_DOWNLOAD_PATH", type="path") |
+                               Config.Prompt(cached=True) |
+                               self.manager.data_path / "download"
         )
-
-    @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_container("qBittorrent", "tools", "", self.load_port_url(
-                "QBITTORRENT_PORT",
-                https=False
-            )),
-            self.expose_public("qBittorrent", "tools", "", self.load_nginx_url(
-                "QBITTORRENT_DOMAIN",
-                proxy_conf=self.get_source_path("nginx.conf"),
-            )),
-        ]
