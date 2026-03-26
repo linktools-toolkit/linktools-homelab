@@ -43,12 +43,12 @@
 
 ##### 部署docker容器
 
-先按照[文档](https://github.com/ice-black-tea/linktools-cntr/blob/master/README.md)安装Docker、Python3等环境，然后按照以下命令部署Docker容器
+先按照[文档](https://github.com/linktools-toolkit/linktools/blob/master/linktools-cntr/README.md)安装Docker、Python3等环境，然后按照以下命令部署Docker容器
 
 第一次安装：
-```
+```bash
 # 添加代码仓库（提示添加成功或者仓库已存在均是预期内的结果，可继续后续步骤）
-ct-cntr repo add https://github.com/ice-black-tea/cntr-homelab
+ct-cntr repo add https://github.com/linktools-toolkit/linktools-homelab
 
 # 添加容器
 # omv中包含了（nextcloud、flare、qbittorrent），其他的像vscode、gitlab按需添加
@@ -68,7 +68,7 @@ ct-cntr up
 ```
 
 后续升级版本执行以下命令更新即可：
-```
+```bash
 # 更新代码仓库
 ct-cntr repo update
 
@@ -80,17 +80,17 @@ ct-cntr up
 
 避免开机时未挂载硬盘的时候就加载容器，导致容器加载失败，通过以下命令编辑延迟启动docker：
 
-```
+```bash
 SYSTEMD_EDITOR="vim" systemctl edit docker.service
 ```
 
 添加以下配置实现延迟启动:
 
 ```
-[Unit]
+[Service]
 ExecStartPre=/bin/sleep 60
 ```
 
 ## 最终效果
 
-![homelab](../images/homelab.png)
+![homelab](homelab.png)

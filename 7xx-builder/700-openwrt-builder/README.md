@@ -8,9 +8,10 @@ sed -i '$a src-git kenzo https://github.com/kenzok8/openwrt-packages' feeds.conf
 sed -i '$a src-git small https://github.com/kenzok8/small' feeds.conf.default
 ```
 
-先按照[文档](../../README.md)安装依赖项，然后按照以下命令部署docker容器
+先按照[文档](https://github.com/linktools-toolkit/linktools/blob/master/linktools-cntr/README.md)安装Docker、Python3等环境，然后按照以下命令部署Docker容器
 
 ```
-python3 deploy.py add build-openwrt
-python3 deploy.py
+ct-cntr repo add https://github.com/linktools-toolkit/linktools-homelab
+ct-cntr add openwrt-builder
+ct-cntr up
 ```
