@@ -9,7 +9,9 @@ services:
 #   {% endif %}
     environment:
       - NODE_ENV=production
-      - VITE_IS_PLATFORM={{ 'true' if NGINX_AUTH_ENABLE else 'false' }}
+#   {% if NGINX_AUTH_ENABLE > 0 %}
+      - VITE_IS_PLATFORM=true
+#   {% endif %}
     user: '{{ DOCKER_UID }}:{{ DOCKER_GID }}'
     volumes:
       - '{{ (APP_PATH/"data") | mkdir | chown(docker_user) }}:/app/data'

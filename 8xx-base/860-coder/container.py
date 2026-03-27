@@ -67,7 +67,7 @@ class Container(BaseContainer):
             CODER_GIT_EMAIL=Config.Lazy(lambda cfg: self._get_git_email()),
             CODER_PROJECT_PATH=Config.Alias("PROJECT_PATH", type="path") |
                                Config.Prompt(cached=True) |
-                               self.manager.data_path / "projects"
+                               self.get_app_path("projects")
         )
 
     @cached_property

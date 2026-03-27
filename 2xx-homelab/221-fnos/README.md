@@ -101,6 +101,10 @@ ct-cntr add vscode gitlab home-assistant
 ct-cntr config set \
   DOCKER_APP_PATH=/vol1/1000/Apps
 
+# 重启策略要设置成always，要不然飞牛重启容器没法重启
+ct-cntr config set \
+  SERVICE_RESTART_POLICY=always
+
 # 配置主域名和各种端口，打开泛域名解析，此处以 https://test.com:3000 为例，请按实际情况进行修改
 ct-cntr config set \
   NGINX_ROOT_DOMAIN=test.com \

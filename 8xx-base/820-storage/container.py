@@ -39,5 +39,5 @@ class Container(BaseContainer):
         return dict(
             STORAGE_USER_PATH=Config.Alias("DOCKER_USER_DATA_PATH", type="path") |
                               Config.Prompt(cached=True) |
-                              self.manager.data_path / "user_data"
+                              self.get_app_data_path("user_data")
         )

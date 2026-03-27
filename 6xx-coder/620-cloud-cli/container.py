@@ -46,7 +46,7 @@ class Container(BaseContainer):
     @cached_property
     def configs(self):
         return dict(
-            CLOUD_CLI_TAG="v1.25.2",
+            CLOUD_CLI_TAG="v1.26.3",
             CLOUD_CLI_URL="https://github.com/siteboon/claudecodeui/archive/refs/tags/{tag}.zip",
             CLOUD_CLI_DOMAIN=self.get_nginx_domain(),
             CLOUD_CLI_PORT=Config.Alias(type=int, default=0),

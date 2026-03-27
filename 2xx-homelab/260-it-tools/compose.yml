@@ -1,0 +1,12 @@
+services:
+  it-tools:
+    image: corentinth/it-tools:{{ IT_TOOLS_TAG }}
+#   {% if IT_TOOLS_PORT > 0 %}
+    ports:
+      - '{{ IT_TOOLS_PORT }}:80'
+#   {% endif %}
+    networks:
+      - nginx
+
+networks:
+  nginx:

@@ -39,5 +39,5 @@ class Container(BaseContainer):
         return dict(
             DOWNLOAD_USER_PATH=Config.Alias("DOCKER_DOWNLOAD_PATH", type="path") |
                                Config.Prompt(cached=True) |
-                               self.manager.data_path / "download"
+                               self.get_app_data_path("download")
         )
