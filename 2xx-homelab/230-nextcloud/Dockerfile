@@ -14,7 +14,7 @@ COPY overlay/docker-entrypoint-hooks.d/post-upgrade/* /docker-entrypoint-hooks.d
 RUN mkdir -p /usr/local/etc/php/conf.d/ && \
     chmod 777 /usr/local/etc/php/conf.d/
 
-ARG ARG_USER="{{ DOCKER_USER }}"
-ARG ARG_USER_UID="{{ DOCKER_UID }}"
-ARG ARG_USER_GID="{{ DOCKER_GID }}"
+ARG LT_USER="{{ DOCKER_USER }}"
+ARG LT_USER_UID="{{ DOCKER_UID }}"
+ARG LT_USER_GID="{{ DOCKER_GID }}"
 {% include "Dockerfile_ADD_USER" %}

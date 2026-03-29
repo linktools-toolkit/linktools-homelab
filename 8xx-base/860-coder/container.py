@@ -75,7 +75,7 @@ class Container(BaseContainer):
         result = dict()
         for name in (".ssh",):
             path = os.path.join(self.get_config("CODER_HOME_PATH"), name)
-            if os.path.exists(path):
+            if os.path.isdir(path):
                 result[name] = path
         return result
 
@@ -87,4 +87,10 @@ class Container(BaseContainer):
             self.start_hooks.append(functools.partial(os.makedirs, path, mode=0o755, exist_ok=True))
             self.start_hooks.append(functools.partial(self.manager.change_file_owner, path, self.get_config("DOCKER_USER"), recursive=False))
             result[name] = path
+        return result
+
+    @cached_property
+    def project_files(self):
+        result = dict()
+        result[""] = self.get_config("CODER_PROJECT_PATH")
         return result

@@ -10,10 +10,12 @@ services:
 #   {% endif %}
     volumes:
       - '{{ (APP_PATH/"home") | mkdir | chown(docker_user) }}:/workspace'
-      - '{{ CODER_PROJECT_PATH }}:/workspace/projects'
-      {% for name, path in containers["coder"].home_files.items() -%}
+#     {% for name, path in containers["coder"].home_files.items() %}
       - '{{ path }}:/workspace/{{ name }}'
-      {% endfor %}
+#     {% endfor %}
+#     {% for name, path in containers["coder"].project_files.items() %}
+      - '{{ path }}:/workspace/projects/{{ name }}'
+#     {% endfor %}
 #   {% if NGINX_AUTH_ENABLE %}
     command: ["--auth", "none"]
 #   {% endif %}

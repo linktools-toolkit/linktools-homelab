@@ -1,8 +1,5 @@
 services:
   ws-scrcpy:
-    build:
-      context: '{{ container.code_path }}'
-      dockerfile: '{{ container.get_docker_file_path() }}'
     environment:
       - 'WS_SCRCPY_CONFIG=/ws-scrcpy/config.yaml'
     volumes:

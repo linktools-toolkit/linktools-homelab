@@ -26,28 +26,22 @@
   / ==ooooooooooooooo==.o.  ooo= //   ,``--{)B     ,"
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
-import os.path
-import shutil
-import zipfile
 from typing import Iterable
 
 import yaml
 
-from linktools import utils
-from linktools.cntr import BaseContainer, ExposeLink
+from linktools.cntr import SourceContainer, ExposeLink, EventContext
 from linktools.core import Config
 from linktools.decorator import cached_property
 
 
-class Container(BaseContainer):
+class Container(SourceContainer):
 
     @cached_property
     def configs(self):
         return dict(
-            WS_SCRCPY_TAG="c3100dd802e6dee7b87db855684d53b7a8dfe458",
-            WS_SCRCPY_URL="https://github.com/{user}/{name}/archive/{tag}.zip",
-            WS_SCRCPY_NAME="ws-scrcpy",
-            WS_SCRCPY_USER="redroid-rockchip",
+            WS_SCRCPY_TAG="master",
+            WS_SCRCPY_URL="https://github.com/redroid-rockchip/ws-scrcpy/archive/refs/heads/{tag}.zip",
             WS_SCRCPY_PORT=Config.Alias(default=8000, type=int),
         )
 
@@ -59,34 +53,20 @@ class Container(BaseContainer):
                 self.load_port_url("WS_SCRCPY_PORT", https=False)),
         ]
 
-    @cached_property
-    def code_path(self):
+    @property
+    def _source_url(self):
         tag = self.get_config("WS_SCRCPY_TAG")
-        name = self.get_config("WS_SCRCPY_NAME")
-        user = self.get_config("WS_SCRCPY_USER")
+        url = self.get_config("WS_SCRCPY_URL").format(tag=tag)
+        return url
 
-        zip_path = self.get_app_path("source", f"{name}-{user}-{tag}.zip")
-        source_path = str(zip_path) + ".unzip"
+    @property
+    def _source_path(self):
+        tag = self.get_config("WS_SCRCPY_TAG")
+        return f"ws-scrcpy-{tag.lstrip('v')}"
 
-        def init_source_code():
-            if not os.path.isdir(source_path):
-                url = self.get_config("WS_SCRCPY_URL").format(tag=tag, name=name, user=user)
-                file = self.manager.environ.get_url_file(url)
-                file.save(zip_path.parent, zip_path.name)
-                os.makedirs(source_path, exist_ok=True)
-                try:
-                    with zipfile.ZipFile(zip_path) as f:
-                        for names in f.namelist():
-                            f.extract(names, source_path)
-                except:
-                    utils.ignore_errors(os.remove, args=(zip_path,))
-                    shutil.rmtree(source_path, ignore_errors=True)
-                    raise
+    def on_starting(self, context: EventContext):
+        super().on_starting(context)
 
-        self.start_hooks.append(init_source_code)
-        return os.path.join(source_path, f"{name}-{tag.lstrip('v')}")
-
-    def on_starting(self):
         with open(self.get_app_path("config.yaml"), "wt") as fd:
             yaml.dump({
                 "server": [{
@@ -94,6 +74,3 @@ class Container(BaseContainer):
                     "port": self.get_config("WS_SCRCPY_PORT")
                 }]
             }, fd)
-
-    def on_removed(self):
-        utils.remove_file(self.get_app_path("source"))
