@@ -11,11 +11,6 @@ services:
     ports:
       - '{{ CLOUD_CLI_PORT }}:3001'
 #   {% endif %}
-    environment:
-      - NODE_ENV=production
-#   {% if NGINX_AUTH_ENABLE %}
-      - VITE_IS_PLATFORM=true
-#   {% endif %}
     user: '{{ DOCKER_UID }}:{{ DOCKER_GID }}'
     volumes:
       - '{{ (APP_PATH/"home") | mkdir | chown(docker_user) }}:/workspace'
