@@ -1,0 +1,21 @@
+services:
+  sublink-pro:
+    image: zerodeng/sublink-pro:{{ SUBLINK_TAG }}
+#   {% if SUBLINK_PORT > 0 %}
+    ports:
+      - '{{ SUBLINK_PORT }}:8000'
+#   {% endif %}
+    environment:
+      - SUBLINK_ADMIN_PASSWORD={{ SUBLINK_ADMIN_PASSWORD }}
+#     {% if NGINX_AUTH_ENABLE %}
+      - SUBLINK_CAPTCHA_MODE=1
+#     {% endif %}
+    volumes:
+      - "{{ (APP_PATH/"db") | mkdir | chown }}:/app/db"
+      - "{{ (APP_PATH/"template") | mkdir | chown }}:/app/template"
+      - "{{ (APP_PATH/"logs") | mkdir | chown }}:/app/logs"
+    networks:
+      - nginx
+
+networks:
+  nginx:

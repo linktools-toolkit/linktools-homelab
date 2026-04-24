@@ -26,15 +26,12 @@
   / ==ooooooooooooooo==.o.  ooo= //   ,``--{)B     ,"
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
-import os
-from pathlib import PurePosixPath
 from typing import Any, Iterable
 
 from linktools import utils
 from linktools.core import Config
-from linktools.cli import subcommand, subcommand_argument
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, ExposeLink, EventContext
+from linktools.cntr import BaseContainer, ExposeLink
 
 
 class Container(BaseContainer):
@@ -101,4 +98,12 @@ class Container(BaseContainer):
         if self.proxy_url:
             nginx = self.manager.containers["nginx"]
             domain = self.get_config("VSCODE_DOMAIN")
-            nginx.ssl_domains.append(f"*.{domain}")
+            nginx.append_ssl_domains(f"*.{domain}")
+        
+        coder = self.manager.containers["coder"]
+        coder.install_modules[self.get_service_name("code-server")] = [
+            {"type": "shell", "module": "curl -fsSL https://claude.ai/install.sh | bash"},
+            {"type": "npm", "module": "@openai/codex@latest"},
+            {"type": "npm", "module": "@google/gemini-cli@latest"},
+            {"type": "npm", "module": "npx@latest"},
+        ]

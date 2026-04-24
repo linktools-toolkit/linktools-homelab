@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh api:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(gh repo:*)",
+      "WebFetch(domain:cloudcli.ai)",
+      "Bash(curl -s \"https://api.github.com/repos/siteboon/claudecodeui/contents/server\")",
+      "Bash(curl -s https://api.github.com/repos/siteboon/claudecodeui/git/trees/main?recursive=1)",
+      "Bash(curl -s \"https://raw.githubusercontent.com/siteboon/claudecodeui/main/server/utils/plugin-loader.js\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/siteboon/claudecodeui/main/server/routes/plugins.js\")",
+      "Bash(curl -s \"https://api.github.com/repos/siteboon/claudecodeui/contents/plugins\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/siteboon/claudecodeui/main/server/utils/plugin-process-manager.js\")",
+      "Bash(curl -s \"https://api.github.com/repos/cloudcli-ai/cloudcli-plugin-starter/contents/\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/cloudcli-ai/cloudcli-plugin-starter/main/manifest.json\")",
+      "Bash(gh issue:*)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(pip show *)",
+      "Bash(python3 -c \"from linktools.cntr import BaseContainer; import inspect; print\\(inspect.getfile\\(BaseContainer\\)\\)\")",
+      "Bash(grep -n \"proxy_conf.*get_source_path\\\\|proxy_conf.*Path\" /workspace/projects/linktools/linktools-cntr/src/linktools/assets/containers/*/container.py)",
+      "Bash(python3 -c \"import linktools; print\\(linktools.__file__\\)\")",
+      "Read(//usr/**)",
+      "Bash(python3 -m linktools.cntr --help)",
+      "Bash(ct-cntr --help)",
+      "Read(//workspace/.venv/**)",
+      "Bash(python3 -m linktools.cntr repo --help)",
+      "Bash(python3 -m linktools.cntr list --help)",
+      "Bash(python3 -m linktools.cntr config --help)",
+      "Bash(python3 -m linktools.cntr exec --help)",
+      "Bash(python3 -m linktools.cntr up --help)",
+      "Bash(python3 -m linktools.cntr repo list)",
+      "Bash(python3 -m linktools.cntr list)",
+      "Bash(python3 -c ' *)"
+    ]
+  }
+}

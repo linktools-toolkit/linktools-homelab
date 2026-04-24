@@ -235,7 +235,9 @@ ct-cntr exec authelia show-notification
 
 1. 点击 **Groups** → **Create group**，创建 `admins` 组（若已存在可跳过）
 2. 点击 **Users** → **Create user**，创建自己的账号
-3. 回到 **Users**，打开自己的账号，在 **Groups** 标签中加入 `admins` 组
+3. 回到 **Users**，打开自己的账号，在 **Groups** 标签中加入以下两个组：
+   - `admins`：Authelia 管理员权限，默认拥有所有系统权限（除了 `/auth-admin/`）
+   - `lldap_admin`：LLDAP 控制台管理权限（缺少此组将无法登录 `/auth-admin/`）
 
 #### 4. 为自己账号绑定二步验证
 
@@ -248,6 +250,22 @@ ct-cntr exec authelia show-notification
 - 或在 admin 账号已登录的 `https://sso.test.com:3000/auth-admin/` 页面 **Notifications** 中查看
 
 > `admins` 组成员拥有所有接入 SSO 的服务的管理权限。
+
+### 免密登录
+
+很多人以为 SSO 只是"统一登录入口"，但它真正省事的地方在于：配置好之后，后端系统根本不需要再输密码。
+
+Authelia 支持多种对接协议，覆盖范围很广：
+
+| 协议 | 适用系统 |
+|------|---------|
+| OIDC（OpenID Connect） | Portainer、PVE、GitLab、Nextcloud 等支持标准 OIDC 的应用 |
+| OAuth2 | 同上，很多现代应用两者都支持 |
+| Basic Authentication 代理 | OpenWrt LuCI 等只有账号密码框的旧系统 |
+| API Key 注入 | Safeline 等部分只支持 Token 认证的系统 |
+| Forward Auth | 任何通过 nginx 反代的应用，无需应用本身改动 |
+
+实际效果是：在 Authelia 登录一次、通过二步验证之后，打开 Portainer、Safeline、PVE、OpenWrt，这些系统不再需要输入密码。一次验证，全套放行。
 
 ### 配置 Docker 延迟加载
 

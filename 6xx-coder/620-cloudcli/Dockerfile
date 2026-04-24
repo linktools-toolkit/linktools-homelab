@@ -37,26 +37,28 @@ FROM node:22-slim
 
 # Install runtime dependencies
 # Claude Code CLI requires git and other tools
-RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    python3 \
-    sudo \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update \
+    && apt-get install -y git curl python3 sudo wget
+
+RUN mkdir -p -m 755 /etc/apt/keyrings \
+	&& out=$(mktemp) && wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+	&& cat $out | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
+	&& chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+	&& mkdir -p -m 755 /etc/apt/sources.list.d \
+	&& echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+	&& apt update \
+	&& apt install gh -y
+
+RUN rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 # Copy built files and server from build stage
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/server ./server
-COPY --from=build /app/shared ./shared
+COPY --from=build /app/dist-server ./dist-server
 COPY --from=build /app/scripts ./scripts
 COPY --from=build /app/package*.json ./
 COPY --from=build /app/node_modules ./node_modules
-
-RUN npm install -g task-master-ai react react-dom
-RUN npm install -g @anthropic-ai/claude-code @openai/codex @google/gemini-cli
-# RUN curl https://cursor.com/install -fsSL | bash
 
 ARG LT_USER={{ DOCKER_USER }}
 ARG LT_USER_UID={{ DOCKER_UID }}
@@ -65,7 +67,13 @@ ARG LT_USER_DIR=/workspace
 {% include "Dockerfile_ADD_SUDO_USER" %}
 {% include "Dockerfile_USER" %}
 
+ENV NPM_CONFIG_PREFIX=/workspace/.node_modules
+ENV NPM_CONFIG_REGISTRY={{ CODER_NPM_REGISTRY }}
+RUN mkdir -p /workspace/.node_modules
+
+ENV PATH=/workspace/.local/bin:/workspace/.node_modules/bin:$PATH
 WORKDIR /workspace
+
 ENV HOST 0.0.0.0
 ENV PORT 3001
 EXPOSE 3001
@@ -79,7 +87,7 @@ ENV VITE_IS_PLATFORM=$VITE_IS_PLATFORM
 # Default credentials: admin / platform
 RUN if [ "$VITE_IS_PLATFORM" = "true" ]; then \
       printf '%s\n' \
-        'import { initializeDatabase, userDb } from "/app/server/database/db.js";' \
+        'import { initializeDatabase, userDb } from "/app/dist-server/server/database/db.js";' \
         'await initializeDatabase();' \
         'if (!userDb.hasUsers()) {' \
         '  userDb.createUser("admin", "$2b$12$N2aNoQ0Jv425ocxt.V4SQe2q1EI1/3z8Z8MVcNKOmKJjTkVqdlY9u");' \
@@ -89,4 +97,4 @@ RUN if [ "$VITE_IS_PLATFORM" = "true" ]; then \
       && node /tmp/init-user.mjs; \
     fi
 
-CMD ["/app/server/index.js"]
+CMD ["node", "/app/dist-server/server/index.js"]

@@ -1,5 +1,5 @@
 services:
-  openwrt_builder:
+  openwrt-builder:
     user: '{{ DOCKER_UID }}:{{ DOCKER_GID }}'
     volumes:
       - '{{ OPENWRT_BUILD_PATH | mkdir | chown(docker_user) }}:/data/openwrt'

@@ -1,11 +1,26 @@
 FROM codercom/code-server:{{ VSCODE_TAG }}
 
 USER root
-RUN apt-get update && \
-    apt-get install -y python3-pip python3-venv nodejs npm && \
-    rm -rf /var/lib/apt/lists/*
 
-RUN npm install -g @anthropic-ai/claude-code @openai/codex @google/gemini-cli
+RUN apt-get update \
+    && apt-get install -y python3-pip python3-venv nodejs npm
+
+RUN mkdir -p -m 755 /etc/apt/keyrings \
+    && out=$(mktemp) && wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+    && cat $out | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
+    && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+    && mkdir -p -m 755 /etc/apt/sources.list.d \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+    && apt update \
+    && apt install gh -y
+
+RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | tee /etc/apt/trusted.gpg.d/google.asc >/dev/null \
+    && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' \
+    && apt-get update \
+    && apt-get install -y google-chrome-stable fonts-noto-cjk fonts-wqy-zenhei fonts-wqy-microhei fontconfig \
+    && fc-cache -fv
+
+RUN rm -rf /var/lib/apt/lists/*
 
 RUN node -e " \
   const fs = require('fs'); \
@@ -31,5 +46,15 @@ ARG LT_USER_DIR=/workspace
 {% include "Dockerfile_ADD_SUDO_USER" %}
 {% include "Dockerfile_USER" %}
 
-ENV PATH=/workspace/.local/bin:$PATH
+RUN mkdir -p /workspace/.node_modules
+
+ENV NPM_CONFIG_PREFIX=/workspace/.node_modules
+ENV NPM_CONFIG_REGISTRY={{ CODER_NPM_REGISTRY }}
+ENV PATH=/workspace/.local/bin:/workspace/.node_modules/bin:$PATH
+RUN printf '%s\n' \
+    'export NPM_CONFIG_PREFIX=/workspace/.node_modules' \
+    'export NPM_CONFIG_REGISTRY={{ CODER_NPM_REGISTRY }}' \
+    'export PATH=/workspace/.local/bin:/workspace/.node_modules/bin:$PATH' \
+    | sudo tee /etc/profile.d/workspace-env.sh > /dev/null
+
 WORKDIR /workspace

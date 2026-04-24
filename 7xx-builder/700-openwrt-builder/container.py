@@ -53,25 +53,25 @@ class Container(BaseContainer):
     @subcommand("update")
     def on_exec_update(self):
         self.manager.create_docker_process(
-            "exec", self.get_service_name("openwrt_builder"), "git", "stash"
+            "exec", self.get_service_name("openwrt-builder"), "git", "stash"
         ).check_call()
         self.manager.create_docker_process(
-            "exec", self.get_service_name("openwrt_builder"), "git", "pull"
+            "exec", self.get_service_name("openwrt-builder"), "git", "pull"
         ).check_call()
         self.manager.create_docker_process(
-            "exec", self.get_service_name("openwrt_builder"), "git", "stash", "pop"
+            "exec", self.get_service_name("openwrt-builder"), "git", "stash", "pop"
         ).check_call()
         self.manager.create_docker_process(
-            "exec", self.get_service_name("openwrt_builder"), "./scripts/feeds", "update", "-a"
+            "exec", self.get_service_name("openwrt-builder"), "./scripts/feeds", "update", "-a"
         ).check_call()
         self.manager.create_docker_process(
-            "exec", self.get_service_name("openwrt_builder"), "./scripts/feeds", "install", "-a"
+            "exec", self.get_service_name("openwrt-builder"), "./scripts/feeds", "install", "-a"
         ).check_call()
 
     @subcommand("config")
     def on_exec_config(self):
         self.manager.create_docker_process(
-            "exec", "-it", self.get_service_name("openwrt_builder"), "make", "menuconfig"
+            "exec", "-it", self.get_service_name("openwrt-builder"), "make", "menuconfig"
         ).check_call()
 
     @subcommand("choose")
@@ -88,7 +88,7 @@ class Container(BaseContainer):
         )
 
         self.manager.create_docker_process(
-            "exec", "-it", self.get_service_name("openwrt_builder"),
+            "exec", "-it", self.get_service_name("openwrt-builder"),
             "sh", "-c", utils.list2cmdline([
                 "ln", "-sf",
                 f"/data/configs/{config_name}.config",
@@ -103,7 +103,7 @@ class Container(BaseContainer):
         if self.manager.debug:
             args.append("V=s")
         self.manager.create_docker_process(
-            "exec", "-it", self.get_service_name("openwrt_builder"), *args,
+            "exec", "-it", self.get_service_name("openwrt-builder"), *args,
         ).call()
 
     @subcommand("build")
@@ -113,5 +113,5 @@ class Container(BaseContainer):
         if self.manager.debug:
             args.append("V=s")
         self.manager.create_docker_process(
-            "exec", "-it", self.get_service_name("openwrt_builder"), *args,
+            "exec", "-it", self.get_service_name("openwrt-builder"), *args,
         ).call()

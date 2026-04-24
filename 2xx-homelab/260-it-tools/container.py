@@ -53,8 +53,8 @@ class Container(BaseContainer):
             self.expose_other("DNS查询", "dns", "", "https://tool.chinaz.com/dns/"),
             self.expose_other("图标下载", "progressDownload", "", "https://materialdesignicons.com/"),
 
-            self.expose_container("IT-TOOLS", "tools", "it工具集", self.load_port_url("IT_TOOLS_PORT", https=False)),
-            self.expose_public("IT-TOOLS", "tools", "it工具集", self.load_nginx_url(
+            self.expose_container("IT Tools", "tools", "it工具集", self.load_port_url("IT_TOOLS_PORT", https=False)),
+            self.expose_public("IT Tools", "tools", "it工具集", self.load_nginx_url(
                 "IT_TOOLS_DOMAIN",
                 proxy_url="http://it-tools",
                 auth_enable=True,

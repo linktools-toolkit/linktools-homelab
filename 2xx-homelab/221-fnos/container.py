@@ -28,7 +28,6 @@
 """
 from typing import Iterable
 
-from linktools import utils
 from linktools.cntr import BaseContainer, ExposeLink
 from linktools.decorator import cached_property
 

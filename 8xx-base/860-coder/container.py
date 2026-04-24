@@ -30,8 +30,8 @@ import functools
 import os
 from pathlib import Path
 
-from linktools import utils
-from linktools.cntr import BaseContainer, ExposeLink
+from linktools.cli import subcommand
+from linktools.cntr import BaseContainer
 from linktools.core import Config
 from linktools.decorator import cached_property
 
@@ -62,9 +62,11 @@ class Container(BaseContainer):
     def configs(self):
         return dict(
             CODER_HOME_PATH=Config.Alias(type="path") | Config.Lazy(lambda cfg: self._get_home_path(cfg)),
-            CODER_LLM_PATH=Config.Alias(type="path") | self.get_app_path("llm"),
+            CODER_HOME_SHARE_PATH=Config.Alias(type="path") | self.get_app_path("home"),
             CODER_GIT_NAME=Config.Lazy(lambda cfg: self._get_git_name()),
             CODER_GIT_EMAIL=Config.Lazy(lambda cfg: self._get_git_email()),
+            CODER_NPM_REGISTRY="https://registry.npmmirror.com",
+            CODER_PIP_REGISTRY="https://pypi.org/simple/",
             CODER_PROJECT_PATH=Config.Alias("PROJECT_PATH", type="path") |
                                Config.Prompt(cached=True) |
                                self.get_app_path("projects")
@@ -82,8 +84,8 @@ class Container(BaseContainer):
     @cached_property
     def home_files(self):
         result = dict(self.base_home_files)
-        for name in (".codex", ".claude", ".cursor", ".gemini"):
-            path = os.path.join(self.get_config("CODER_LLM_PATH"), name)
+        for name in (".codex", ".claude", ".cursor", ".gemini", ".share"):
+            path = os.path.join(self.get_config("CODER_HOME_SHARE_PATH"), name)
             self.start_hooks.append(functools.partial(os.makedirs, path, mode=0o755, exist_ok=True))
             self.start_hooks.append(functools.partial(self.manager.change_file_owner, path, self.get_config("DOCKER_USER"), recursive=False))
             result[name] = path
@@ -94,3 +96,25 @@ class Container(BaseContainer):
         result = dict()
         result[""] = self.get_config("CODER_PROJECT_PATH")
         return result
+
+    @cached_property
+    def install_modules(self):
+        return {}
+
+    @subcommand("install-modules", help="install modules")
+    def on_exec_install_modules(self):
+        for name, modules in self.install_modules.items():
+            npm_modules = [m.get("module") for m in modules if m.get("type") == "npm"]
+            if npm_modules:
+                self.logger.info(f"Install npm modules {npm_modules} to `{name}`")
+                self.manager.create_docker_process(
+                    "exec", f"--user", self.get_config("DOCKER_UID"), name,
+                    "npm", "install", "-g", *npm_modules, "--registry", self.get_config("CODER_NPM_REGISTRY"),
+                ).check_call()
+            for module in modules:
+                if module.get("type") == "shell":
+                    self.logger.info(f"Install `{module.get('module')}` to `{name}`")
+                    self.manager.create_docker_process(
+                        "exec", f"--user", self.get_config("DOCKER_UID"), name,
+                        "sh", "-c", module.get("module"),
+                    ).check_call()

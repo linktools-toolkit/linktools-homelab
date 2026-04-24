@@ -1,8 +1,6 @@
 services:
   cloudcli:
     build:
-      context: '{{ container.get_docker_context_path() }}'
-      dockerfile: '{{ container.get_docker_file_path() }}'
 #     {% if NGINX_AUTH_ENABLE %}
       args:
         VITE_IS_PLATFORM: "true"

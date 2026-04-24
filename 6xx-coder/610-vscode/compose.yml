@@ -7,6 +7,8 @@ services:
 #     {% if container.proxy_url %}
       - 'VSCODE_PROXY_URI={{ container.proxy_url }}'
 #     {% endif %}
+    cap_add:
+      - SYS_ADMIN
 #   {% if VSCODE_PORT > 0 %}
     ports:
       - '{{ VSCODE_PORT }}:8080'

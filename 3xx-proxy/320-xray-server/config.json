@@ -29,7 +29,7 @@
                 ]
             }
         },
-	{
+	    {
             "port": 9001,
             "listen": "0.0.0.0",
             "protocol": "vless",

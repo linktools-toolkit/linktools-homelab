@@ -3,10 +3,10 @@
 
 """
 @author  : Hu Ji
-@file    : deploy.py 
+@file    : deploy.py
 @time    : 2023/05/21
-@site    :  
-@software: PyCharm 
+@site    :
+@software: PyCharm
 
               ,----------------,              ,---------,
          ,-----------------------,          ,"        ,"|
@@ -37,25 +37,29 @@ class Container(BaseContainer):
 
     @property
     def dependencies(self) -> Iterable[str]:
-        return ["download"]
+        return ["nginx"]
 
     @cached_property
     def configs(self):
         return dict(
-            ARIA2_TAG="latest",
-            ARIA2_DOMAIN=self.get_nginx_domain(),
-            ARIA2_PORT=Config.Alias(type=int, default=0),
-            ARIA2_RPC_SECRET=Config.Prompt(default="159753", type=str, cached=True),
+            SUBLINK_TAG="latest",
+            SUBLINK_DOMAIN=self.get_nginx_domain(),
+            SUBLINK_PORT=Config.Alias(type=int, default=0),
+            SUBLINK_API_KEY="",
+            SUBLINK_ADMIN_PASSWORD="123456",
+            SUBLINK_ADMIN_PASSWORD_REST=Config.Alias("SUBLINK_ADMIN_PASSWORD"),
         )
 
     @cached_property
     def exposes(self) -> Iterable[ExposeLink]:
         return [
-            self.expose_container("aria2", "tools", "", self.load_port_url("ARIA2_PORT", https=False)),
+            self.expose_public("SublinkPro", "link", "代理订阅管理", self.load_nginx_url(
+                "SUBLINK_DOMAIN",
+                proxy_conf=self.get_source_path("nginx.conf"),
+                auth_enable=True
+            )),
+            self.expose_container("SublinkPro", "link", "代理订阅管理", self.load_port_url(
+                "SUBLINK_PORT",
+                https=False
+            )),
         ]
-
-    def on_starting(self):
-        self.write_nginx_conf(
-            self.get_config("ARIA2_DOMAIN"),
-            proxy_url="http://aria2-pro:6800",
-        )

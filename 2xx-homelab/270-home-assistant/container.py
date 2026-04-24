@@ -52,7 +52,7 @@ class Container(BaseContainer):
         return [
             self.expose_public("HomeAssistant", "homeAssistant", "Home Assistant", self.load_nginx_url(
                 "HOME_ASSISTANT_DOMAIN",
-                proxy_conf=self.get_source_path("nginx.conf"),
+                proxy_url="http://home-assistant:8123",
             )),
             self.expose_container("HomeAssistant", "homeAssistant", "Home Assistant", self.load_port_url(
                 "HOME_ASSISTANT_PORT",

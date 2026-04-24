@@ -52,7 +52,7 @@ class Container(BaseContainer):
         return [
             self.expose_public("Proxy Pool", "tools", "代理池", self.load_nginx_url(
                 "PROXY_POOL_DOMAIN",
-                proxy_conf=self.get_source_path("nginx.conf"),
+                proxy_url="http://proxy-pool:5010",
             )),
             self.expose_container("Proxy Pool", "tools", "代理池", self.load_port_url(
                 "PROXY_POOL_PORT",
