@@ -54,6 +54,33 @@
                     "tls"
                 ]
             }
+        },
+        {
+            "port": 9002,
+            "listen": "0.0.0.0",
+            "protocol": "vless",
+            "settings": {
+                "clients": [
+                    {
+                        "id": "{{ XRAY_ID }}"
+                    }
+                ],
+                "decryption": "none"
+            },
+            "streamSettings": {
+                "network": "xhttp",
+                "xhttpSettings": {
+                    "path": "{{ XRAY_XHTTP_PATH }}",
+                    "mode": "stream-up"
+                }
+            },
+            "sniffing": {
+                "enabled": true,
+                "destOverride": [
+                    "http",
+                    "tls"
+                ]
+            }
         }
     ],
     "outbounds": [
