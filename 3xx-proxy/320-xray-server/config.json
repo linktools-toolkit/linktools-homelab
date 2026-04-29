@@ -71,7 +71,8 @@
                 "network": "xhttp",
                 "xhttpSettings": {
                     "path": "{{ XRAY_XHTTP_PATH }}",
-                    "mode": "stream-up"
+                    "mode": "stream-one",
+                    "httpVersion": "2"
                 }
             },
             "sniffing": {
