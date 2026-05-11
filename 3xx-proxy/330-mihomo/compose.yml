@@ -1,0 +1,23 @@
+services:
+  mihomo:
+    ports:
+      - '{{ MIHOMO_HTTP_PROXY_PORT }}:7890'
+      - '{{ MIHOMO_SOCKS_PROXY_PORT }}:7891'
+#   {% if MIHOMO_PORT > 0 %}
+      - '{{ MIHOMO_PORT }}:9090'
+#   {% endif %}
+    environment:
+      - CONFIG_FILE={{ MIHOMO_CONFIG_FILE }}
+      - SUBSCRIBE_URL={{ MIHOMO_SUBSCRIBE_URL }}
+      - SUBSCRIBE_USER_AGENT={{ MIHOMO_SUBSCRIBE_USER_AGENT }}
+      - EXTERNAL_SECRET={{ MIHOMO_SECRET }}
+      - EXTERNAL_UI_NAME={{ MIHOMO_EXTERNAL_UI_NAME }}
+      - EXTERNAL_UI_URL={{ MIHOMO_EXTERNAL_UI_URL }}
+    volumes:
+      - '{{ (APP_PATH/"config") | mkdir | chown }}:/root/.config/mihomo'
+      - '/etc/localtime:/etc/localtime:ro'
+    networks:
+      - nginx
+
+networks:
+  nginx:
