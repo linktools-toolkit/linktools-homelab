@@ -13,6 +13,7 @@ services:
       - EXTERNAL_SECRET={{ MIHOMO_SECRET }}
       - EXTERNAL_UI_NAME={{ MIHOMO_EXTERNAL_UI_NAME }}
       - EXTERNAL_UI_URL={{ MIHOMO_EXTERNAL_UI_URL }}
+      - GEOIP_METADB_URL={{ MIHOMO_GEOIP_METADB_URL }}
     volumes:
       - '{{ (APP_PATH/"config") | mkdir | chown }}:/root/.config/mihomo'
       - '/etc/localtime:/etc/localtime:ro'

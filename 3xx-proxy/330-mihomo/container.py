@@ -54,9 +54,6 @@ class Container(BaseContainer):
         ]
 
     def on_starting(self, context: EventContext):
-        geoip_path = self.get_app_path("config", "geoip.metadb")
-        if not geoip_path.exists():
-            self.logger.info("Downloading geoip.metadb ...")
-            with self.manager.environ.get_url_file(self.get_config("MIHOMO_GEOIP_METADB_URL")) as file:
-                if not geoip_path.exists():
-                    file.save(geoip_path.parent, geoip_path.name)
+        if "pull" in (context.commands or []):
+            utils.remove_file(self.get_app_path("config", "geoip.metadb"))
+            utils.remove_file(self.get_app_path("config", "ui"))

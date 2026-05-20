@@ -51,6 +51,7 @@ patch_config() {
     .external-ui-name = strenv(EXTERNAL_UI_NAME) |
     .external-ui-url = strenv(EXTERNAL_UI_URL) |
     .secret = strenv(EXTERNAL_SECRET) |
+    .geox-url.mmdb = strenv(GEOIP_METADB_URL) |
     .sniffer.enable = true |
     .sniffer.sniff.HTTP.ports = [80, "8080-8880"] |
     .sniffer.sniff.HTTP.override-destination = true |
