@@ -57,8 +57,6 @@ Dockerfiles also use Jinja2. They can `{% include "Dockerfile_ADD_SUDO_USER" %}`
 ### Base Infrastructure (8xx-base)
 
 The `8xx-base/` containers are shared infrastructure depended upon by many services:
-- `820-storage` — shared volume paths (`STORAGE_USER_PATH`)
-- `821-download` — shared download directory
 - `860-coder` — shared developer environment config (git identity, home dir, project path, npm registry)
 
 The `linktools-cntr` built-in containers (nginx, authelia, lldap, flare, portainer, safeline) are bundled inside the `linktools` package itself, not in this repo.
@@ -163,9 +161,14 @@ networks:
   nginx:
 ```
 
-Available Jinja2 globals: all `configs` keys, `APP_PATH` (pathlib.Path), `DOCKER_UID`, `DOCKER_GID`, `DOCKER_USER`, `containers["name"]`.
+Available Jinja2 globals: all `configs` keys, `APP_PATH` (pathlib.Path), `SOURCE_PATH` (pathlib.Path), `DOCKER_UID`, `DOCKER_GID`, `DOCKER_USER`, `containers["name"]`.
+
+- `APP_PATH` — runtime data directory (writable, persisted)
+- `SOURCE_PATH` — container source directory (read-only; use for mounting scripts/configs baked into the repo)
 
 The `| mkdir | chown` filters create the host directory and set ownership automatically.
+
+Use `$$` in compose templates to produce a literal `$` in the rendered output (needed when embedding shell variable syntax inside `entrypoint` or `command` YAML blocks).
 
 ### Step 4 (optional): Add a custom nginx config
 
@@ -178,6 +181,21 @@ self.load_nginx_url("MY_DOMAIN", proxy_conf=self.get_source_path("nginx.conf"))
 ### Step 5 (optional): Add a custom `Dockerfile`
 
 Dockerfiles are also Jinja2 templates. Use `SourceContainer` as base class when you need to download and build from an upstream archive (see `6xx-coder/620-cloudcli` for an example).
+
+**Auto-build injection**: when a `Dockerfile` is present in the container folder, the framework automatically injects `build.context` and `build.dockerfile` into the service definition — no manual `build:` block needed in `compose.yml`. **This injection is skipped if the service already has an `image:` field** — the framework treats an existing `image:` as a pre-built image to pull, not a local build target. To use a Dockerfile, omit `image:` from `compose.yml` entirely (or comment it out).
+
+**nginx-style entrypoint pattern**: for containers that need ordered initialization scripts, adopt the `/docker-entrypoint.d/` convention:
+
+1. Write `scripts/entrypoint.sh` that iterates `/docker-entrypoint.d/` (sorted with `find | sort -V`), checks the exec bit, and sources `.envsh` / runs `.sh` files before `exec "$@"`.
+2. In `Dockerfile`: `COPY scripts/entrypoint.sh /docker-entrypoint.sh` + `RUN chmod +x /docker-entrypoint.sh` + `ENTRYPOINT ["/docker-entrypoint.sh"]`.
+3. In `compose.yml`: mount individual scripts read-only via `SOURCE_PATH`:
+
+```yaml
+volumes:
+  - '{{ SOURCE_PATH/"scripts/00-init.sh" }}:/docker-entrypoint.d/00-init.sh:ro'
+```
+
+This keeps script logic in the repo (version-controlled, hot-swappable without rebuild) while the entrypoint dispatcher lives in the image.
 
 ## Category Map
 

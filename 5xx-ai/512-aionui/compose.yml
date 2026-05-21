@@ -1,0 +1,19 @@
+services:
+  aionui:
+    image: 'ghcr.io/linktools-toolkit/aionui:{{ AIONUI_TAG }}'
+    environment:
+      - 'PORT=3000'
+      - 'NODE_ENV=production'
+      - 'ALLOW_REMOTE=true'
+      - 'DATA_DIR=/data'
+#   {% if AIONUI_PORT > 0 %}
+    ports:
+      - '{{ AIONUI_PORT }}:3000'
+#   {% endif %}
+    volumes:
+      - '{{ (APP_PATH/"data") | mkdir | chown }}:/data'
+    networks:
+      - nginx
+
+networks:
+  nginx:
