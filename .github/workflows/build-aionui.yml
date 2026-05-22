@@ -14,29 +14,30 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.resolve.outputs.tag }}
+      version: ${{ steps.resolve.outputs.version }}
       channel: ${{ steps.resolve.outputs.channel }}
+      asset-url: ${{ steps.resolve.outputs.asset-url }}
       skip: ${{ steps.resolve.outputs.skip }}
     steps:
-      - name: Resolve tag and channel
+      - name: Resolve release info
         id: resolve
         run: |
           if [ -n "${{ inputs.tag }}" ]; then
-            TAG="${{ inputs.tag }}"
-            RELEASE=$(curl -sf "https://api.github.com/repos/iOfficeAI/AionUi/releases/tags/$TAG")
+            RELEASE=$(curl -sf "https://api.github.com/repos/iOfficeAI/AionUi/releases/tags/${{ inputs.tag }}")
           else
-            RELEASE=$(curl -sf https://api.github.com/repos/iOfficeAI/AionUi/releases | jq 'first')
-            TAG=$(echo "$RELEASE" | jq -r .tag_name)
+            RELEASE=$(curl -sf "https://api.github.com/repos/iOfficeAI/AionUi/releases" | jq 'first')
           fi
 
+          TAG=$(echo "$RELEASE" | jq -r .tag_name)
+          VERSION=$(echo "$TAG" | sed 's/^v//' | cut -d'-' -f1)
           IS_PRERELEASE=$(echo "$RELEASE" | jq -r .prerelease)
-          if [ "$IS_PRERELEASE" = "true" ]; then
-            CHANNEL="preview"
-          else
-            CHANNEL="stable"
-          fi
+          CHANNEL=$([ "$IS_PRERELEASE" = "true" ] && echo "preview" || echo "stable")
+          ASSET_URL=$(echo "$RELEASE" | jq -r '.assets[] | select(.name | test("linux-x86_64\\.tar\\.gz$")) | .browser_download_url')
 
           echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "channel=$CHANNEL" >> $GITHUB_OUTPUT
+          echo "asset-url=$ASSET_URL" >> $GITHUB_OUTPUT
 
           if docker manifest inspect ghcr.io/linktools-toolkit/aionui:$TAG > /dev/null 2>&1; then
             echo "skip=true" >> $GITHUB_OUTPUT
@@ -52,11 +53,14 @@ jobs:
       contents: read
       packages: write
     steps:
-      - name: Checkout AionUI source
+      - name: Checkout (for Dockerfile)
         uses: actions/checkout@v4
-        with:
-          repository: iOfficeAI/AionUi
-          ref: ${{ needs.check.outputs.tag }}
+
+      - name: Download release asset
+        run: |
+          curl -fL "${{ needs.check.outputs.asset-url }}" -o aionui.tar.gz
+          mkdir -p dist
+          tar -xzf aionui.tar.gz --strip-components=1 -C dist
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -72,6 +76,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: .github/dockerfiles/aionui.Dockerfile
           push: true
           tags: |
             ghcr.io/linktools-toolkit/aionui:${{ needs.check.outputs.tag }}
