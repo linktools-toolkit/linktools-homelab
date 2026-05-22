@@ -1,0 +1,21 @@
+services:
+  happy-server:
+    image: 'ghcr.io/linktools-toolkit/happy-server:{{ HAPPY_TAG }}'
+    environment:
+      - 'NODE_ENV=production'
+      - 'HANDY_MASTER_SECRET={{ HAPPY_SECRET }}'
+      - 'DB_PROVIDER=pglite'
+      - 'PGLITE_DIR=/data/pglite'
+      - 'DATA_DIR=/data'
+      - 'PORT=3000'
+#   {% if HAPPY_SERVER_PORT > 0 %}
+    ports:
+      - '{{ HAPPY_SERVER_PORT }}:3000'
+#   {% endif %}
+    volumes:
+      - '{{ (APP_PATH/"data") | mkdir | chown }}:/data'
+    networks:
+      - nginx
+
+networks:
+  nginx:
