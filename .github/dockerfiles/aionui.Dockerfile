@@ -1,7 +1,8 @@
 FROM debian:bookworm-slim
 
 RUN apt-get update \
-    && apt-get install -y ripgrep unzip wget curl yq nodejs npm ca-certificates
+    && apt-get install -y ripgrep unzip wget curl yq nodejs npm ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p -m 755 /etc/apt/keyrings \
     && out=$(mktemp) && wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg \

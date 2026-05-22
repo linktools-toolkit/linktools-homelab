@@ -1,0 +1,75 @@
+name: Build Code Server
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'code-server tag to build (leave empty to use latest release)'
+        required: false
+      force:
+        description: 'Force rebuild even if image already exists'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+      skip: ${{ steps.resolve.outputs.skip }}
+    steps:
+      - name: Resolve tag and check existence
+        id: resolve
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG=$(curl -sf https://api.github.com/repos/coder/code-server/releases/latest | jq -r .tag_name)
+          fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+          if [ "${{ inputs.force }}" = "true" ]; then
+            echo "skip=false" >> $GITHUB_OUTPUT
+          elif docker manifest inspect ghcr.io/linktools-toolkit/code-server:$TAG > /dev/null 2>&1; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+  build:
+    needs: check
+    if: needs.check.outputs.skip == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout (for Dockerfile)
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: .github/dockerfiles/code-server.Dockerfile
+          push: true
+          build-args: |
+            VSCODE_TAG=${{ needs.check.outputs.tag }}
+          tags: |
+            ghcr.io/linktools-toolkit/code-server:${{ needs.check.outputs.tag }}
+            ghcr.io/linktools-toolkit/code-server:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
