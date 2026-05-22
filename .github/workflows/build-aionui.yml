@@ -44,6 +44,13 @@ jobs:
           echo "channel=$CHANNEL" >> $GITHUB_OUTPUT
           echo "asset-url=$ASSET_URL" >> $GITHUB_OUTPUT
 
+          # Verify release asset exists before attempting build
+          if [ -z "$ASSET_URL" ] || ! curl -sfI "$ASSET_URL" > /dev/null 2>&1; then
+            echo "Release asset not yet available for $TAG, skipping"
+            echo "skip=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
           if [ "${{ inputs.force }}" = "true" ]; then
             echo "skip=false" >> $GITHUB_OUTPUT
           elif docker manifest inspect ghcr.io/linktools-toolkit/aionui:$TAG > /dev/null 2>&1; then
