@@ -31,6 +31,13 @@ jobs:
           fi
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
+          # Verify upstream image exists before attempting build
+          if ! docker manifest inspect ghcr.io/coder/code-server:$TAG > /dev/null 2>&1; then
+            echo "Upstream image ghcr.io/coder/code-server:$TAG not yet available, skipping"
+            echo "skip=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
           if [ "${{ inputs.force }}" = "true" ]; then
             echo "skip=false" >> $GITHUB_OUTPUT
           elif docker manifest inspect ghcr.io/linktools-toolkit/code-server:$TAG > /dev/null 2>&1; then
