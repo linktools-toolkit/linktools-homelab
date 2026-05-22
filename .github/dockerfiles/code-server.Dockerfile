@@ -34,15 +34,15 @@ RUN printf '%s\n' \
 
 RUN mkdir -p "${PREINSTALLED}/npm" \
     && npm install -g --prefix "${PREINSTALLED}/npm" \
-        @anthropic-ai/claude-code \
-        @openai/codex \
+        @openai/codex@latest \
+        @google/gemini-cli@latest \
         npx@latest \
     && npm cache clean --force
 
 RUN curl -fsSL https://claude.ai/install.sh | bash \
     && mkdir -p "${PREINSTALLED}/claude/bin" \
-    && mv "${HOME}/.local/bin/claude" \
-        "${PREINSTALLED}/claude/bin/claude"
+    && mv "${HOME}/.local/bin/claude" "${PREINSTALLED}/claude/bin/claude" \
+    && rm -rf "${HOME}/.local/share/claude" "${HOME}/.claude" "${HOME}/.claude.json"
 
 RUN node -e " \
   const fs = require('fs'); \
