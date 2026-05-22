@@ -27,7 +27,7 @@ jobs:
           if [ -n "${{ inputs.tag }}" ]; then
             TAG="${{ inputs.tag }}"
           else
-            TAG=$(curl -sf https://api.github.com/repos/coder/code-server/releases/latest | jq -r .tag_name)
+            TAG=$(curl -sf https://api.github.com/repos/coder/code-server/releases/latest | jq -r '.tag_name | ltrimstr("v")')
           fi
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
