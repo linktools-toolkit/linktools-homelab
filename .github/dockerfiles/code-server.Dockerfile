@@ -24,6 +24,26 @@ RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | tee /etc/ap
     && fc-cache -fv \
     && rm -rf /var/lib/apt/lists/*
 
+ENV PREINSTALLED=/opt/preinstalled
+ENV PATH="${PATH}:${PREINSTALLED}/npm/bin:${PREINSTALLED}/claude/bin"
+RUN printf '%s\n' \
+    'export PREINSTALLED=/opt/preinstalled' \
+    'export PATH=$PATH:${PREINSTALLED}/npm/bin:${PREINSTALLED}/claude/bin' \
+    | sudo tee /etc/profile.d/preinstalled.sh > /dev/null \
+    && sudo chmod 644 /etc/profile.d/preinstalled.sh
+
+RUN mkdir -p "${PREINSTALLED}/npm" \
+    && npm install -g --prefix "${PREINSTALLED}/npm" \
+        @anthropic-ai/claude-code \
+        @openai/codex \
+        npx@latest \
+    && npm cache clean --force
+
+RUN curl -fsSL https://claude.ai/install.sh | bash \
+    && mkdir -p "${PREINSTALLED}/claude/bin" \
+    && mv "${HOME}/.local/bin/claude" \
+        "${PREINSTALLED}/claude/bin/claude"
+
 RUN node -e " \
   const fs = require('fs'); \
   const path = '/usr/lib/code-server/lib/vscode/product.json'; \
@@ -40,3 +60,5 @@ RUN node -e " \
   }; \
   fs.writeFileSync(path, JSON.stringify(p, null, 2)); \
 "
+
+USER 1000
