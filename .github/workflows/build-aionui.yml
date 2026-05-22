@@ -58,11 +58,6 @@ jobs:
           repository: iOfficeAI/AionUi
           ref: ${{ needs.check.outputs.tag }}
 
-      - name: Patch trust proxy
-        run: |
-          sed -i "s/const app = express();/const app = express();\n  app.set('trust proxy', true);/" \
-            src/process/webserver/index.ts
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
