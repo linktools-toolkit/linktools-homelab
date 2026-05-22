@@ -25,10 +25,10 @@ RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | tee /etc/ap
     && rm -rf /var/lib/apt/lists/*
 
 ENV PREINSTALLED=/opt/preinstalled
-ENV PATH="${PATH}:${PREINSTALLED}/npm/bin:${PREINSTALLED}/claude/bin"
+ENV PATH="${PATH}:${PREINSTALLED}/bin:${PREINSTALLED}/npm/bin"
 RUN printf '%s\n' \
     'export PREINSTALLED=/opt/preinstalled' \
-    'export PATH=$PATH:${PREINSTALLED}/npm/bin:${PREINSTALLED}/claude/bin' \
+    'export PATH=$PATH:${PREINSTALLED}/bin:${PREINSTALLED}/npm/bin' \
     | sudo tee /etc/profile.d/preinstalled.sh > /dev/null \
     && sudo chmod 644 /etc/profile.d/preinstalled.sh
 
@@ -36,13 +36,14 @@ RUN mkdir -p "${PREINSTALLED}/npm" \
     && npm install -g --prefix "${PREINSTALLED}/npm" \
         @openai/codex@latest \
         @google/gemini-cli@latest \
+        puppeteer \
         npx@latest \
     && npm cache clean --force
 
 RUN curl -fsSL https://claude.ai/install.sh | bash \
-    && mkdir -p "${PREINSTALLED}/claude/bin" \
-    && mv "${HOME}/.local/bin/claude" "${PREINSTALLED}/claude/bin/claude" \
-    && rm -rf "${HOME}/.local/share/claude" "${HOME}/.claude" "${HOME}/.claude.json"
+    && mkdir -p "${PREINSTALLED}/bin" \
+    && mv "${HOME}/.local/bin/claude" "${PREINSTALLED}/bin/claude" \
+    && rm -rf "${HOME}/.claude" "${HOME}/.claude.json"
 
 RUN node -e " \
   const fs = require('fs'); \
