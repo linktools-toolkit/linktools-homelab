@@ -14,22 +14,30 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.resolve.outputs.tag }}
-      skip: ${{ steps.check.outputs.skip }}
+      channel: ${{ steps.resolve.outputs.channel }}
+      skip: ${{ steps.resolve.outputs.skip }}
     steps:
-      - name: Resolve tag
+      - name: Resolve tag and channel
         id: resolve
         run: |
           if [ -n "${{ inputs.tag }}" ]; then
             TAG="${{ inputs.tag }}"
+            RELEASE=$(curl -sf "https://api.github.com/repos/iOfficeAI/AionUi/releases/tags/$TAG")
           else
-            TAG=$(curl -sf https://api.github.com/repos/iOfficeAI/AionUi/releases/latest | jq -r .tag_name)
+            RELEASE=$(curl -sf https://api.github.com/repos/iOfficeAI/AionUi/releases | jq 'first')
+            TAG=$(echo "$RELEASE" | jq -r .tag_name)
           fi
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
 
-      - name: Check if image already exists
-        id: check
-        run: |
-          TAG=${{ steps.resolve.outputs.tag }}
+          IS_PRERELEASE=$(echo "$RELEASE" | jq -r .prerelease)
+          if [ "$IS_PRERELEASE" = "true" ]; then
+            CHANNEL="preview"
+          else
+            CHANNEL="stable"
+          fi
+
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "channel=$CHANNEL" >> $GITHUB_OUTPUT
+
           if docker manifest inspect ghcr.io/linktools-toolkit/aionui:$TAG > /dev/null 2>&1; then
             echo "skip=true" >> $GITHUB_OUTPUT
           else
@@ -50,6 +58,11 @@ jobs:
           repository: iOfficeAI/AionUi
           ref: ${{ needs.check.outputs.tag }}
 
+      - name: Patch trust proxy
+        run: |
+          sed -i "s/const app = express();/const app = express();\n  app.set('trust proxy', true);/" \
+            src/process/webserver/index.ts
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -67,6 +80,7 @@ jobs:
           push: true
           tags: |
             ghcr.io/linktools-toolkit/aionui:${{ needs.check.outputs.tag }}
+            ghcr.io/linktools-toolkit/aionui:${{ needs.check.outputs.channel }}
             ghcr.io/linktools-toolkit/aionui:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max

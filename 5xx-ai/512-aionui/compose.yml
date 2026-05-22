@@ -1,17 +1,25 @@
 services:
   aionui:
-    image: 'ghcr.io/linktools-toolkit/aionui:{{ AIONUI_TAG }}'
+    user: '{{ DOCKER_UID }}:{{ DOCKER_GID }}'
     environment:
-      - 'PORT=3000'
+      - 'TZ=Asia/Singapore'
       - 'NODE_ENV=production'
       - 'ALLOW_REMOTE=true'
-      - 'DATA_DIR=/data'
+      - 'DATA_DIR=/workspace'
+      - 'JWT_SECRET={{ AIONUI_JWT_SECRET }}'
+      - 'PORT=3000'
 #   {% if AIONUI_PORT > 0 %}
     ports:
       - '{{ AIONUI_PORT }}:3000'
 #   {% endif %}
     volumes:
-      - '{{ (APP_PATH/"data") | mkdir | chown }}:/data'
+      - '{{ (APP_PATH/"home") | mkdir | chown }}:/workspace'
+#     {% for name, path in containers["ai"].home_files.items() %}
+      - '{{ path }}:/workspace/{{ name }}'
+#     {% endfor %}
+#     {% for name, path in containers["coder"].project_files.items() %}
+      - '{{ path }}:/workspace/projects/{{ name }}'
+#     {% endfor %}
     networks:
       - nginx
 
