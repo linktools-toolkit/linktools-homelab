@@ -8,6 +8,11 @@ on:
       tag:
         description: 'AionUI tag to build (leave empty to use latest release)'
         required: false
+      force:
+        description: 'Force rebuild even if image already exists'
+        required: false
+        default: 'false'
+        type: boolean
 
 jobs:
   check:
@@ -39,7 +44,9 @@ jobs:
           echo "channel=$CHANNEL" >> $GITHUB_OUTPUT
           echo "asset-url=$ASSET_URL" >> $GITHUB_OUTPUT
 
-          if docker manifest inspect ghcr.io/linktools-toolkit/aionui:$TAG > /dev/null 2>&1; then
+          if [ "${{ inputs.force }}" = "true" ]; then
+            echo "skip=false" >> $GITHUB_OUTPUT
+          elif docker manifest inspect ghcr.io/linktools-toolkit/aionui:$TAG > /dev/null 2>&1; then
             echo "skip=true" >> $GITHUB_OUTPUT
           else
             echo "skip=false" >> $GITHUB_OUTPUT
