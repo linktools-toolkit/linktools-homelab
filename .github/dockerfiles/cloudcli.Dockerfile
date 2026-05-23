@@ -47,11 +47,8 @@ ARG VITE_IS_PLATFORM=true
 ENV HOST=0.0.0.0
 ENV PORT=3001
 EXPOSE 3001
-ENV DATABASE_PATH=/var/lib/cloudcli/auth/cloudcli.db
-
 # Pre-create default admin account (credentials: admin / platform)
-RUN mkdir -p /var/lib/cloudcli/auth && chmod 777 /var/lib/cloudcli/auth && \
-    if [ "$VITE_IS_PLATFORM" = "true" ]; then \
+RUN if [ "$VITE_IS_PLATFORM" = "true" ]; then \
       printf '%s\n' \
           'import { initializeDatabase } from "/app/dist-server/server/modules/database/init-db.js";' \
           'import { userDb } from "/app/dist-server/server/modules/database/repositories/users.js";' \
@@ -61,7 +58,9 @@ RUN mkdir -p /var/lib/cloudcli/auth && chmod 777 /var/lib/cloudcli/auth && \
           '  console.log("Created platform user: admin");' \
           '}' \
           > /tmp/init-user.mjs \
-      && node /tmp/init-user.mjs; \
+      && mkdir -p /etc/cloudcli/auth \
+      && DATABASE_PATH=/etc/cloudcli/auth/default.db node /tmp/init-user.mjs \
+      && rm -f /tmp/init-user.mjs; \
     fi
 
 CMD ["node", "/app/dist-server/server/index.js"]
