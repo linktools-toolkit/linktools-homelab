@@ -7,7 +7,7 @@ services:
     user: '{{ DOCKER_UID }}:{{ DOCKER_GID }}'
     volumes:
       - '{{ (APP_PATH/"home") | mkdir | chown(docker_user) }}:/workspace'
-      - '/var/lib/cloudcli/auth'
+      - '/workspace/.cloudcli/auth'
 #     {% for name, path in containers["ai"].home_files.items() %}
       - '{{ path }}:/workspace/{{ name }}'
 #     {% endfor %}

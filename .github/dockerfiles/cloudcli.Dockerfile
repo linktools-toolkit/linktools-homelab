@@ -65,7 +65,6 @@ RUN curl -fsSL https://claude.ai/install.sh | bash \
     && rm -rf "${HOME}/.claude" "${HOME}/.claude.json"
 
 ARG VITE_IS_PLATFORM=true
-ENV VITE_IS_PLATFORM=$VITE_IS_PLATFORM
 
 ENV HOST=0.0.0.0
 ENV PORT=3001
