@@ -11,8 +11,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 ARG CLOUDCLI_REF=main
-RUN git clone --depth 1 https://github.com/siteboon/claudecodeui.git . \
-    && git checkout $CLOUDCLI_REF
+RUN git init . \
+    && git remote add origin https://github.com/siteboon/claudecodeui.git \
+    && git fetch --depth 1 origin $CLOUDCLI_REF \
+    && git checkout FETCH_HEAD
 
 RUN npm install && npm cache clean --force
 
