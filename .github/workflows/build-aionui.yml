@@ -86,11 +86,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Render Dockerfile
+        run: bash .github/scripts/render-dockerfile.sh .github/dockerfiles/aionui.Dockerfile > /tmp/aionui.Dockerfile
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: .github/dockerfiles/aionui.Dockerfile
+          file: /tmp/aionui.Dockerfile
           push: true
           tags: |
             ghcr.io/linktools-toolkit/aionui:${{ needs.check.outputs.tag }}

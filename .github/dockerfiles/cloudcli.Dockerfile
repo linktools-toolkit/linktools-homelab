@@ -29,18 +29,11 @@ RUN npm prune --omit=dev
 FROM node:22-slim
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends git curl python3 sudo wget ca-certificates \
+    && apt-get install -y --no-install-recommends python3 sudo \
     && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p -m 755 /etc/apt/keyrings /etc/apt/sources.list.d \
-    && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
-        | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
-    && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
-    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
-        | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends gh \
-    && rm -rf /var/lib/apt/lists/*
+# INCLUDE install-agent-cli.dockerfile
+# INCLUDE install-preinstalled.dockerfile
 
 WORKDIR /app
 COPY --from=build /app/dist ./dist
@@ -48,21 +41,6 @@ COPY --from=build /app/dist-server ./dist-server
 COPY --from=build /app/scripts ./scripts
 COPY --from=build /app/package*.json ./
 COPY --from=build /app/node_modules ./node_modules
-
-ENV PREINSTALLED=/opt/preinstalled
-ENV PATH="${PATH}:${PREINSTALLED}/bin:${PREINSTALLED}/npm/bin"
-
-RUN mkdir -p "${PREINSTALLED}/npm" \
-    && npm install -g --prefix "${PREINSTALLED}/npm" \
-        @openai/codex@latest \
-        @google/gemini-cli@latest \
-        npx@latest \
-    && npm cache clean --force
-
-RUN curl -fsSL https://claude.ai/install.sh | bash \
-    && mkdir -p "${PREINSTALLED}/bin" \
-    && mv "${HOME}/.local/bin/claude" "${PREINSTALLED}/bin/claude" \
-    && rm -rf "${HOME}/.claude" "${HOME}/.claude.json"
 
 ARG VITE_IS_PLATFORM=true
 

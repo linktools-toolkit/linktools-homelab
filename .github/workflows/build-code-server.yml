@@ -67,11 +67,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Render Dockerfile
+        run: bash .github/scripts/render-dockerfile.sh .github/dockerfiles/code-server.Dockerfile > /tmp/code-server.Dockerfile
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: .github/dockerfiles/code-server.Dockerfile
+          file: /tmp/code-server.Dockerfile
           push: true
           build-args: |
             VSCODE_TAG=${{ needs.check.outputs.tag }}

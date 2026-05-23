@@ -63,11 +63,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Render Dockerfile
+        run: bash .github/scripts/render-dockerfile.sh .github/dockerfiles/cloudcli.Dockerfile > /tmp/cloudcli.Dockerfile
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: .github/dockerfiles/cloudcli.Dockerfile
+          file: /tmp/cloudcli.Dockerfile
           push: true
           build-args: |
             CLOUDCLI_REF=${{ needs.check.outputs.full-sha }}
