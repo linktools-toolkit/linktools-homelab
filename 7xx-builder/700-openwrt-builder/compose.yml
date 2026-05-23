@@ -5,12 +5,10 @@ services:
       - '{{ OPENWRT_BUILD_PATH | mkdir | chown(docker_user) }}:/data/openwrt'
       - '{{ (SOURCE_PATH/"configs") | chown(docker_user) }}:/data/configs'
       - '{{ (SOURCE_PATH/"patchs") | chown(docker_user) }}:/data/patchs'
-#     {% for name, path in containers["coder"].base_home_files.items() %}
+#     {% for name, path in containers["coder"].home_files.items() %}
       - '{{ path }}:/workspace/{{ name }}'
 #     {% endfor %}
     working_dir: "/data/openwrt"
-    environment:
-      - 'LANG=en_US.UTF-8'
     networks:
       - build
 

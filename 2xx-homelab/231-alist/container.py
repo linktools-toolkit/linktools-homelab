@@ -38,13 +38,13 @@ class Container(BaseContainer):
 
     @property
     def dependencies(self) -> Iterable[str]:
-        return ["nginx", "storage"]
+        return ["nginx"]
 
     @cached_property
     def configs(self):
         return dict(
             ALIST_TAG="latest",
-            ALIST_DATA_PATH=Config.Alias("STORAGE_USER_PATH", type="path"),
+            ALIST_DATA_PATH=Config.Alias("DOCKER_USER_DATA_PATH", type="path"),
             ALIST_ADMIN_PASSWORD=Config.Prompt(cached=True) | utils.make_uuid()[:12],
             ALIST_DOMAIN=self.get_nginx_domain(),
             ALIST_PORT=Config.Alias(type=int) | 0,

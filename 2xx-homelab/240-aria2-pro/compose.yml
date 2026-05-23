@@ -14,7 +14,7 @@ services:
 #    {% endif %}
     volumes:
       - '{{ (APP_PATH/"config") | mkdir | chown(docker_user) }}:/config'
-      - '{{ (DOWNLOAD_USER_PATH/"aria2") | mkdir | chown(docker_user) }}:/downloads'
+      - '{{ (DOCKER_DOWNLOAD_PATH/"aria2") | mkdir | chown(docker_user) }}:/downloads'
     networks:
       - nginx
 

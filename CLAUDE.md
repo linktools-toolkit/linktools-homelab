@@ -79,7 +79,7 @@ Containers declare their public domain via `self.get_nginx_domain()` in configs.
 | Key | Example | Description |
 |-----|---------|-------------|
 | `acl_bypass` | `["\\.(css\|js)$"]` | URL patterns that skip Authelia auth (regex list) |
-| `auth_headers` | `{"Authorization": "Basic ..."}` | Headers injected into proxied requests after auth |
+| `auth_headers` | `{"Authorization": "Basic ..."}` | Headers injected into proxied requests after auth; values are rendered as Jinja2 templates, so config keys like `{{ MY_TOKEN }}` work |
 | `oidc_redirect_uris` | `["{base_url}/callback"]` | Extra OIDC redirect URIs registered with Authelia; `{base_url}` is replaced with the service's public URL |
 
 ## Creating a New Container

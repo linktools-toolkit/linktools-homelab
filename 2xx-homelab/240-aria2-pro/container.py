@@ -35,10 +35,6 @@ from linktools.decorator import cached_property
 
 class Container(BaseContainer):
 
-    @property
-    def dependencies(self) -> Iterable[str]:
-        return ["download"]
-
     @cached_property
     def configs(self):
         return dict(

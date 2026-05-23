@@ -29,8 +29,8 @@ services:
     volumes:
       - '{{ (APP_PATH/"html") | mkdir | chown(docker_user) }}:/var/www/html'
       - '{{ (APP_PATH/"data") | mkdir | chown(docker_user) }}:/var/www/html/data'
-      - '{{ STORAGE_USER_PATH | mkdir | chown(docker_user) }}:/data'
-      - '{{ DOWNLOAD_USER_PATH | mkdir | chown(docker_user) }}:/downloads'
+      - '{{ DOCKER_USER_DATA_PATH | mkdir | chown(docker_user) }}:/data'
+      - '{{ DOCKER_DOWNLOAD_PATH | mkdir | chown(docker_user) }}:/downloads'
     networks:
       - nextcloud
       - nginx

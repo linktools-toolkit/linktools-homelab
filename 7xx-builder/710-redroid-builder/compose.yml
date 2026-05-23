@@ -4,7 +4,7 @@ services:
     volumes:
       - '{{ REDROID_BUILD_PATH | mkdir | chown(docker_user) }}:/src'
       - '{{ (SOURCE_PATH/"scripts") | chown(docker_user) }}:/scripts:ro'
-#     {% for name, path in containers["coder"].base_home_files.items() %}
+#     {% for name, path in containers["coder"].home_files.items() %}
       - '{{ path }}:/workspace/{{ name }}'
 #     {% endfor %}
     environment:

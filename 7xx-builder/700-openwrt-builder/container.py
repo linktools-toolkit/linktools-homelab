@@ -50,8 +50,8 @@ class Container(BaseContainer):
             OPENWRT_BUILD_PATH=Config.Lazy(lambda cfg: utils.join_path(cfg.get("CODER_PROJECT_PATH"), "openwrt")),
         )
 
-    @subcommand("update")
-    def on_exec_update(self):
+    @subcommand("pull")
+    def on_exec_pull(self):
         self.manager.create_docker_process(
             "exec", self.get_service_name("openwrt-builder"), "git", "stash"
         ).check_call()
@@ -61,6 +61,9 @@ class Container(BaseContainer):
         self.manager.create_docker_process(
             "exec", self.get_service_name("openwrt-builder"), "git", "stash", "pop"
         ).check_call()
+
+    @subcommand("update")
+    def on_exec_update(self):
         self.manager.create_docker_process(
             "exec", self.get_service_name("openwrt-builder"), "./scripts/feeds", "update", "-a"
         ).check_call()
@@ -96,7 +99,7 @@ class Container(BaseContainer):
             ])
         ).call()
 
-    @subcommand("download", pass_args=True)
+    @subcommand("download")
     @subcommand_argument("-j", "--jobs")
     def on_exec_download(self, jobs: int = 8):
         args = ["make", "download", f"-j{jobs}"]
