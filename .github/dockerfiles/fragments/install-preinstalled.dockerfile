@@ -4,13 +4,9 @@ ENV PATH="${PATH}:${PREINSTALLED_PATH}"
 
 RUN mkdir -p "${PREINSTALLED_BASE}/bin" "${PREINSTALLED_BASE}/npm"
 
-RUN npm install -g --prefix "${PREINSTALLED_BASE}/npm" --omit=dev @openai/codex@latest && \
-    npm cache clean --force
-
-RUN npm install -g --prefix "${PREINSTALLED_BASE}/npm" --omit=dev @google/gemini-cli@latest && \
-    npm cache clean --force
-
-RUN npm install -g --prefix "${PREINSTALLED_BASE}/npm" --omit=dev task-master-ai@latest && \
+RUN npm install -g --prefix "${PREINSTALLED_BASE}/npm" --omit=dev \
+        @openai/codex@latest \
+        @google/gemini-cli@latest && \
     npm cache clean --force
 
 RUN if command -v curl >/dev/null 2>&1; then \
