@@ -73,7 +73,7 @@ EXPOSE 3001
 ENV DATABASE_PATH=/var/lib/cloudcli/auth/cloudcli.db
 
 # Pre-create default admin account (credentials: admin / platform)
-RUN mkdir -p /var/lib/cloudcli/auth && \
+RUN mkdir -p /var/lib/cloudcli/auth && chmod 777 /var/lib/cloudcli/auth && \
     if [ "$VITE_IS_PLATFORM" = "true" ]; then \
       printf '%s\n' \
           'import { initializeDatabase } from "/app/dist-server/server/modules/database/init-db.js";' \
