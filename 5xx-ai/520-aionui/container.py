@@ -6,12 +6,12 @@ import hashlib
 import hmac
 import json
 import secrets
-import uuid
+import time
 from typing import Iterable
 
 from linktools.core import Config
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, ExposeLink
+from linktools.cntr import BaseContainer, EventContext, ExposeLink
 
 
 class Container(BaseContainer):
@@ -49,14 +49,13 @@ class Container(BaseContainer):
             )),
         ]
 
-    def on_prepare(self):
-        coder = self.manager.containers["coder"]
-        coder.install_modules[self.get_service_name("aionui")] = [
-            {"type": "shell", "module": "curl -fsSL https://claude.ai/install.sh | bash"},
-            {"type": "npm", "module": "@openai/codex@latest"},
-            {"type": "npm", "module": "@google/gemini-cli@latest"},
-            {"type": "npm", "module": "npx@latest"},
-        ]
+    def on_starting(self, context: "EventContext"):
+        self.write_nginx_conf(
+            self.get_config("AIONUI_DOMAIN"),
+            proxy_name="logout",
+            proxy_conf=self.get_source_path("nginx.conf"),
+            auth_enable=True
+        )
 
     @classmethod
     def _make_jwt(cls, secret: str) -> str:
@@ -64,11 +63,13 @@ class Container(BaseContainer):
             data = json.dumps(obj, separators=(",", ":")).encode() if isinstance(obj, dict) else obj
             return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
 
+        now = int(time.time())
         header = b64url({"alg": "HS256", "typ": "JWT"})
         payload = b64url({
-            "userId": "system_default_user",
+            "user_id": "system_default_user",
             "username": "system_default_user",
-            "tokenId": str(uuid.uuid4()),
+            "iat": now,
+            "exp": now + 100 * 365 * 24 * 3600,  # 100 years
             "iss": "aionui",
             "aud": "aionui-webui",
         })

@@ -1,10 +1,5 @@
 services:
   cloudcli:
-    build:
-#     {% if NGINX_AUTH_ENABLE %}
-      args:
-        VITE_IS_PLATFORM: "true"
-#     {% endif %}
 #   {% if CLOUD_CLI_PORT > 0 %}
     ports:
       - '{{ CLOUD_CLI_PORT }}:3001'
@@ -12,9 +7,10 @@ services:
     user: '{{ DOCKER_UID }}:{{ DOCKER_GID }}'
     volumes:
       - '{{ (APP_PATH/"home") | mkdir | chown(docker_user) }}:/workspace'
-#     {% if NGINX_AUTH_ENABLE %}
       - '/workspace/.cloudcli/auth'
-#     {% endif %}
+#     {% for name, path in containers["ai"].home_files.items() %}
+      - '{{ path }}:/workspace/{{ name }}'
+#     {% endfor %}
 #     {% for name, path in containers["coder"].home_files.items() %}
       - '{{ path }}:/workspace/{{ name }}'
 #     {% endfor %}

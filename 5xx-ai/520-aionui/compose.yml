@@ -5,11 +5,11 @@ services:
       - 'TZ=Asia/Singapore'
       - 'NODE_ENV=production'
       - 'AIONUI_ALLOW_REMOTE=true'
-      - 'AIONUI_DATA_DIR=/workspace'
+      - 'AIONUI_DATA_DIR=/workspace/data'
       - 'JWT_SECRET={{ AIONUI_JWT_SECRET }}'
 #   {% if AIONUI_PORT > 0 %}
     ports:
-      - '{{ AIONUI_PORT }}:{{ AIONUI_PORT }}'
+      - '{{ AIONUI_PORT }}:3000'
 #   {% endif %}
     volumes:
       - '{{ (APP_PATH/"home") | mkdir | chown }}:/workspace'

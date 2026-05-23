@@ -1,4 +1,4 @@
-FROM ghcr.io/linktools-toolkit/aionui:{{ AIONUI_TAG }}
+FROM ghcr.io/linktools-toolkit/cloudcli:{{ CLOUD_CLI_TAG }}
 
 USER root
 
@@ -11,11 +11,8 @@ ARG LT_USER_DIR=/workspace
 
 RUN mkdir -p /workspace/.node_modules
 
-ENV HOME=/workspace
 ENV NPM_CONFIG_PREFIX=/workspace/.node_modules
 ENV NPM_CONFIG_REGISTRY={{ CODER_NPM_REGISTRY }}
 ENV PATH=/workspace/.local/bin:/workspace/.node_modules/bin:$PATH
 
 WORKDIR /workspace
-
-# CMD ["bash", "-c", "cd /app && bun dist-server/server.mjs"]

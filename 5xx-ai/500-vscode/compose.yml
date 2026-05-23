@@ -2,7 +2,7 @@ services:
   code-server:
     user: '{{ DOCKER_UID }}:{{ DOCKER_GID }}'
     environment:
-      - 'TZ=Etc/UTC'
+      - 'TZ=Asia/Singapore'
       - 'PASSWORD={{ VSCODE_PASSWORD }}'
 #     {% if container.proxy_url %}
       - 'VSCODE_PROXY_URI={{ container.proxy_url }}'
@@ -15,6 +15,9 @@ services:
 #   {% endif %}
     volumes:
       - '{{ (APP_PATH/"home") | mkdir | chown(docker_user) }}:/workspace'
+#     {% for name, path in containers["ai"].home_files.items() %}
+      - '{{ path }}:/workspace/{{ name }}'
+#     {% endfor %}
 #     {% for name, path in containers["coder"].home_files.items() %}
       - '{{ path }}:/workspace/{{ name }}'
 #     {% endfor %}

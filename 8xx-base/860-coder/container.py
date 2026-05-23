@@ -30,7 +30,7 @@ import functools
 import os
 from pathlib import Path
 
-from linktools.cli import subcommand
+from linktools.cli import subcommand, subcommand_argument
 from linktools.cntr import BaseContainer
 from linktools.core import Config
 from linktools.decorator import cached_property
@@ -48,13 +48,19 @@ class Container(BaseContainer):
 
     def _get_git_name(self):
         try:
-            return self.manager.create_process("git", "config", "--global", "user.name", capture_output=True).exec()
+            return self.manager.create_process(
+                "git", "config", "--global", "user.name", 
+                capture_output=True
+            ).exec()
         except:
             return ""
 
     def _get_git_email(self):
         try:
-            return self.manager.create_process("git", "config", "--global", "user.email", capture_output=True).exec()
+            return self.manager.create_process(
+                "git", "config", "--global", "user.email", 
+                capture_output=True
+            ).exec()
         except:
             return ""
 
@@ -62,7 +68,6 @@ class Container(BaseContainer):
     def configs(self):
         return dict(
             CODER_HOME_PATH=Config.Alias(type="path") | Config.Lazy(lambda cfg: self._get_home_path(cfg)),
-            CODER_HOME_SHARE_PATH=Config.Alias(type="path") | self.get_app_path("home"),
             CODER_GIT_NAME=Config.Lazy(lambda cfg: self._get_git_name()),
             CODER_GIT_EMAIL=Config.Lazy(lambda cfg: self._get_git_email()),
             CODER_NPM_REGISTRY="https://registry.npmmirror.com",
@@ -73,22 +78,12 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def base_home_files(self):
+    def home_files(self):
         result = dict()
         for name in (".ssh",):
             path = os.path.join(self.get_config("CODER_HOME_PATH"), name)
             if os.path.isdir(path):
                 result[name] = path
-        return result
-
-    @cached_property
-    def home_files(self):
-        result = dict(self.base_home_files)
-        for name in (".codex", ".claude", ".cursor", ".gemini", ".share"):
-            path = os.path.join(self.get_config("CODER_HOME_SHARE_PATH"), name)
-            self.start_hooks.append(functools.partial(os.makedirs, path, mode=0o755, exist_ok=True))
-            self.start_hooks.append(functools.partial(self.manager.change_file_owner, path, self.get_config("DOCKER_USER"), recursive=False))
-            result[name] = path
         return result
 
     @cached_property
@@ -102,8 +97,12 @@ class Container(BaseContainer):
         return {}
 
     @subcommand("install-modules", help="install modules")
-    def on_exec_install_modules(self):
-        for name, modules in self.install_modules.items():
+    @subcommand_argument("containers", nargs="*", metavar="CONTAINER", help="container service names to install (default: all)")
+    def on_exec_install_modules(self, containers: "list[str]"):
+        items = self.install_modules.items()
+        if containers:
+            items = [(name, modules) for name, modules in items if name in containers]
+        for name, modules in items:
             npm_modules = [m.get("module") for m in modules if m.get("type") == "npm"]
             if npm_modules:
                 self.logger.info(f"Install npm modules {npm_modules} to `{name}`")

@@ -29,7 +29,6 @@ class Container(BaseContainer):
             self.expose_public("Happy", "cellphoneLink", "Claude Code 移动端中继服务", self.load_nginx_url(
                 "HAPPY_SERVER_DOMAIN",
                 proxy_url="http://happy-server:3000",
-                proxy_conf=self.get_source_path("nginx.conf"),
                 auth_enable=True,
             )),
             self.expose_container("Happy", "cellphoneLink", "Claude Code 移动端中继服务", self.load_port_url(

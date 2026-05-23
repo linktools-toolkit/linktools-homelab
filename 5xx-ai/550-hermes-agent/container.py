@@ -21,7 +21,7 @@ class Container(BaseContainer):
         return dict(
             HERMES_AGENT_TAG="latest",
             HERMES_AGENT_DOMAIN=self.get_nginx_domain(),
-            HERMES_AGENT_API_PORT=Config.Alias(type=int, default=0),
+            HERMES_AGENT_PORT=Config.Alias(type=int, default=0),
             HERMES_AGENT_DASHBOARD_PORT=Config.Alias(type=int, default=0),
         )
 
@@ -34,7 +34,7 @@ class Container(BaseContainer):
                 auth_enable=True,
             )),
             self.expose_container("Hermes API", "robot", "AI Agent Gateway API", self.load_port_url(
-                "HERMES_AGENT_API_PORT",
+                "HERMES_AGENT_PORT",
                 https=False,
             )),
             self.expose_container("Hermes Dashboard", "robot", "AI Agent Dashboard", self.load_port_url(

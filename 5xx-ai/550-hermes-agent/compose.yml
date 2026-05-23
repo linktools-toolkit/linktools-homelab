@@ -1,18 +1,13 @@
 services:
   hermes:
-    image: nousresearch/hermes-agent:{{ HERMES_AGENT_TAG }}
-    user: '{{ DOCKER_UID }}:{{ DOCKER_GID }}'
-    restart: unless-stopped
     command: gateway run
     shm_size: '1g'
-#   {% if HERMES_AGENT_API_PORT > 0 %}
+#   {% if HERMES_AGENT_PORT > 0 %}
     ports:
-      - '{{ HERMES_AGENT_API_PORT }}:8642'
+      - '{{ HERMES_AGENT_PORT }}:8642'
 #   {% endif %}
-    environment:
-      - 'HOME=/opt/data'
     volumes:
-      - '{{ (APP_PATH/"data") | mkdir | chown(docker_user) }}:/opt/data'
+      - '{{ (APP_PATH/"data") | mkdir | chown }}:/opt/data'
     networks:
       - hermes
     deploy:
@@ -23,17 +18,14 @@ services:
 
   hermes-dashboard:
     image: nousresearch/hermes-agent:{{ HERMES_AGENT_TAG }}
-    user: '{{ DOCKER_UID }}:{{ DOCKER_GID }}'
-    restart: unless-stopped
     command: dashboard --host 0.0.0.0 --insecure
 #   {% if HERMES_AGENT_DASHBOARD_PORT > 0 %}
     ports:
       - '{{ HERMES_AGENT_DASHBOARD_PORT }}:9119'
 #   {% endif %}
     volumes:
-      - '{{ (APP_PATH/"data") | mkdir | chown(docker_user) }}:/opt/data'
+      - '{{ (APP_PATH/"data") | mkdir | chown }}:/opt/data'
     environment:
-      - 'HOME=/opt/data'
       - 'GATEWAY_HEALTH_URL=http://hermes:8642'
     networks:
       - hermes

@@ -38,7 +38,7 @@ class Container(BaseContainer):
 
     @property
     def dependencies(self) -> Iterable[str]:
-        return ["nginx", "coder"]
+        return ["nginx", "coder", "ai"]
 
     @cached_property
     def configs(self):
@@ -75,7 +75,7 @@ class Container(BaseContainer):
     def proxy_url(self):
         nginx = self.manager.containers["nginx"]
         if nginx.enable and self.get_config("NGINX_WILDCARD_DOMAIN"):
-            domain: Any = self.get_config("VSCODE_DOMAIN")
+            domain = self.get_config("VSCODE_DOMAIN")
             if domain:
                 if self.get_config("NGINX_HTTPS_ENABLE"):
                     scheme = "https"
@@ -88,7 +88,7 @@ class Container(BaseContainer):
                     rf"~^(?<proxy_port>\d+).{proxy_domain}$",
                     proxy_name="proxy",
                     proxy_domain_name=f"{domain}_proxy",
-                    proxy_url="http://code-server:8080/proxy/$proxy_port",
+                    proxy_conf=self.get_source_path("proxy.conf"),
                     auth_enable=True,
                 ))
                 return utils.make_url(scheme, f"{{{{port}}}}.{domain}", port)
@@ -99,7 +99,6 @@ class Container(BaseContainer):
             nginx = self.manager.containers["nginx"]
             domain = self.get_config("VSCODE_DOMAIN")
             nginx.append_ssl_domains(f"*.{domain}")
-        
         coder = self.manager.containers["coder"]
         coder.install_modules[self.get_service_name("code-server")] = [
             {"type": "shell", "module": "curl -fsSL https://claude.ai/install.sh | bash"},
