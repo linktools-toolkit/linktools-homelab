@@ -10,11 +10,9 @@ RUN if command -v curl >/dev/null 2>&1; then \
         echo "curl or wget is required but neither is installed" >&2; exit 1; \
     fi && \
     mkdir -p "${PREINSTALLED_BASE}/bin" && \
-    ARCH=$(uname -m) && \
-    fetch "https://github.com/openai/codex/releases/latest/download/codex-${ARCH}-unknown-linux-musl.tar.gz" \
-        | tar -xz -C "${PREINSTALLED_BASE}/bin" && \
     mkdir -p "${PREINSTALLED_BASE}/npm" && \
     npm install -g --prefix "${PREINSTALLED_BASE}/npm" --omit=dev \
+        @openai/codex@latest \
         @google/gemini-cli@latest \
         task-master-ai@latest && \
     npm cache clean --force && \
