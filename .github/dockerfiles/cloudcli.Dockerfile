@@ -50,7 +50,7 @@ ARG VITE_IS_PLATFORM=true
 ENV VITE_IS_PLATFORM=$VITE_IS_PLATFORM
 
 # Pre-create default admin account (credentials: admin / platform)
-RUN printf '%s\n' \
+RUN mkdir -p /etc/cloudcli && printf '%s\n' \
     'if (process.env.VITE_IS_PLATFORM !== "true") { console.log("[init] skipping user init (not platform mode)"); process.exit(0); }' \
     'import { initializeDatabase } from "/app/dist-server/server/modules/database/init-db.js";' \
     'import { userDb } from "/app/dist-server/server/modules/database/repositories/users.js";' \
