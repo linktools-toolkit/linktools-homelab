@@ -42,25 +42,25 @@ COPY --from=build /app/scripts ./scripts
 COPY --from=build /app/package*.json ./
 COPY --from=build /app/node_modules ./node_modules
 
-ARG VITE_IS_PLATFORM=true
-
 ENV HOST=0.0.0.0
 ENV PORT=3001
 EXPOSE 3001
-# Pre-create default admin account (credentials: admin / platform)
-RUN if [ "$VITE_IS_PLATFORM" = "true" ]; then \
-      printf '%s\n' \
-          'import { initializeDatabase } from "/app/dist-server/server/modules/database/init-db.js";' \
-          'import { userDb } from "/app/dist-server/server/modules/database/repositories/users.js";' \
-          'await initializeDatabase();' \
-          'if (!userDb.hasUsers()) {' \
-          '  userDb.createUser("admin", "$2b$12$N2aNoQ0Jv425ocxt.V4SQe2q1EI1/3z8Z8MVcNKOmKJjTkVqdlY9u");' \
-          '  console.log("Created platform user: admin");' \
-          '}' \
-          > /tmp/init-user.mjs \
-      && mkdir -p /etc/cloudcli/auth \
-      && DATABASE_PATH=/etc/cloudcli/auth/default.db node /tmp/init-user.mjs \
-      && rm -f /tmp/init-user.mjs; \
-    fi
 
-CMD ["node", "/app/dist-server/server/index.js"]
+ARG VITE_IS_PLATFORM=true
+ENV VITE_IS_PLATFORM=$VITE_IS_PLATFORM
+
+# Pre-create default admin account (credentials: admin / platform)
+RUN printf '%s\n' \
+    'if (process.env.VITE_IS_PLATFORM !== "true") { console.log("[init] skipping user init (not platform mode)"); process.exit(0); }' \
+    'import { initializeDatabase } from "/app/dist-server/server/modules/database/init-db.js";' \
+    'import { userDb } from "/app/dist-server/server/modules/database/repositories/users.js";' \
+    'await initializeDatabase();' \
+    'if (!userDb.hasUsers()) {' \
+    '  userDb.createUser("admin", "$2b$12$N2aNoQ0Jv425ocxt.V4SQe2q1EI1/3z8Z8MVcNKOmKJjTkVqdlY9u");' \
+    '  console.log("[init] created default admin user");' \
+    '} else {' \
+    '  console.log("[init] users already exist, skipping");' \
+    '}' \
+    > /etc/cloudcli/init_user.mjs
+
+CMD ["sh", "-c", "node /etc/cloudcli/init_user.mjs && node /app/dist-server/server/index.js"]
