@@ -1,0 +1,78 @@
+name: Build CloudCLI
+
+on:
+  schedule:
+    - cron: '20 2 * * *'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch/commit/tag to build (leave empty for main)'
+        required: false
+      force:
+        description: 'Force rebuild even if image already exists'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.resolve.outputs.sha }}
+      full-sha: ${{ steps.resolve.outputs.full-sha }}
+      skip: ${{ steps.resolve.outputs.skip }}
+    steps:
+      - name: Resolve commit and check existence
+        id: resolve
+        run: |
+          REF="${{ inputs.ref }}"
+          if [ -z "$REF" ]; then
+            REF="main"
+          fi
+          FULL_SHA=$(curl -sf "https://api.github.com/repos/siteboon/claudecodeui/commits/$REF" | jq -r .sha)
+          SHORT_SHA="${FULL_SHA:0:7}"
+          echo "sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          echo "full-sha=$FULL_SHA" >> $GITHUB_OUTPUT
+
+          if [ "${{ inputs.force }}" = "true" ]; then
+            echo "skip=false" >> $GITHUB_OUTPUT
+          elif docker manifest inspect ghcr.io/linktools-toolkit/cloudcli:$SHORT_SHA > /dev/null 2>&1; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+  build:
+    needs: check
+    if: needs.check.outputs.skip == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout (for Dockerfile)
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: .github/dockerfiles/cloudcli.Dockerfile
+          push: true
+          build-args: |
+            CLOUDCLI_REF=${{ needs.check.outputs.full-sha }}
+          tags: |
+            ghcr.io/linktools-toolkit/cloudcli:${{ needs.check.outputs.sha }}
+            ghcr.io/linktools-toolkit/cloudcli:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
