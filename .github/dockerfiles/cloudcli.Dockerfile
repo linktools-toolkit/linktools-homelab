@@ -33,6 +33,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # INCLUDE install-ai-cli.dockerfile
+# INCLUDE setup-preinstalled.dockerfile
 # INCLUDE install-ai-agents.dockerfile
 
 WORKDIR /app
