@@ -7,15 +7,15 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends python3-pip python3-venv nodejs npm bubblewrap socat \
     && rm -rf /var/lib/apt/lists/*
 
-# INCLUDE install-agent-cli.dockerfile
-# INCLUDE install-chrome.dockerfile
 # INCLUDE install-ai-cli.dockerfile
+# INCLUDE install-chrome.dockerfile
+# INCLUDE install-ai-agents.dockerfile
 
 RUN printf '%s\n' \
-    "export PATH=\$PATH:${AI_CLI_PATH}" \
+    "export PATH=\$PATH:${AI_AGENTS_PATH}" \
     | tee /etc/profile.d/preinstalled.sh > /dev/null \
     && chmod 644 /etc/profile.d/preinstalled.sh
-RUN npm install -g --prefix "${AI_CLI_BASE}/npm" puppeteer && \
+RUN npm install -g --prefix "${AI_AGENTS_BASE}/npm" puppeteer && \
     npm cache clean --force
 
 RUN node -e " \

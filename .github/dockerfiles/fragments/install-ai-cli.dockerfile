@@ -1,18 +1,37 @@
-ARG AI_CLI_BASE=/opt/ai-cli
-ENV AI_CLI_PATH="${AI_CLI_BASE}/bin:${AI_CLI_BASE}/npm/bin"
-ENV PATH="${PATH}:${AI_CLI_PATH}"
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        wget \
+        git \
+        jq \
+        yq \
+        ripgrep \
+        less \
+        tree \
+        file \
+        gawk \
+        procps \
+        lsof \
+        openssh-client \
+        rsync \
+        unzip \
+        zip \
+        xz-utils \
+        zstd \
+        patch \
+        locales \
+        tzdata \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p "${AI_CLI_BASE}/bin" "${AI_CLI_BASE}/npm"
-
-RUN npm install -g --prefix "${AI_CLI_BASE}/npm" --omit=dev \
-        @openai/codex@latest \
-        @google/gemini-cli@latest && \
-    npm cache clean --force
-
-RUN if command -v curl >/dev/null 2>&1; then \
-        curl -fsSL https://claude.ai/install.sh | bash; \
-    else \
-        wget -qO- https://claude.ai/install.sh | bash; \
-    fi && \
-    mv "${HOME}/.local/bin/claude" "${AI_CLI_BASE}/bin/claude" && \
-    rm -rf "${HOME}/.claude" "${HOME}/.claude.json"
+RUN mkdir -p -m 755 /etc/apt/keyrings /etc/apt/sources.list.d \
+    && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+        | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
+    && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+        | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends gh \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
