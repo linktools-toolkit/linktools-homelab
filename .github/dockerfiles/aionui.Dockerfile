@@ -4,9 +4,12 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends nodejs npm sudo \
     && rm -rf /var/lib/apt/lists/*
 
-# INCLUDE install-ai-cli.dockerfile
-# INCLUDE setup-preinstalled.dockerfile
-# INCLUDE install-ai-agents.dockerfile
+# INCLUDE install-base-cli.dockerfile
+# INCLUDE install-preinstalled.dockerfile
+
+RUN curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.sh | bash && \
+    mv "${HOME}/.local/bin/officecli" "${PREINSTALLED_BASE}/bin/officecli" && \
+    rm -rf "${HOME}/.officecli"
 
 WORKDIR /app
 COPY dist/ ./

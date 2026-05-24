@@ -32,9 +32,8 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends python3 sudo \
     && rm -rf /var/lib/apt/lists/*
 
-# INCLUDE install-ai-cli.dockerfile
-# INCLUDE setup-preinstalled.dockerfile
-# INCLUDE install-ai-agents.dockerfile
+# INCLUDE install-base-cli.dockerfile
+# INCLUDE install-preinstalled.dockerfile
 
 WORKDIR /app
 COPY --from=build /app/dist ./dist

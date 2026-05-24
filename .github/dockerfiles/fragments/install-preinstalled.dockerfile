@@ -1,3 +1,6 @@
+ARG PREINSTALLED_BASE=/opt/preinstalled
+ENV PREINSTALLED_PATH="${PREINSTALLED_BASE}/bin:${PREINSTALLED_BASE}/npm/bin"
+ENV PATH="${PATH}:${PREINSTALLED_PATH}"
 RUN mkdir -p "${PREINSTALLED_BASE}/bin" "${PREINSTALLED_BASE}/npm"
 
 RUN npm install -g --prefix "${PREINSTALLED_BASE}/npm" --omit=dev \

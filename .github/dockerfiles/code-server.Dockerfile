@@ -7,10 +7,9 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends python3-pip python3-venv nodejs npm bubblewrap socat \
     && rm -rf /var/lib/apt/lists/*
 
-# INCLUDE install-ai-cli.dockerfile
+# INCLUDE install-base-cli.dockerfile
 # INCLUDE install-chrome.dockerfile
-# INCLUDE setup-preinstalled.dockerfile
-# INCLUDE install-ai-agents.dockerfile
+# INCLUDE install-preinstalled.dockerfile
 
 RUN printf '%s\n' \
     "export PATH=\$PATH:${PREINSTALLED_PATH}" \
