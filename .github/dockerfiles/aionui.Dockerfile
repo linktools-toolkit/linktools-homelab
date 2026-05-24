@@ -5,8 +5,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # INCLUDE install-agent-cli.dockerfile
-# INCLUDE install-chrome.dockerfile
-# INCLUDE install-preinstalled.dockerfile
+# INCLUDE install-ai-cli.dockerfile
 
 WORKDIR /app
 COPY dist/ ./

@@ -9,13 +9,13 @@ RUN apt-get update \
 
 # INCLUDE install-agent-cli.dockerfile
 # INCLUDE install-chrome.dockerfile
-# INCLUDE install-preinstalled.dockerfile
+# INCLUDE install-ai-cli.dockerfile
 
 RUN printf '%s\n' \
-    "export PATH=\$PATH:${PREINSTALLED_PATH}" \
+    "export PATH=\$PATH:${AI_CLI_PATH}" \
     | tee /etc/profile.d/preinstalled.sh > /dev/null \
     && chmod 644 /etc/profile.d/preinstalled.sh
-RUN npm install -g --prefix "${PREINSTALLED_BASE}/npm" puppeteer && \
+RUN npm install -g --prefix "${AI_CLI_BASE}/npm" puppeteer && \
     npm cache clean --force
 
 RUN node -e " \
