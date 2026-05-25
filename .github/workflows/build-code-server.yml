@@ -76,6 +76,7 @@ jobs:
           context: .
           file: /tmp/code-server.Dockerfile
           push: true
+          provenance: false
           build-args: |
             VSCODE_TAG=${{ needs.check.outputs.tag }}
           tags: |

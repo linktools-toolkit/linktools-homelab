@@ -68,6 +68,7 @@ jobs:
         with:
           context: .
           push: true
+          provenance: false
           tags: |
             ghcr.io/linktools-toolkit/happy-server:${{ needs.check.outputs.tag }}
             ghcr.io/linktools-toolkit/happy-server:latest

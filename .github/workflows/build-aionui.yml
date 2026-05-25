@@ -95,6 +95,7 @@ jobs:
           context: .
           file: /tmp/aionui.Dockerfile
           push: true
+          provenance: false
           tags: |
             ghcr.io/linktools-toolkit/aionui:${{ needs.check.outputs.tag }}
             ghcr.io/linktools-toolkit/aionui:${{ needs.check.outputs.channel }}
