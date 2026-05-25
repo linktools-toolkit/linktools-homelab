@@ -43,9 +43,6 @@ class Container(BaseContainer):
         coder = self.manager.containers["coder"]
         coder.install_modules[self.get_service_name("cloudcli")] = [
             {"type": "npm", "module": "task-master-ai@latest"},
-            {"type": "shell", "module": "curl -fsSL https://claude.ai/install.sh | bash"},
-            {"type": "npm", "module": "@openai/codex@latest"},
-            {"type": "npm", "module": "@google/gemini-cli@latest"},
             {"type": "npm", "module": "npx@latest"},
             {"type": "shell", "module": "curl https://cursor.com/install -fsS | bash"},
         ]

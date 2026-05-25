@@ -26,7 +26,7 @@
   / ==ooooooooooooooo==.o.  ooo= //   ,``--{)B     ,"
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
-from typing import Any, Iterable
+from typing import Iterable
 
 from linktools import utils
 from linktools.core import Config
@@ -99,10 +99,3 @@ class Container(BaseContainer):
             nginx = self.manager.containers["nginx"]
             domain = self.get_config("VSCODE_DOMAIN")
             nginx.append_ssl_domains(f"*.{domain}")
-        coder = self.manager.containers["coder"]
-        coder.install_modules[self.get_service_name("code-server")] = [
-            {"type": "shell", "module": "curl -fsSL https://claude.ai/install.sh | bash"},
-            {"type": "npm", "module": "@openai/codex@latest"},
-            {"type": "npm", "module": "@google/gemini-cli@latest"},
-            {"type": "npm", "module": "npx@latest"},
-        ]
