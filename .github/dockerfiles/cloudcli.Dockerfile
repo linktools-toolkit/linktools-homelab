@@ -42,6 +42,11 @@ COPY --from=build /app/scripts ./scripts
 COPY --from=build /app/package*.json ./
 COPY --from=build /app/node_modules ./node_modules
 
+RUN printf '%s\n' \
+    "export PATH=\$PATH:${PREINSTALLED_PATH}" \
+    | tee /etc/profile.d/preinstalled.sh > /dev/null \
+    && chmod 644 /etc/profile.d/preinstalled.sh
+
 ENV HOST=0.0.0.0
 ENV PORT=3001
 EXPOSE 3001

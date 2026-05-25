@@ -15,7 +15,7 @@ RUN printf '%s\n' \
     "export PATH=\$PATH:${PREINSTALLED_PATH}" \
     | tee /etc/profile.d/preinstalled.sh > /dev/null \
     && chmod 644 /etc/profile.d/preinstalled.sh
-RUN npm install -g puppeteer && \
+RUN npm install -g --prefix "${PREINSTALLED_BASE}/npm" --omit=dev puppeteer && \
     npm cache clean --force
 
 RUN node -e " \
