@@ -83,3 +83,17 @@ jobs:
             ghcr.io/linktools-toolkit/code-server:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  cleanup:
+    needs: [build]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Delete untagged versions
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: code-server
+          package-type: container
+          delete-only-untagged-versions: true
