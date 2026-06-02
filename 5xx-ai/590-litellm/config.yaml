@@ -1,0 +1,18 @@
+model_list:
+  # Add your models here, e.g.:
+  # - model_name: gpt-4o
+  #   litellm_params:
+  #     model: openai/gpt-4o
+  #     api_key: os.environ/OPENAI_API_KEY
+
+litellm_settings:
+  drop_params: true
+  request_timeout: 600
+  default_internal_user_params:
+    user_role: proxy_admin
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  database_url: os.environ/DATABASE_URL
+  store_model_in_db: true
+  control_plane_url: os.environ/PROXY_BASE_URL

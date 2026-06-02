@@ -41,6 +41,7 @@ class Container(BaseContainer):
                     "auth_headers": {
                         "Authorization": f"Bearer {self.get_config('AIONUI_TOKEN')}"
                     },
+                    "acl_bypass": ["\\.(css|js|webmanifest)$"],
                 },
             )),
             self.expose_container("AionUI", "robot", "AI 助手 Web UI", self.load_port_url(

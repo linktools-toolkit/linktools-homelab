@@ -4,6 +4,7 @@ services:
     hostname: cc-switch-web
     environment:
       - 'ALLOW_HTTP_BASIC_OVER_HTTP=1'
+      - 'HOME=/home/ccswitch'
     user: '{{ DOCKER_UID }}:{{ DOCKER_GID }}'
     volumes:
       - '{{ (APP_PATH/"data") | mkdir | chown(docker_user) }}:/home/ccswitch/.cc-switch'

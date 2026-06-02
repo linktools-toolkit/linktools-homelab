@@ -1,5 +1,6 @@
 services:
   code-server:
+    platform: linux/amd64
     user: '{{ DOCKER_UID }}:{{ DOCKER_GID }}'
     environment:
       - 'TZ=Asia/Singapore'

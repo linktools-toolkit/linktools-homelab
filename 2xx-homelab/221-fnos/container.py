@@ -43,6 +43,7 @@ class Container(BaseContainer):
         return dict(
             FNOS_DOMAIN=self.get_nginx_domain("fn"),
             FNOS_LOCAL_URL="http://10.10.10.1:5666",
+            FNOS_DAV_LOCAL_URL="http://10.10.10.1:5005",
         )
 
     @cached_property
@@ -50,7 +51,7 @@ class Container(BaseContainer):
         return [
             self.expose_public("fnOS", "nas", "飞牛系统", self.load_nginx_url(
                 "FNOS_DOMAIN",
-                proxy_url=self.get_config("FNOS_LOCAL_URL"),
+                proxy_conf=self.get_source_path("nginx.conf"),
             )),
             self.expose_private("fnOS", "nas", "飞牛系统", self.load_config_url(
                 "FNOS_LOCAL_URL",
