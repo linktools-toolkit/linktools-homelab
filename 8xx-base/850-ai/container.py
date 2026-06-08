@@ -28,9 +28,7 @@
 """
 import functools
 import os
-from pathlib import Path
 
-from linktools.cli import subcommand
 from linktools.cntr import BaseContainer
 from linktools.core import Config
 from linktools.decorator import cached_property
@@ -47,7 +45,7 @@ class Container(BaseContainer):
     @cached_property
     def home_files(self):
         result = {}
-        for name in (".codex", ".claude", ".cursor", ".gemini", ".share"):
+        for name in (".codex", ".claude", ".cursor", ".gemini", ".cc-switch"):
             path = os.path.join(self.get_config("AI_HOME_PATH"), name)
             self.start_hooks.append(functools.partial(os.makedirs, path, mode=0o755, exist_ok=True))
             self.start_hooks.append(functools.partial(self.manager.change_file_owner, path, self.get_config("DOCKER_USER"), recursive=False))
