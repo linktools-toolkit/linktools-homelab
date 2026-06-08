@@ -26,6 +26,7 @@
   / ==ooooooooooooooo==.o.  ooo= //   ,``--{)B     ,"
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
+import json
 from typing import Iterable
 
 from linktools import utils
@@ -112,3 +113,41 @@ class Container(BaseContainer):
             "exec", "-it", self.get_service_name("code-server"),
             "cc-switch", "completions", "install", "--activate", "--shell", "bash"
         ).check_call()
+
+        extensions = (
+            "yzhang.markdown-all-in-one",
+            "shd101wyy.markdown-preview-enhanced",
+            "bierner.markdown-mermaid",
+            "ms-vscode.live-server",
+            "Anthropic.claude-code",
+            "openai.chatgpt",
+            "google.geminicodeassist",
+        )
+        for extension in extensions:
+            self.logger.info(f"Install {extension} to `code-server`")
+            self.manager.create_docker_process(
+                "exec", "-it", self.get_service_name("code-server"),
+                "code-server", "--install-extension", extension,
+            ).check_call()
+
+        settings_path = self.get_app_path("home", ".local", "share", "code-server", "User", "settings.json")
+        if settings_path.exists():
+            settings = {}
+            try:
+                settings = json.loads(settings_path.read_text(encoding="utf-8"))
+            except ValueError:
+                settings = {}
+            def merge_setting(key, value):
+                if key not in settings or not str(settings[key]):
+                    settings[key] = value
+            merge_setting("python.venvPath", "/workspace")
+            merge_setting("python.pythonPath",  "/workspace/.venv/bin/python")
+            merge_setting("python.defaultInterpreterPath",  "/workspace/.venv/bin/python")
+            merge_setting("claudeCode.preferredLocation",  "sidebar")
+            merge_setting("claudeCode.allowDangerouslySkipPermissions", True)
+            merge_setting("markdown-preview-enhanced.enablePreviewZenMode",  True)
+            merge_setting("markdown-preview-enhanced.chromePath",  "/usr/bin/google-chrome-stable")
+            settings_path.write_text(
+                json.dumps(settings, indent=2, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
