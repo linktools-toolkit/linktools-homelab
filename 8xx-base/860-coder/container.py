@@ -26,11 +26,10 @@
   / ==ooooooooooooooo==.o.  ooo= //   ,``--{)B     ,"
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
-import functools
+
 import os
 from pathlib import Path
 
-from linktools.cli import subcommand, subcommand_argument
 from linktools.cntr import BaseContainer
 from linktools.core import Config
 from linktools.decorator import cached_property
@@ -91,29 +90,3 @@ class Container(BaseContainer):
         result = dict()
         result[""] = self.get_config("CODER_PROJECT_PATH")
         return result
-
-    @cached_property
-    def install_modules(self):
-        return {}
-
-    @subcommand("install-modules", help="install modules")
-    @subcommand_argument("containers", nargs="*", metavar="CONTAINER", help="container service names to install (default: all)")
-    def on_exec_install_modules(self, containers: "list[str]"):
-        items = self.install_modules.items()
-        if containers:
-            items = [(name, modules) for name, modules in items if name in containers]
-        for name, modules in items:
-            npm_modules = [m.get("module") for m in modules if m.get("type") == "npm"]
-            if npm_modules:
-                self.logger.info(f"Install npm modules {npm_modules} to `{name}`")
-                self.manager.create_docker_process(
-                    "exec", f"--user", self.get_config("DOCKER_UID"), name,
-                    "npm", "install", "-g", *npm_modules, "--registry", self.get_config("CODER_NPM_REGISTRY"),
-                ).check_call()
-            for module in modules:
-                if module.get("type") == "shell":
-                    self.logger.info(f"Install `{module.get('module')}` to `{name}`")
-                    self.manager.create_docker_process(
-                        "exec", f"--user", self.get_config("DOCKER_UID"), name,
-                        "sh", "-c", module.get("module"),
-                    ).check_call()

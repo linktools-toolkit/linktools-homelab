@@ -35,6 +35,17 @@ RUN apt-get update \
 # INCLUDE install-base-cli.dockerfile
 # INCLUDE install-preinstalled.dockerfile
 
+RUN export HOME="${PREINSTALLED_BASE}/home" && \
+    npm install -g --prefix "${PREINSTALLED_BASE}/npm" --omit=dev \
+        task-master-ai@latest \
+        npx@latest && \
+    npm cache clean --force && \
+    rm -rf "${HOME}/.npm"
+
+RUN export HOME="${PREINSTALLED_BASE}/home" && \
+    export PATH="${HOME}/.local/bin:${PATH}" && \
+    curl -fsSL https://cursor.com/install | bash;
+
 WORKDIR /app
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/dist-server ./dist-server

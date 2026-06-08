@@ -29,6 +29,7 @@
 from typing import Iterable
 
 from linktools import utils
+from linktools.cli import subcommand
 from linktools.core import Config
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, ExposeLink
@@ -99,3 +100,15 @@ class Container(BaseContainer):
             nginx = self.manager.containers["nginx"]
             domain = self.get_config("VSCODE_DOMAIN")
             nginx.append_ssl_domains(f"*.{domain}")
+
+    @subcommand("install", help="install modules into the running container")
+    def on_exec_install(self):
+        self.logger.info("Install cc-switch-cli to `code-server`")
+        self.manager.create_docker_process(
+            "exec", "-it", self.get_service_name("code-server"),
+            "sh", "-c", "curl -fsSL https://github.com/SaladDay/cc-switch-cli/releases/latest/download/install.sh | bash",
+        ).check_call()
+        self.manager.create_docker_process(
+            "exec", "-it", self.get_service_name("code-server"),
+            "cc-switch", "completions", "install", "--activate", "--shell", "bash"
+        ).check_call()

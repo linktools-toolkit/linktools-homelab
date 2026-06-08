@@ -38,11 +38,3 @@ class Container(BaseContainer):
                 https=False
             )),
         ]
-
-    def on_prepare(self):
-        coder = self.manager.containers["coder"]
-        coder.install_modules[self.get_service_name("cloudcli")] = [
-            {"type": "npm", "module": "task-master-ai@latest"},
-            {"type": "npm", "module": "npx@latest"},
-            {"type": "shell", "module": "curl https://cursor.com/install -fsS | bash"},
-        ]

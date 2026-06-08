@@ -18,19 +18,3 @@ RUN export HOME="${PREINSTALLED_BASE}/home" && \
         wget -qO- https://claude.ai/install.sh | bash; \
     fi && \
     rm -rf "${HOME}/.cache/claude" "${HOME}/.claude" "${HOME}/.claude.json"
-
-RUN export HOME="${PREINSTALLED_BASE}/home" && \
-    export PATH="${HOME}/.local/bin:${PATH}" && \
-    if command -v curl >/dev/null 2>&1; then \
-        curl -fsSL https://github.com/SaladDay/cc-switch-cli/releases/latest/download/install.sh | bash; \
-    else \
-        wget -qO- https://github.com/SaladDay/cc-switch-cli/releases/latest/download/install.sh | bash; \
-    fi
-
-RUN export HOME="${PREINSTALLED_BASE}/home" && \
-    export PATH="${HOME}/.local/bin:${PATH}" && \
-    if command -v curl >/dev/null 2>&1; then \
-        curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.sh | bash; \
-    else \
-        wget -qO- https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.sh | bash; \
-    fi

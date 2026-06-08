@@ -7,6 +7,10 @@ RUN apt-get update \
 # INCLUDE install-base-cli.dockerfile
 # INCLUDE install-preinstalled.dockerfile
 
+RUN export HOME="${PREINSTALLED_BASE}/home" && \
+    export PATH="${HOME}/.local/bin:${PATH}" && \
+    curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.sh | bash;
+
 WORKDIR /app
 COPY dist/ ./
 RUN chmod +x aionui-web
