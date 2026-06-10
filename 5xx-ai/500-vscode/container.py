@@ -27,6 +27,8 @@
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
 import json
+import re
+import shutil
 from typing import Iterable
 
 from linktools import utils
@@ -107,7 +109,7 @@ class Container(BaseContainer):
         self.logger.info("Install cc-switch-cli to `code-server`")
         self.manager.create_docker_process(
             "exec", "-it", self.get_service_name("code-server"),
-            "sh", "-c", "curl -fsSL https://github.com/SaladDay/cc-switch-cli/releases/latest/download/install.sh | bash",
+            "sh", "-c", "CC_SWITCH_FORCE=1 env && CC_SWITCH_FORCE=1  curl -fsSL https://github.com/SaladDay/cc-switch-cli/releases/latest/download/install.sh | bash",
         ).check_call()
         self.manager.create_docker_process(
             "exec", "-it", self.get_service_name("code-server"),
@@ -121,7 +123,7 @@ class Container(BaseContainer):
             "ms-vscode.live-server",
             "Anthropic.claude-code",
             "openai.chatgpt",
-            "google.geminicodeassist",
+            # "google.geminicodeassist",
         )
         for extension in extensions:
             self.logger.info(f"Install {extension} to `code-server`")
@@ -130,7 +132,7 @@ class Container(BaseContainer):
                 "code-server", "--install-extension", extension,
             ).check_call()
 
-        settings_path = self.get_app_path("home", ".local", "share", "code-server", "User", "settings.json")
+        settings_path = self.get_app_path("home/.local/share/code-server/User/settings.json")
         if settings_path.exists():
             settings = {}
             try:
@@ -138,7 +140,8 @@ class Container(BaseContainer):
             except ValueError:
                 settings = {}
             def merge_setting(key, value):
-                if key not in settings or not str(settings[key]):
+                original = settings.get(key, None)
+                if original is None or not str(original):
                     settings[key] = value
             merge_setting("python.venvPath", "/workspace")
             merge_setting("python.pythonPath",  "/workspace/.venv/bin/python")
@@ -151,3 +154,53 @@ class Container(BaseContainer):
                 json.dumps(settings, indent=2, ensure_ascii=False) + "\n",
                 encoding="utf-8",
             )
+
+    @classmethod
+    def _parse_extension_dir(cls, name: str):
+        match = re.match(r"^(.+)-(\d+(?:[.\-+][0-9A-Za-z]+)*)$", name)
+        if not match:
+            return None
+        return match.group(1), match.group(2)
+
+    @classmethod
+    def _extension_version_key(cls, version: str):
+        key = []
+        for part in re.split(r"([0-9]+)", version):
+            if not part:
+                continue
+            if part.isdigit():
+                key.append((1, int(part)))
+            else:
+                key.append((0, part))
+        return key
+
+    @subcommand("clean", help="clean old code-server extensions")
+    def on_exec_clean(self):
+        extensions_path = self.get_app_path("home/.local/share/code-server/extensions")
+        if not extensions_path.exists():
+            self.logger.warning(f"Extensions path not found: {extensions_path}")
+            return
+
+        extensions = {}
+        for path in extensions_path.iterdir():
+            if not path.is_dir():
+                continue
+            parsed = self._parse_extension_dir(path.name)
+            if not parsed:
+                continue
+            extension_name, version = parsed
+            extensions.setdefault(extension_name, []).append((version, path))
+
+        removed = 0
+        for extension_name, versions in extensions.items():
+            if len(versions) <= 1:
+                continue
+            versions.sort(key=lambda item: self._extension_version_key(item[0]))
+            latest_version, latest_path = versions[-1]
+            self.logger.info(f"Keep {extension_name} {latest_version}: {latest_path.name}")
+            for version, path in versions[:-1]:
+                self.logger.info(f"Remove {extension_name} {version}: {path.name}")
+                shutil.rmtree(path)
+                removed += 1
+
+        self.logger.info(f"Cleaned {removed} old code-server extension(s)")

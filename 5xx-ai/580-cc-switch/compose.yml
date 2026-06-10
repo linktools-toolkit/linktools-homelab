@@ -7,7 +7,6 @@ services:
       - 'HOME=/home/ccswitch'
     user: '{{ DOCKER_UID }}:{{ DOCKER_GID }}'
     volumes:
-      - '{{ (APP_PATH/"data") | mkdir | chown(docker_user) }}:/home/ccswitch/.cc-switch'
 #     {% for name, path in containers["ai"].home_files.items() %}
       - '{{ path }}:/home/ccswitch/{{ name }}'
 #     {% endfor %}

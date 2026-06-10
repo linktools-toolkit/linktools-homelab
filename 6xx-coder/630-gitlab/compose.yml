@@ -65,6 +65,12 @@ services:
           gitlab_rails['sentry_enabled'] = false
           # grafana['reporting_enabled'] = false
 
+          logging['logrotate_frequency'] = "daily"
+          logging['logrotate_rotate'] = 7
+          logging['logrotate_compress'] = "compress"
+          logging['logrotate_method'] = "copytruncate"
+          logging['logrotate_maxsize'] = "200M"
+
           # {% if NGINX_AUTH_ENABLE %}
           # {% with client = manager.containers['authelia'].oidc_clients[0] %}
           gitlab_rails['omniauth_providers'] = [
