@@ -4,12 +4,16 @@ FROM ghcr.io/coder/code-server:$VSCODE_TAG
 USER root
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends python3-pip python3-venv nodejs npm bubblewrap socat \
+    && apt-get install -y --no-install-recommends python3 nodejs npm bubblewrap socat \
     && rm -rf /var/lib/apt/lists/*
 
 # INCLUDE install-base-cli.dockerfile
 # INCLUDE install-chrome.dockerfile
 # INCLUDE install-preinstalled.dockerfile
+
+RUN export HOME="${PREINSTALLED_BASE}" && \
+    export UV_INSTALL_DIR="${PREINSTALLED_BASE}/bin" && \
+    curl -fsSL https://astral.sh/uv/install.sh | bash
 
 RUN printf '%s\n' \
     "export PATH=\$PATH:${PREINSTALLED_PATH}" \
