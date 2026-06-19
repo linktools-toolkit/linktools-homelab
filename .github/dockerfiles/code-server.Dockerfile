@@ -11,7 +11,7 @@ RUN apt-get update \
 # INCLUDE install-chrome.dockerfile
 # INCLUDE install-preinstalled.dockerfile
 
-RUN export HOME="${PREINSTALLED_BASE}" && \
+RUN . "${PREINSTALLED_BASE}/env.sh" && \
     export UV_INSTALL_DIR="${PREINSTALLED_BASE}/bin" && \
     curl -fsSL https://astral.sh/uv/install.sh | bash
 
@@ -19,8 +19,10 @@ RUN printf '%s\n' \
     "export PATH=\$PATH:${PREINSTALLED_PATH}" \
     | tee /etc/profile.d/preinstalled.sh > /dev/null \
     && chmod 644 /etc/profile.d/preinstalled.sh
-RUN npm install -g --prefix "${PREINSTALLED_BASE}/npm" --omit=dev puppeteer && \
-    npm cache clean --force
+RUN . "${PREINSTALLED_BASE}/env.sh" && \
+    npm install -g --omit=dev puppeteer && \
+    npm cache clean --force && \
+    rm -rf "${HOME}/.npm"
 
 RUN node -e " \
   const fs = require('fs'); \
