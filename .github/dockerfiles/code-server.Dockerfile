@@ -54,7 +54,7 @@ RUN node -e " \
 "
 
 RUN printf '%s\n' \
-    ". ${PREINSTALLED_BASE}/.env" \
+    "export PATH=\$PATH:${PREINSTALLED_PATH}" \
     | tee /etc/profile.d/preinstalled.sh > /dev/null \
     && chmod 644 /etc/profile.d/preinstalled.sh
 
