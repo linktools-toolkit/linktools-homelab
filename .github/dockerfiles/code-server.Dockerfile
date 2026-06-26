@@ -1,6 +1,7 @@
+ARG VSCODE_TAG
+
 FROM golang:buster AS golang
 
-ARG VSCODE_TAG
 FROM ghcr.io/coder/code-server:$VSCODE_TAG
 
 USER root
