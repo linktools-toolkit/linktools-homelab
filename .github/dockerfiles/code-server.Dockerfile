@@ -1,6 +1,6 @@
 ARG VSCODE_TAG
 
-FROM golang:buster AS golang
+FROM golang:bookworm AS golang
 
 FROM ghcr.io/coder/code-server:$VSCODE_TAG
 
