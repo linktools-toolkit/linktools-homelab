@@ -1,25 +1,36 @@
+FROM golang:buster AS golang
+
 ARG VSCODE_TAG
 FROM ghcr.io/coder/code-server:$VSCODE_TAG
 
 USER root
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends python3 nodejs npm bubblewrap socat \
+    && apt-get install -y --no-install-recommends \
+        nodejs npm \
+        ca-certificates \
+        build-essential \
+        pkg-config \
+        bubblewrap socat \
     && rm -rf /var/lib/apt/lists/*
 
 # INCLUDE install-base-cli.dockerfile
 # INCLUDE install-chrome.dockerfile
 # INCLUDE install-preinstalled.dockerfile
 
-RUN . "${PREINSTALLED_BASE}/env.sh" && \
-    export UV_INSTALL_DIR="${PREINSTALLED_BASE}/bin" && \
-    curl -fsSL https://astral.sh/uv/install.sh | bash
+COPY --from=golang /usr/local/go "${PREINSTALLED_BASE}/go"
+RUN ln -s "${PREINSTALLED_BASE}/go/bin/go" "${PREINSTALLED_BASE}/bin/go"
 
 RUN printf '%s\n' \
-    "export PATH=\$PATH:${PREINSTALLED_PATH}" \
-    | tee /etc/profile.d/preinstalled.sh > /dev/null \
-    && chmod 644 /etc/profile.d/preinstalled.sh
-RUN . "${PREINSTALLED_BASE}/env.sh" && \
+    'export UV_INSTALL_DIR='"${PREINSTALLED_BASE}/bin" \
+    'export UV_PYTHON_INSTALL_DIR='"${PREINSTALLED_BASE}/python" \
+    'export UV_PYTHON_BIN_DIR='"${PREINSTALLED_BASE}/bin" \
+    >> "${PREINSTALLED_BASE}/.env" && \
+    . "${PREINSTALLED_BASE}/.env" && \
+    curl -fsSL https://astral.sh/uv/install.sh | bash && \
+    uv python install 3.13 --default
+
+RUN . "${PREINSTALLED_BASE}/.env" && \
     npm install -g --omit=dev puppeteer && \
     npm cache clean --force && \
     rm -rf "${HOME}/.npm"
@@ -40,5 +51,10 @@ RUN node -e " \
   }; \
   fs.writeFileSync(path, JSON.stringify(p, null, 2)); \
 "
+
+RUN printf '%s\n' \
+    ". ${PREINSTALLED_BASE}/.env" \
+    | tee /etc/profile.d/preinstalled.sh > /dev/null \
+    && chmod 644 /etc/profile.d/preinstalled.sh
 
 USER 1000

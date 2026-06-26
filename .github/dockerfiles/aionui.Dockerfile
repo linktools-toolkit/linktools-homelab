@@ -7,7 +7,7 @@ RUN apt-get update \
 # INCLUDE install-base-cli.dockerfile
 # INCLUDE install-preinstalled.dockerfile
 
-RUN . "${PREINSTALLED_BASE}/env.sh" && \
+RUN . "${PREINSTALLED_BASE}/.env" && \
     curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.sh | bash
 
 WORKDIR /app

@@ -35,12 +35,12 @@ RUN apt-get update \
 # INCLUDE install-base-cli.dockerfile
 # INCLUDE install-preinstalled.dockerfile
 
-RUN . "${PREINSTALLED_BASE}/env.sh" && \
+RUN . "${PREINSTALLED_BASE}/.env" && \
     npm install -g --omit=dev task-master-ai@latest npx@latest && \
     npm cache clean --force && \
     rm -rf "${HOME}/.npm"
 
-RUN . "${PREINSTALLED_BASE}/env.sh" && \
+RUN . "${PREINSTALLED_BASE}/.env" && \
     curl -fsSL https://cursor.com/install | bash
 
 WORKDIR /app
