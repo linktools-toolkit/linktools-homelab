@@ -106,15 +106,15 @@ class Container(BaseContainer):
 
     @subcommand("install", help="install modules into the running container")
     def on_exec_install(self):
-        self.logger.info("Install cc-switch-cli to `code-server`")
-        self.manager.create_docker_process(
-            "exec", "-it", self.get_service_name("code-server"),
-            "sh", "-c", "CC_SWITCH_FORCE=1 env && CC_SWITCH_FORCE=1  curl -fsSL https://github.com/SaladDay/cc-switch-cli/releases/latest/download/install.sh | bash",
-        ).check_call()
-        self.manager.create_docker_process(
-            "exec", "-it", self.get_service_name("code-server"),
-            "cc-switch", "completions", "install", "--activate", "--shell", "bash"
-        ).check_call()
+        # self.logger.info("Install cc-switch-cli to `code-server`")
+        # self.manager.create_docker_process(
+        #     "exec", "-it", self.get_service_name("code-server"),
+        #     "sh", "-c", "curl -fsSL https://github.com/SaladDay/cc-switch-cli/releases/latest/download/install.sh | bash",
+        # ).check_call()
+        # self.manager.create_docker_process(
+        #     "exec", "-it", self.get_service_name("code-server"),
+        #     "cc-switch", "completions", "install", "--activate", "--shell", "bash"
+        # ).check_call()
 
         extensions = (
             "yzhang.markdown-all-in-one",
