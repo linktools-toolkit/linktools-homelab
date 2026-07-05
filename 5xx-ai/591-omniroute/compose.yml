@@ -1,0 +1,25 @@
+services:
+  omniroute:
+    image: 'diegosouzapw/omniroute:{{ OMNIROUTE_TAG }}'
+    environment:
+      - 'TZ=Asia/Singapore'
+      - 'PORT=20128'
+      - 'DATA_DIR=/app/data'
+      - 'REQUIRE_API_KEY={{ OMNIROUTE_REQUIRE_API_KEY | lower }}'
+      - 'JWT_SECRET={{ OMNIROUTE_JWT_SECRET }}'
+      - 'STORAGE_ENCRYPTION_KEY={{ OMNIROUTE_STORAGE_KEY }}'
+#   {% if OMNIROUTE_PORT > 0 %}
+    ports:
+      - '{{ OMNIROUTE_PORT }}:20128'
+#   {% endif %}
+    volumes:
+      - '{{ (APP_PATH/"data") | mkdir | chown }}:/app/data'
+    # OmniRoute uses better-sqlite3 with WAL; give it time to checkpoint on stop.
+    stop_grace_period: 40s
+    networks:
+      - nginx
+      - omniroute
+
+networks:
+  nginx:
+  omniroute:
