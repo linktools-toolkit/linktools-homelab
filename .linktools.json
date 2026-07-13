@@ -1,0 +1,5 @@
+{
+  "requires": {
+    "linktools-cntr": ">=0.9.0"
+  }
+}
