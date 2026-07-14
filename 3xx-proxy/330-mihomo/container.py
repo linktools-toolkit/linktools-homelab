@@ -5,7 +5,7 @@ from typing import Iterable
 
 from linktools import utils
 from linktools.cntr import BaseContainer, EventContext, ExposeLink
-from linktools.core import Config
+from linktools.core import ConfigField, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
 
 
@@ -16,12 +16,12 @@ class Container(BaseContainer):
         return dict(
             MIHOMO_TAG="Alpha",
             MIHOMO_DOMAIN=self.get_nginx_domain(),
-            MIHOMO_PORT=Config.Alias(type=int, default=9090),
-            MIHOMO_HTTP_PROXY_PORT=Config.Alias(type=int, default=7890),
-            MIHOMO_SOCKS_PROXY_PORT=Config.Alias(type=int, default=7891),
-            MIHOMO_SECRET=Config.Alias(cached=True) | utils.make_uuid()[:12],
-            MIHOMO_SUBSCRIBE_URL=Config.Prompt(cached=True),
-            MIHOMO_SUBSCRIBE_USER_AGENT=Config.Alias(default="mihomo-subscription-updater/1.0"),
+            MIHOMO_PORT=ConfigField(cast=int, default=9090),
+            MIHOMO_HTTP_PROXY_PORT=ConfigField(cast=int, default=7890),
+            MIHOMO_SOCKS_PROXY_PORT=ConfigField(cast=int, default=7891),
+            MIHOMO_SECRET=ConfigField(provider=LazyProvider(lambda r: utils.make_uuid()[:12], cached=True)),
+            MIHOMO_SUBSCRIBE_URL=ConfigField(provider=PromptProvider(cached=True)),
+            MIHOMO_SUBSCRIBE_USER_AGENT=ConfigField(default="mihomo-subscription-updater/1.0"),
             MIHOMO_CONFIG_FILE="config.yaml",
             MIHOMO_EXTERNAL_UI_NAME="metacubexd",
             MIHOMO_EXTERNAL_UI_URL="https://gh-proxy.com/github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip",
@@ -34,7 +34,7 @@ class Container(BaseContainer):
             self.expose_public("Mihomo", "vpn", "Mihomo监控", self.load_nginx_url(
                 "MIHOMO_DOMAIN", "ui", "metacubexd", "#", "setup",
                 queries=dict(
-                    hostname=self.get_config_later(Config.Property("MIHOMO_DOMAIN")),
+                    hostname=self.get_config_later("MIHOMO_DOMAIN"),
                     port=self.get_config_later("NGINX_HTTPS_PORT"),
                     secret=self.get_config_later("MIHOMO_SECRET"),
                 ),

@@ -5,7 +5,7 @@ import secrets
 from typing import Iterable
 
 from linktools.cli import subcommand
-from linktools.core import Config
+from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, ExposeLink
 
@@ -21,14 +21,16 @@ class Container(BaseContainer):
         return dict(
             LITELLM_TAG="main-latest",
             LITELLM_DOMAIN=self.get_nginx_domain(),
-            LITELLM_PORT=Config.Alias(type=int, default=0),
-            LITELLM_MASTER_KEY=Config.Alias(cached=True) | f"sk-{secrets.token_hex(24)}",
-            LITELLM_SALT_KEY=Config.Alias(cached=True) | secrets.token_hex(32),
+            LITELLM_PORT=ConfigField(cast=int, default=0),
+            LITELLM_MASTER_KEY=ConfigField(provider=LazyProvider(
+                lambda r: f"sk-{secrets.token_hex(24)}", cached=True,
+            )),
+            LITELLM_SALT_KEY=ConfigField(provider=LazyProvider(lambda r: secrets.token_hex(32), cached=True)),
             LITELLM_DB_HOST="litellm-postgres",
             LITELLM_DB_PORT="5432",
             LITELLM_DB_DATABASE="litellm",
             LITELLM_DB_USERNAME="litellm",
-            LITELLM_DB_PASSWORD=Config.Alias(cached=True) | secrets.token_hex(16),
+            LITELLM_DB_PASSWORD=ConfigField(provider=LazyProvider(lambda r: secrets.token_hex(16), cached=True)),
         )
 
     @cached_property

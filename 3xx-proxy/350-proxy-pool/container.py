@@ -29,7 +29,7 @@
 from typing import Iterable
 
 from linktools.cntr import BaseContainer, ExposeLink
-from linktools.core import Config
+from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
 
@@ -44,7 +44,7 @@ class Container(BaseContainer):
         return dict(
             PROXY_POOL_TAG="latest",
             PROXY_POOL_DOMAIN=self.get_nginx_domain(),
-            PROXY_POOL_PORT=Config.Alias(type=int, default=0),
+            PROXY_POOL_PORT=ConfigField(cast=int, default=0),
         )
 
     @cached_property

@@ -14,10 +14,19 @@ services:
     networks:
       - hermes
 
+  # Dashboard must bind loopback: newer hermes refuses a 0.0.0.0 bind unless an
+  # auth provider is registered (the --insecure escape hatch no longer covers a
+  # bare all-interfaces bind), and we let Authelia own auth instead. The
+  # forwarder sidecar shares this service's netns and bridges 0.0.0.0:9120 ->
+  # loopback:9119 so nginx can reach it; nginx.conf then rewrites Host + WS
+  # Origin to the loopback value the dashboard's host-header guard accepts.
   hermes-dashboard:
     image: nousresearch/hermes-agent:{{ HERMES_AGENT_TAG }}
-    command: ["dashboard", "--host", "0.0.0.0", "--insecure", "--no-open"]
+    command: ["dashboard", "--port", "9119", "--no-open"]
 #   {% if HERMES_AGENT_DASHBOARD_PORT > 0 %}
+    # NOTE: maps to the loopback-bound 9119, which a host port forward can't
+    # reach (Docker forwards to the container IP, not its loopback). Real
+    # traffic routes via nginx -> hermes-forwarder:9120.
     ports:
       - '{{ HERMES_AGENT_DASHBOARD_PORT }}:9119'
 #   {% endif %}
@@ -31,6 +40,15 @@ services:
       - nginx
     depends_on:
       - hermes
+
+  hermes-forwarder:
+    image: 'alpine/socat:latest'
+    network_mode: 'service:hermes-dashboard'
+    depends_on:
+      - hermes-dashboard
+    command:
+      - 'TCP-LISTEN:9120,bind=0.0.0.0,reuseaddr,fork,nodelay'
+      - 'TCP:127.0.0.1:9119,nodelay'
 
 networks:
   nginx:

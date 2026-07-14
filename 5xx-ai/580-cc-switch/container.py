@@ -7,7 +7,7 @@ import random
 import string
 from typing import Iterable
 
-from linktools.core import Config
+from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, ExposeLink, EventContext
 
@@ -23,8 +23,10 @@ class Container(BaseContainer):
         return dict(
             CC_SWITCH_TAG="latest",
             CC_SWITCH_DOMAIN=self.get_nginx_domain(),
-            CC_SWITCH_PORT=Config.Alias(type=int) | 0,
-            CC_SWITCH_PASSWORD=Config.Alias(cached=True) | "".join(random.sample(string.ascii_letters + string.digits, 16)),
+            CC_SWITCH_PORT=ConfigField(cast=int, default=0),
+            CC_SWITCH_PASSWORD=ConfigField(provider=LazyProvider(
+                lambda r: "".join(random.sample(string.ascii_letters + string.digits, 16)), cached=True,
+            )),
         )
 
     @cached_property

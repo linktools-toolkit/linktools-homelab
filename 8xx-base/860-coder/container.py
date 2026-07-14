@@ -31,24 +31,24 @@ import os
 from pathlib import Path
 
 from linktools.cntr import BaseContainer
-from linktools.core import Config
+from linktools.core import ConfigField, AliasProvider, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
 
 
 class Container(BaseContainer):
 
-    def _get_home_path(self, cfg: Config):
+    def _get_home_path(self, r):
         try:
             import pwd
-            passwd = pwd.getpwnam(cfg.get("DOCKER_USER"))
+            passwd = pwd.getpwnam(r.get("DOCKER_USER"))
             return Path(passwd.pw_dir)
         except ImportError:
             return Path.home()
 
     def _get_git_name(self):
         try:
-            return self.manager.create_process(
-                "git", "config", "--global", "user.name", 
+            return self.manager.runtime.create_process(
+                "git", "config", "--global", "user.name",
                 capture_output=True
             ).exec()
         except:
@@ -56,8 +56,8 @@ class Container(BaseContainer):
 
     def _get_git_email(self):
         try:
-            return self.manager.create_process(
-                "git", "config", "--global", "user.email", 
+            return self.manager.runtime.create_process(
+                "git", "config", "--global", "user.email",
                 capture_output=True
             ).exec()
         except:
@@ -66,14 +66,16 @@ class Container(BaseContainer):
     @cached_property
     def configs(self):
         return dict(
-            CODER_HOME_PATH=Config.Alias(type="path") | Config.Lazy(lambda cfg: self._get_home_path(cfg)),
-            CODER_GIT_NAME=Config.Lazy(lambda cfg: self._get_git_name()),
-            CODER_GIT_EMAIL=Config.Lazy(lambda cfg: self._get_git_email()),
+            CODER_HOME_PATH=ConfigField(cast="path", provider=LazyProvider(lambda r: self._get_home_path(r))),
+            CODER_GIT_NAME=ConfigField(provider=LazyProvider(lambda r: self._get_git_name())),
+            CODER_GIT_EMAIL=ConfigField(provider=LazyProvider(lambda r: self._get_git_email())),
             CODER_NPM_REGISTRY="https://registry.npmmirror.com",
             CODER_PIP_REGISTRY="https://pypi.org/simple/",
-            CODER_PROJECT_PATH=Config.Alias("PROJECT_PATH", type="path") |
-                               Config.Prompt(cached=True) |
-                               self.get_app_path("projects")
+            CODER_PROJECT_PATH=ConfigField.chain(
+                AliasProvider("PROJECT_PATH"),
+                PromptProvider(cached=True),
+                cast="path", default=self.get_app_path("projects"),
+            )
         )
 
     @cached_property

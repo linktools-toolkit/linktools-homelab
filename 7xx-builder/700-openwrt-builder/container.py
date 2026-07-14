@@ -32,7 +32,7 @@ from typing import Iterable
 from linktools import utils
 from linktools.cli import subcommand, subcommand_argument
 from linktools.cntr import BaseContainer
-from linktools.core import Config
+from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
 from linktools.rich import choose
 
@@ -47,33 +47,35 @@ class Container(BaseContainer):
     @cached_property
     def configs(self):
         return dict(
-            OPENWRT_BUILD_PATH=Config.Lazy(lambda cfg: utils.join_path(cfg.get("CODER_PROJECT_PATH"), "openwrt")),
+            OPENWRT_BUILD_PATH=ConfigField(provider=LazyProvider(
+                lambda r: utils.join_path(r.get("CODER_PROJECT_PATH"), "openwrt")
+            )),
         )
 
     @subcommand("pull")
     def on_exec_pull(self):
-        self.manager.create_docker_process(
+        self.manager.runtime.create_docker_process(
             "exec", self.get_service_name("openwrt-builder"), "git", "stash"
         ).check_call()
-        self.manager.create_docker_process(
+        self.manager.runtime.create_docker_process(
             "exec", self.get_service_name("openwrt-builder"), "git", "pull"
         ).check_call()
-        self.manager.create_docker_process(
+        self.manager.runtime.create_docker_process(
             "exec", self.get_service_name("openwrt-builder"), "git", "stash", "pop"
         ).check_call()
 
     @subcommand("update")
     def on_exec_update(self):
-        self.manager.create_docker_process(
+        self.manager.runtime.create_docker_process(
             "exec", self.get_service_name("openwrt-builder"), "./scripts/feeds", "update", "-a"
         ).check_call()
-        self.manager.create_docker_process(
+        self.manager.runtime.create_docker_process(
             "exec", self.get_service_name("openwrt-builder"), "./scripts/feeds", "install", "-a"
         ).check_call()
 
     @subcommand("config")
     def on_exec_config(self):
-        self.manager.create_docker_process(
+        self.manager.runtime.create_docker_process(
             "exec", "-it", self.get_service_name("openwrt-builder"), "make", "menuconfig"
         ).check_call()
 
@@ -90,7 +92,7 @@ class Container(BaseContainer):
             choices=config_names,
         )
 
-        self.manager.create_docker_process(
+        self.manager.runtime.create_docker_process(
             "exec", "-it", self.get_service_name("openwrt-builder"),
             "sh", "-c", utils.list2cmdline([
                 "ln", "-sf",
@@ -105,7 +107,7 @@ class Container(BaseContainer):
         args = ["make", "download", f"-j{jobs}"]
         if self.manager.debug:
             args.append("V=s")
-        self.manager.create_docker_process(
+        self.manager.runtime.create_docker_process(
             "exec", "-it", self.get_service_name("openwrt-builder"), *args,
         ).call()
 
@@ -115,6 +117,6 @@ class Container(BaseContainer):
         args = ["make", "V=s", f"-j{jobs}"]
         if self.manager.debug:
             args.append("V=s")
-        self.manager.create_docker_process(
+        self.manager.runtime.create_docker_process(
             "exec", "-it", self.get_service_name("openwrt-builder"), *args,
         ).call()

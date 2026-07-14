@@ -30,7 +30,6 @@
 from linktools import utils
 from linktools.cli import subcommand, subcommand_argument
 from linktools.cntr import BaseContainer
-from linktools.core import Config
 from linktools.decorator import cached_property
 
 
@@ -47,7 +46,7 @@ class Container(BaseContainer):
     def on_exec_rclone_config(self, args):
         service = self.choose_service()
         name = service.get("container_name")
-        self.manager.create_docker_process(
+        self.manager.runtime.create_docker_process(
             "exec", "-it", name,
             "rclone", "config", *args,
         ).call()
@@ -57,7 +56,7 @@ class Container(BaseContainer):
     def on_exec_crontab(self, args):
         service = self.choose_service()
         name = service.get("container_name")
-        self.manager.create_docker_process(
+        self.manager.runtime.create_docker_process(
             "exec", "-it", name,
             "crontab", *args,
         ).call()

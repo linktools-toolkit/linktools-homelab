@@ -30,7 +30,7 @@ from typing import Iterable
 
 from linktools import utils
 from linktools.cntr import BaseContainer, ExposeLink
-from linktools.core import Config
+from linktools.core import ConfigField, AliasProvider, LazyProvider
 from linktools.decorator import cached_property
 
 
@@ -44,10 +44,10 @@ class Container(BaseContainer):
     def configs(self):
         return dict(
             ALIST_TAG="latest",
-            ALIST_DATA_PATH=Config.Alias("DOCKER_USER_DATA_PATH", type="path"),
-            ALIST_ADMIN_PASSWORD=Config.Prompt(cached=True) | utils.make_uuid()[:12],
+            ALIST_DATA_PATH=ConfigField(cast="path", provider=AliasProvider("DOCKER_USER_DATA_PATH")),
+            ALIST_ADMIN_PASSWORD=ConfigField(provider=LazyProvider(lambda r: utils.make_uuid()[:12], cached=True)),
             ALIST_DOMAIN=self.get_nginx_domain(),
-            ALIST_PORT=Config.Alias(type=int) | 0,
+            ALIST_PORT=ConfigField(cast=int, default=0),
         )
 
     @cached_property

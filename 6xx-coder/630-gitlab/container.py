@@ -30,7 +30,7 @@ from typing import Iterable
 
 from linktools.cli import subcommand
 from linktools.cntr import BaseContainer, ExposeLink
-from linktools.core import Config
+from linktools.core import ConfigField, PromptProvider
 from linktools.decorator import cached_property
 
 
@@ -45,8 +45,10 @@ class Container(BaseContainer):
         return dict(
             GITLAB_TAG="latest",
             GITLAB_DOMAIN=self.get_nginx_domain(),
-            GITLAB_SSH_PORT=Config.Prompt(type=int, cached=True) | 3001,
-            GITLAB_ROOT_PASSWORD=Config.Prompt(type=str, cached=True) | "xxx123456xxxx",  # gitlab默认root密码
+            GITLAB_SSH_PORT=ConfigField(cast=int, provider=PromptProvider(default=3001, cached=True)),
+            GITLAB_ROOT_PASSWORD=ConfigField(provider=PromptProvider(  # gitlab默认root密码
+                default="xxx123456xxxx", cached=True,
+            )),
             GITLAB_DB_HOST="gitlab-postgres",
             GITLAB_DB_PORT="5432",
             GITLAB_DB_DATABASE="gitlab1",
@@ -72,11 +74,11 @@ class Container(BaseContainer):
 
     @subcommand("fix", help="fix permissions")
     def on_exec_fix(self):
-        self.manager.create_docker_process("exec", self.get_service_name("gitlab"), "update-permissions").check_call()
-        self.manager.create_docker_process("restart", self.get_service_name("gitlab")).check_call()
+        self.manager.runtime.create_docker_process("exec", self.get_service_name("gitlab"), "update-permissions").check_call()
+        self.manager.runtime.create_docker_process("restart", self.get_service_name("gitlab")).check_call()
 
-    def on_started(self):
-        self.manager.create_docker_process("exec", self.get_service_name("gitlab"), "chown", "-R", "git:git", "/var/opt/gitlab").check_call()
-        self.manager.create_docker_process("exec", self.get_service_name("gitlab"), "chmod", "-R", "777", "/var/opt/gitlab").check_call()
-        # self.manager.create_docker_process("exec", self.get_service_name("gitlab"), "update-permissions").check_call()
-        # self.manager.create_docker_process("restart", self.get_service_name("gitlab")).check_call()
+    # def on_started(self):
+    #     self.manager.runtime.create_docker_process("exec", self.get_service_name("gitlab"), "chown", "-R", "git:git", "/var/opt/gitlab").check_call()
+    #     self.manager.runtime.create_docker_process("exec", self.get_service_name("gitlab"), "chmod", "-R", "777", "/var/opt/gitlab").check_call()
+    #     # self.manager.runtime.create_docker_process("exec", self.get_service_name("gitlab"), "update-permissions").check_call()
+    #     # self.manager.runtime.create_docker_process("restart", self.get_service_name("gitlab")).check_call()

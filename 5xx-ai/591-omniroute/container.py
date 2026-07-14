@@ -4,7 +4,7 @@
 import secrets
 from typing import Iterable
 
-from linktools.core import Config
+from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, ExposeLink
 
@@ -20,14 +20,10 @@ class Container(BaseContainer):
         return dict(
             OMNIROUTE_TAG="latest",
             OMNIROUTE_DOMAIN=self.get_nginx_domain(),
-            OMNIROUTE_PORT=Config.Alias(type=int, default=0),
-            # Require an API key on all requests (recommended when exposed publicly)
-            OMNIROUTE_REQUIRE_API_KEY=Config.Alias(type=bool, default=True),
-            # Fixed secrets — framework-managed so they survive rebuilds/rehosts.
-            # OmniRoute auto-generates these in DATA_DIR/server.env on first launch;
-            # setting them via env lets the framework own & persist them in config.
-            OMNIROUTE_JWT_SECRET=Config.Alias(cached=True) | secrets.token_hex(32),
-            OMNIROUTE_STORAGE_KEY=Config.Alias(cached=True) | secrets.token_hex(32),
+            OMNIROUTE_PORT=ConfigField(cast=int, default=0),
+            OMNIROUTE_REQUIRE_API_KEY=ConfigField(cast=bool, default=True),
+            OMNIROUTE_JWT_SECRET=ConfigField(provider=LazyProvider(lambda r: secrets.token_hex(32), cached=True)),
+            OMNIROUTE_STORAGE_KEY=ConfigField(provider=LazyProvider(lambda r: secrets.token_hex(32), cached=True)),
         )
 
     @cached_property
@@ -38,14 +34,8 @@ class Container(BaseContainer):
                 proxy_url="http://omniroute:20128",
                 auth_enable=True,
                 auth_extra={
-                    # The /v1, /vscode, /api/mcp and relay endpoints are meant to be
-                    # consumed by coding tools with their own API key, so they bypass
-                    # the Authelia SSO that protects the dashboard.
                     "acl_bypass": [
-                        "^/v1/",
-                        "^/vscode/",
-                        "^/v1/relay",
-                        "^/api/mcp/",
+                        "^/(v1|vscode|api/mcp)(/|$)",
                     ],
                 },
             )),

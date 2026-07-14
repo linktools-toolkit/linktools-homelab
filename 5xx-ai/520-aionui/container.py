@@ -9,7 +9,7 @@ import secrets
 import time
 from typing import Iterable
 
-from linktools.core import Config
+from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, EventContext, ExposeLink
 
@@ -25,9 +25,9 @@ class Container(BaseContainer):
         return dict(
             AIONUI_TAG="latest",
             AIONUI_DOMAIN=self.get_nginx_domain(),
-            AIONUI_PORT=Config.Alias(type=int) | 0,
-            AIONUI_JWT_SECRET=Config.Alias(cached=True) | secrets.token_hex(24),
-            AIONUI_TOKEN=Config.Lazy(lambda cfg: self._make_jwt(cfg.get("AIONUI_JWT_SECRET"))),
+            AIONUI_PORT=ConfigField(cast=int, default=0),
+            AIONUI_JWT_SECRET=ConfigField(provider=LazyProvider(lambda r: secrets.token_hex(24), cached=True)),
+            AIONUI_TOKEN=ConfigField(provider=LazyProvider(lambda r: self._make_jwt(r.get("AIONUI_JWT_SECRET")))),
         )
 
     @cached_property

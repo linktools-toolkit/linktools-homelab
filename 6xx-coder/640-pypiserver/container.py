@@ -29,7 +29,7 @@
 from typing import Iterable
 
 from linktools.cntr import BaseContainer, ExposeLink
-from linktools.core import Config
+from linktools.core import ConfigField, PromptProvider
 from linktools.decorator import cached_property
 
 
@@ -44,9 +44,9 @@ class Container(BaseContainer):
         return dict(
             PYPISERVER_TAG="latest",
             PYPISERVER_DOMAIN=self.get_nginx_domain("pypi"),
-            PYPISERVER_PORT=Config.Alias(type=int, default=0),
-            PYPISERVER_USERNAME=Config.Prompt(cached=True),
-            PYPISERVER_PASSWORD=Config.Prompt(cached=True),
+            PYPISERVER_PORT=ConfigField(cast=int, default=0),
+            PYPISERVER_USERNAME=ConfigField(provider=PromptProvider(cached=True)),
+            PYPISERVER_PASSWORD=ConfigField(provider=PromptProvider(cached=True)),
             PYPISERVER_AUTHENTICATE="update",  # "update,download,list"
         )
 

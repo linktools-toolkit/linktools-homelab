@@ -3,7 +3,7 @@
 
 from typing import Iterable
 
-from linktools.core import Config
+from linktools.core import ConfigField, PromptProvider
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, ExposeLink
 
@@ -19,8 +19,8 @@ class Container(BaseContainer):
         return dict(
             HAPPY_TAG="latest",
             HAPPY_SERVER_DOMAIN=self.get_nginx_domain(),
-            HAPPY_SERVER_PORT=Config.Alias(type=int, default=0),
-            HAPPY_SECRET=Config.Prompt(cached=True),
+            HAPPY_SERVER_PORT=ConfigField(cast=int, default=0),
+            HAPPY_SECRET=ConfigField(provider=PromptProvider(cached=True)),
         )
 
     @cached_property
