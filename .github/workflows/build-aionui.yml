@@ -17,13 +17,22 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     outputs:
       tag: ${{ steps.resolve.outputs.tag }}
       version: ${{ steps.resolve.outputs.version }}
       channel: ${{ steps.resolve.outputs.channel }}
-      asset-url: ${{ steps.resolve.outputs.asset-url }}
       skip: ${{ steps.resolve.outputs.skip }}
     steps:
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Resolve release info
         id: resolve
         run: |
@@ -37,19 +46,10 @@ jobs:
           VERSION=$(echo "$TAG" | sed 's/^v//' | cut -d'-' -f1)
           IS_PRERELEASE=$(echo "$RELEASE" | jq -r .prerelease)
           CHANNEL=$([ "$IS_PRERELEASE" = "true" ] && echo "preview" || echo "stable")
-          ASSET_URL=$(echo "$RELEASE" | jq -r '.assets[] | select(.name | test("linux-x86_64\\.tar\\.gz$")) | .browser_download_url')
 
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "channel=$CHANNEL" >> $GITHUB_OUTPUT
-          echo "asset-url=$ASSET_URL" >> $GITHUB_OUTPUT
-
-          # Verify release asset exists before attempting build
-          if [ -z "$ASSET_URL" ] || ! curl -sfI "$ASSET_URL" > /dev/null 2>&1; then
-            echo "Release asset not yet available for $TAG, skipping"
-            echo "skip=true" >> $GITHUB_OUTPUT
-            exit 0
-          fi
 
           if [ "${{ inputs.force }}" = "true" ]; then
             echo "skip=false" >> $GITHUB_OUTPUT
@@ -70,11 +70,43 @@ jobs:
       - name: Checkout (for Dockerfile)
         uses: actions/checkout@v4
 
-      - name: Download release asset
+      - name: Checkout AionUI source
+        uses: actions/checkout@v4
+        with:
+          repository: iOfficeAI/AionUi
+          ref: ${{ needs.check.outputs.tag }}
+          path: aionui-src
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Build AionUI web CLI
+        working-directory: aionui-src
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          curl -fL "${{ needs.check.outputs.asset-url }}" -o aionui.tar.gz
+          bun install --frozen-lockfile
+          NODE_OPTIONS=--max-old-space-size=8192 bunx electron-vite build --config packages/desktop/electron.vite.config.ts
+          PACK_PLATFORM=linux PACK_ARCH=x64 node scripts/pack-web-cli.js
+
+      - name: Prepare Docker build context
+        run: |
+          TARBALL=$(find aionui-src/dist-web-cli -maxdepth 1 -type f -name 'aionui-web-*-linux-x86_64.tar.gz' -print -quit)
+          if [ -z "$TARBALL" ]; then
+            echo "AionUI web CLI tarball not found" >&2
+            exit 1
+          fi
+
           mkdir -p dist
-          tar -xzf aionui.tar.gz --strip-components=1 -C dist
+          tar -xzf "$TARBALL" --strip-components=1 -C dist
+          test -x dist/aionui-web
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
