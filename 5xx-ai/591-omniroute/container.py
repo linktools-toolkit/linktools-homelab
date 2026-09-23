@@ -32,10 +32,12 @@ class Container(BaseContainer):
             self.expose_public("OmniRoute", "transitConnectionVariant", "Free self-hosted AI gateway", self.load_nginx_url(
                 "OMNIROUTE_DOMAIN",
                 proxy_url="http://omniroute:20128",
+                waf_enable=False,
                 auth_enable=True,
                 auth_extra={
                     "acl_bypass": [
                         "^/(v1|vscode|api/mcp)(/|$)",
+                        "\\.(css|js|webmanifest)$",
                     ],
                 },
             )),

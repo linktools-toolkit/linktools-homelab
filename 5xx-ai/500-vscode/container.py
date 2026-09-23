@@ -127,7 +127,7 @@ class Container(BaseContainer):
         for extension in extensions:
             self.logger.info(f"Install {extension} to `code-server`")
             self.manager.runtime.create_docker_process(
-                "exec", "-it", self.get_service_name("code-server"),
+                "exec", "-it", self.get_service_name(key="code-server"),
                 "code-server", "--install-extension", extension,
             ).check_call()
 
@@ -139,8 +139,11 @@ class Container(BaseContainer):
             except ValueError:
                 settings = {}
             def merge_setting(key, value):
-                original = settings.get(key, None)
-                if original is None or not str(original):
+                original = settings.get(key)
+                if isinstance(original, dict) and isinstance(value, dict):
+                    for item_key, item_value in value.items():
+                        original.setdefault(item_key, item_value)
+                elif original is None or not str(original):
                     settings[key] = value
             merge_setting("python.venvPath", "/workspace")
             merge_setting("python.pythonPath",  "/workspace/.venv/bin/python")
@@ -149,6 +152,7 @@ class Container(BaseContainer):
             merge_setting("claudeCode.allowDangerouslySkipPermissions", True)
             merge_setting("markdown-preview-enhanced.enablePreviewZenMode",  True)
             merge_setting("markdown-preview-enhanced.chromePath",  "/usr/bin/google-chrome-stable")
+            merge_setting("remote.extensionKind", {"openai.codex-audio": ["workspace"]})
             settings_path.write_text(
                 json.dumps(settings, indent=2, ensure_ascii=False) + "\n",
                 encoding="utf-8",
