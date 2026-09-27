@@ -1,0 +1,75 @@
+services:
+  multica-postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: multica
+      POSTGRES_USER: multica
+      POSTGRES_PASSWORD: '{{ MULTICA_DB_PASSWORD }}'
+    volumes:
+      - '{{ (APP_PATH/"postgres") | mkdir | chown }}:/var/lib/postgresql/data'
+    networks:
+      - multica
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U multica -d multica']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  multica-backend:
+    image: 'ghcr.io/multica-ai/multica-backend:{{ MULTICA_TAG }}'
+    depends_on:
+      multica-postgres:
+        condition: service_healthy
+    environment:
+      - 'DATABASE_URL=postgres://multica:{{ MULTICA_DB_PASSWORD }}@multica-postgres:5432/multica?sslmode=disable'
+      - 'PORT=8080'
+      - 'JWT_SECRET={{ MULTICA_JWT_SECRET }}'
+      - 'FRONTEND_ORIGIN={{ utils.make_url(NGINX_DEFAULT_SCHEME, MULTICA_DOMAIN, NGINX_DEFAULT_PORT) }}'
+      - 'MULTICA_APP_URL={{ utils.make_url(NGINX_DEFAULT_SCHEME, MULTICA_DOMAIN, NGINX_DEFAULT_PORT) }}'
+      - 'MULTICA_PUBLIC_URL={{ utils.make_url(NGINX_DEFAULT_SCHEME, MULTICA_DOMAIN, NGINX_DEFAULT_PORT) }}'
+      - 'MULTICA_DAEMON_SERVER_URL={{ utils.make_url(NGINX_DEFAULT_SCHEME, MULTICA_DOMAIN, NGINX_DEFAULT_PORT) }}'
+      - 'APP_ENV=production'
+      - 'ALLOW_SIGNUP={{ MULTICA_ALLOW_SIGNUP | lower }}'
+      - 'ALLOWED_EMAILS={{ MULTICA_ALLOWED_EMAILS }}'
+      - 'ALLOWED_EMAIL_DOMAINS={{ MULTICA_ALLOWED_EMAIL_DOMAINS }}'
+      - 'GOOGLE_CLIENT_ID={{ MULTICA_GOOGLE_CLIENT_ID }}'
+      - 'GOOGLE_CLIENT_SECRET={{ MULTICA_GOOGLE_CLIENT_SECRET }}'
+      - 'GOOGLE_REDIRECT_URI={{ utils.make_url(NGINX_DEFAULT_SCHEME, MULTICA_DOMAIN, NGINX_DEFAULT_PORT, "auth", "callback") }}'
+      - 'RESEND_API_KEY={{ MULTICA_RESEND_API_KEY }}'
+      - 'RESEND_FROM_EMAIL={{ MULTICA_RESEND_FROM_EMAIL }}'
+      - 'SMTP_HOST={{ MULTICA_SMTP_HOST }}'
+      - 'SMTP_PORT={{ MULTICA_SMTP_PORT }}'
+      - 'SMTP_USERNAME={{ MULTICA_SMTP_USERNAME }}'
+      - 'SMTP_PASSWORD={{ MULTICA_SMTP_PASSWORD }}'
+      - 'SMTP_FROM_EMAIL={{ MULTICA_SMTP_FROM_EMAIL }}'
+      - 'SMTP_TLS={{ MULTICA_SMTP_TLS }}'
+      - 'MULTICA_VCS_INTEGRATION_ENABLED=true'
+      - 'MULTICA_VCS_SECRET_KEY={{ MULTICA_VCS_SECRET_KEY }}'
+#   {% if MULTICA_BACKEND_PORT > 0 %}
+    ports:
+      - '{{ MULTICA_BACKEND_PORT }}:8080'
+#   {% endif %}
+    volumes:
+      - '{{ (APP_PATH/"uploads") | mkdir | chown }}:/app/data/uploads'
+    networks:
+      - nginx
+      - multica
+
+  multica-frontend:
+    image: 'ghcr.io/multica-ai/multica-web:{{ MULTICA_TAG }}'
+    depends_on:
+      - multica-backend
+    environment:
+      - 'HOSTNAME=0.0.0.0'
+      - 'REMOTE_API_URL=http://multica-backend:8080'
+#   {% if MULTICA_FRONTEND_PORT > 0 %}
+    ports:
+      - '{{ MULTICA_FRONTEND_PORT }}:3000'
+#   {% endif %}
+    networks:
+      - nginx
+      - multica
+
+networks:
+  nginx:
+  multica:
