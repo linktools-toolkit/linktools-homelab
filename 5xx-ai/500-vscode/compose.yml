@@ -5,6 +5,7 @@ services:
     environment:
       - 'TZ=Asia/Singapore'
       - 'PASSWORD={{ VSCODE_PASSWORD }}'
+      - 'ENTRYPOINTD=/entrypoint.d'
 #     {% if container.proxy_url %}
       - 'VSCODE_PROXY_URI={{ container.proxy_url }}'
 #     {% endif %}

@@ -11,15 +11,19 @@ from linktools import utils
 from linktools.cli import subcommand, subcommand_argument
 from linktools.core import ConfigField, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, ContainerError, EventContext
+from linktools.cntr import BaseContainer, ContainerError
+from linktools.cntr.lifecycle import HookPhase
 from linktools.rich import choose, prompt
+
+
+_MULTICA_CLI = "/workspace/.local/bin/multica"
 
 
 class Container(BaseContainer):
 
     @property
     def dependencies(self) -> Iterable[str]:
-        return ["ai", "coder"]
+        return ["vscode"]
 
     def _prompt_url(self, config, name):
         server = self.manager.containers.get("multica-server")
@@ -35,7 +39,6 @@ class Container(BaseContainer):
     @cached_property
     def configs(self):
         return dict(
-            MULTICA_CLIENT_TAG="latest",
             MULTICA_DAEMON_ID=ConfigField(provider=LazyProvider(lambda r: str(uuid.uuid4()), cached=True)),
             MULTICA_APP_URL=ConfigField(provider=LazyProvider(
                 lambda r: self._prompt_url(r, "MULTICA_APP_URL"), cached=True,
@@ -46,7 +49,49 @@ class Container(BaseContainer):
             MULTICA_PAT=ConfigField(provider=PromptProvider(password=True, cached=True), required=True, secret=True),
         )
 
-    def on_starting(self, context: "EventContext"):
+    def on_prepare(self):
+        try:
+            script = self.get_source_path("scripts/10-multica.sh")
+            if not script.is_file() or not os.access(script, os.X_OK):
+                self.logger.warning(f"Skip Multica startup integration: script is unavailable: {script}")
+                return
+            pat = self._prepare_pat()
+            self._inject_vscode(script, pat)
+        except Exception as exc:
+            self.logger.warning(f"Skip Multica startup integration: {type(exc).__name__}: {exc}")
+
+    def _inject_vscode(self, script, pat):
+        vscode = self.manager.containers["vscode"]
+        secret_dir = self.get_app_path("secrets")
+        environment = ["MULTICA_WORKSPACES_ROOT=/workspace/.multica/workspaces"]
+        for key in ("MULTICA_DAEMON_ID", "MULTICA_SERVER_URL", "MULTICA_APP_URL"):
+            environment.append(f"{key}={self.get_config(key)}")
+
+        volumes = [
+            f"{script}:/entrypoint.d/{script.name}:ro",
+            f"{secret_dir}:/run/secrets/multica:ro",
+            f'{self.get_app_path("home/.multica")}:/workspace/.multica',
+        ]
+
+        def inject(compose):
+            service = compose["services"]["code-server"]
+            service["environment"].extend(environment)
+            service["volumes"].extend(volumes)
+
+        vscode.hooks.register(
+            HookPhase.AFTER_COMPOSE_RENDER,
+            inject,
+            key=("multica", "inject_vscode"),
+            name="inject Multica into VSCode Compose",
+        )
+        # A targeted VSCode start only runs VSCode's start hooks.
+        vscode.add_start_hook(
+            ("multica", "prepare_files"),
+            lambda: self._write_pat(pat),
+            name="prepare Multica files",
+        )
+
+    def _prepare_pat(self):
         for key in ("MULTICA_APP_URL", "MULTICA_SERVER_URL"):
             value = self.get_config(key).strip()
             parsed = urlparse(value)
@@ -56,23 +101,22 @@ class Container(BaseContainer):
         pat = self.get_config("MULTICA_PAT").strip()
         if not pat:
             raise ValueError("MULTICA_PAT is required")
+        return pat
+
+    def _write_pat(self, pat):
+        docker_user = self.get_config("DOCKER_USER")
+        data_path = self.get_app_path("home/.multica")
+        os.makedirs(data_path, exist_ok=True)
+        self.manager.runtime.chown(data_path, docker_user)
 
         secret_dir = self.get_app_path("secrets")
         secret_path = os.path.join(secret_dir, "multica_pat")
-        os.makedirs(secret_dir, mode=0o700, exist_ok=True)
-        os.chmod(secret_dir, 0o700)
-        try:
-            os.unlink(secret_path)
-        except FileNotFoundError:
-            pass
+        os.makedirs(secret_dir, exist_ok=True)
+
         with open(secret_path, "w", encoding="utf-8") as secret_file:
             secret_file.write(pat)
-        os.chmod(secret_path, 0o400)
-        self.manager.runtime.chown(
-            secret_path,
-            self.get_config("DOCKER_USER"),
-            recursive=False,
-        )
+        self.manager.runtime.chown(secret_dir, docker_user)
+        self.manager.runtime.chown(secret_path, docker_user)
 
     @subcommand("show", help="show Multica IDs, or run a Multica command", prefix_chars=chr(1))
     @subcommand_argument("args", nargs="...", metavar="ARGS", help="optional Multica CLI arguments")
@@ -85,11 +129,11 @@ class Container(BaseContainer):
         if sys.stdin.isatty() and sys.stdout.isatty():
             docker_args.append("-t")
         self.manager.runtime.create_docker_process(
-            *docker_args, self.get_service_name("multica"), "multica", *args,
+            *docker_args, self.get_service_name("code-server"), _MULTICA_CLI, *args,
         ).check_call()
 
-    @subcommand("add-local", help="add a directory in this Multica container to a project")
-    @subcommand_argument("local_path", metavar="PATH", help="absolute directory path inside the Multica container")
+    @subcommand("add-local", help="add a directory in the VSCode container to a project")
+    @subcommand_argument("local_path", metavar="PATH", help="absolute directory path inside the VSCode container")
     @subcommand_argument("--workspace-id", help="workspace ID, name, or slug; prompts if omitted")
     @subcommand_argument("--project-id", help="project ID or title; prompts if omitted")
     @subcommand_argument("--execution-mode", choices=("worktree", "in_place"), default="worktree",
@@ -99,14 +143,14 @@ class Container(BaseContainer):
                           project_id: "str | None" = None, execution_mode: str = "worktree",
                           label: "str | None" = None):
         if not os.path.isabs(local_path):
-            raise ContainerError("PATH must be an absolute path inside the Multica container")
+            raise ContainerError("PATH must be an absolute path inside the VSCode container")
 
-        service = self.get_service_name("multica")
+        service = self.get_service_name("code-server")
         if self.manager.runtime.create_docker_process(
             "exec", service, "sh", "-c", 'test -d "$1"', "sh", local_path,
             capture_output=True,
         ).call() != 0:
-            raise ContainerError(f"Directory is not available inside the Multica container: {local_path}")
+            raise ContainerError(f"Directory is not available inside the VSCode container: {local_path}")
 
         workspaces = self._multica_list("workspace", "list")
         workspace_id = self._select_multica_id("workspace", workspaces, workspace_id)
@@ -114,7 +158,7 @@ class Container(BaseContainer):
         project_id = self._select_multica_id("project", projects, project_id)
 
         command = [
-            "exec", service, "multica", "project", "resource", "add", project_id,
+            "exec", service, _MULTICA_CLI, "project", "resource", "add", project_id,
             "--type", "local_directory", "--local-path", local_path,
             "--daemon-id", self.get_config("MULTICA_DAEMON_ID"),
             "--execution-mode", execution_mode, "--workspace-id", workspace_id,
@@ -126,8 +170,8 @@ class Container(BaseContainer):
 
     def _multica_list(self, *args):
         process = self.manager.runtime.create_docker_process(
-            "exec", self.get_service_name("multica"),
-            "multica", *args, "--output", "json",
+            "exec", self.get_service_name("code-server"),
+            _MULTICA_CLI, *args, "--output", "json",
             capture_output=True,
         )
         rows = self.manager.structured_runner.execute_json(process)

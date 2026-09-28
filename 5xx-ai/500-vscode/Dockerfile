@@ -1,6 +1,7 @@
 FROM ghcr.io/linktools-toolkit/code-server:{{ VSCODE_TAG }}
 
 USER root
+RUN mkdir -p /entrypoint.d
 
 ARG LT_USER="{{ DOCKER_USER }}"
 ARG LT_USER_UID="{{ DOCKER_UID }}"
