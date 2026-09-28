@@ -50,6 +50,7 @@ class Container(BaseContainer):
                 "MULTICA_DOMAIN",
                 proxy_conf=self.get_source_path("nginx.conf"),
                 auth_enable=True,
+                waf_enable=False,
             )),
             self.expose_container("Multica", "robot", "AI Agent Team Platform", self.load_port_url(
                 "MULTICA_FRONTEND_PORT", https=False,
