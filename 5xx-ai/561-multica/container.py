@@ -13,7 +13,7 @@ from linktools.core import ConfigField, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, ContainerError
 from linktools.cntr.lifecycle import HookPhase
-from linktools.rich import choose, prompt
+from linktools.rich import choose, confirm, prompt
 
 
 _MULTICA_CLI = "/workspace/.local/bin/multica"
@@ -152,10 +152,7 @@ class Container(BaseContainer):
         ).call() != 0:
             raise ContainerError(f"Directory is not available inside the VSCode container: {local_path}")
 
-        workspaces = self._multica_list("workspace", "list")
-        workspace_id = self._select_multica_id("workspace", workspaces, workspace_id)
-        projects = self._multica_list("project", "list", "--workspace-id", workspace_id)
-        project_id = self._select_multica_id("project", projects, project_id)
+        workspace_id, project_id = self._select_multica_project(workspace_id, project_id)
 
         command = [
             "exec", service, _MULTICA_CLI, "project", "resource", "add", project_id,
@@ -167,6 +164,90 @@ class Container(BaseContainer):
         if label:
             command.extend(("--label", label))
         self.manager.runtime.create_docker_process(*command).check_call()
+
+    @subcommand("add-github", help="attach a GitHub repository to a project")
+    @subcommand_argument("url", metavar="URL", help="GitHub repository URL")
+    @subcommand_argument("--workspace-id", help="workspace ID, name, or slug; prompts if omitted")
+    @subcommand_argument("--project-id", help="project ID or title; prompts if omitted")
+    @subcommand_argument("--ref", help="optional checkout branch, tag, or commit")
+    @subcommand_argument("--label", help="optional resource label")
+    def on_exec_add_github(self, url: str, workspace_id: "str | None" = None,
+                           project_id: "str | None" = None, ref: "str | None" = None,
+                           label: "str | None" = None):
+        if not url.strip():
+            raise ContainerError("A GitHub repository URL is required")
+        workspace_id, project_id = self._select_multica_project(workspace_id, project_id)
+        command = [
+            "exec", self.get_service_name("code-server"), _MULTICA_CLI,
+            "project", "resource", "add", project_id,
+            "--type", "github_repo", "--url", url.strip(),
+            "--workspace-id", workspace_id, "--output", "json",
+        ]
+        if ref:
+            command.extend(("--ref", ref))
+        if label:
+            command.extend(("--label", label))
+        self.manager.runtime.create_docker_process(*command).check_call()
+
+    def _select_multica_project(self, workspace_id, project_id):
+        workspaces = self._multica_list("workspace", "list")
+        workspace_id = self._select_multica_id("workspace", workspaces, workspace_id)
+        projects = self._multica_list("project", "list", "--workspace-id", workspace_id)
+        return workspace_id, self._select_multica_id("project", projects, project_id)
+
+    @subcommand("remove-resource", help="detach a local or GitHub resource without deleting files or repositories")
+    @subcommand_argument("--workspace-id", help="workspace ID, name, or slug; prompts if omitted")
+    @subcommand_argument("--project-id", help="project ID or title; prompts if omitted")
+    @subcommand_argument("--resource-id", help="resource ID, label, local path, or repository URL; prompts if omitted")
+    @subcommand_argument("--all-daemons", action="store_true", default=False,
+                         help="also include local resources owned by other daemons or without a daemon")
+    def on_exec_remove_resource(self, workspace_id: "str | None" = None,
+                       project_id: "str | None" = None, resource_id: "str | None" = None,
+                       all_daemons: bool = False):
+        daemon_id = self.get_config("MULTICA_DAEMON_ID")
+        workspace_id, project_id = self._select_multica_project(workspace_id, project_id)
+        resources = self._multica_list("project", "resource", "list", project_id,
+                                       "--workspace-id", workspace_id)
+        choices = []
+        for resource in resources:
+            resource_type = resource.get("resource_type")
+            if resource_type not in ("local_directory", "github_repo"):
+                continue
+            ref = resource.get("resource_ref")
+            ref = ref if isinstance(ref, dict) else {}
+            # GitHub repositories are project-wide resources, available to every daemon.
+            if resource_type == "local_directory" and not all_daemons and (
+                not daemon_id or ref.get("daemon_id") != daemon_id
+            ):
+                continue
+            choices.append({
+                "id": resource.get("id"), "title": resource.get("label"), "resource_type": resource_type,
+                "name": ref.get("local_path") if resource_type == "local_directory" else ref.get("url"),
+            })
+        if not choices and not all_daemons:
+            raise ContainerError(
+                f"No local resources for daemon {daemon_id} or shared GitHub resources are available. "
+                "Use --all-daemons to include local resources from other daemons or without a daemon."
+            )
+        resource_id = self._select_multica_id("resource", choices, resource_id)
+        selected = next(row for row in choices if row["id"] == resource_id)
+        print(f"Workspace: {workspace_id}\nProject: {project_id}")
+        print(f"Resource: {resource_id} ({selected['resource_type']})")
+        print(f"Label: {selected.get('title') or '-'}\nPath/URL: {selected.get('name') or '-'}")
+        if selected["resource_type"] == "github_repo":
+            print("This GitHub resource is shared by the project; detaching affects the whole project.")
+        try:
+            confirmed = confirm("Detach this resource from the project?", default=False)
+        except EOFError:
+            confirmed = False
+        if not confirmed:
+            self.logger.info("Resource removal cancelled.")
+            return
+        self.manager.runtime.create_docker_process(
+            "exec", self.get_service_name("code-server"), _MULTICA_CLI,
+            "project", "resource", "remove", project_id, resource_id,
+            "--workspace-id", workspace_id, "--output", "json",
+        ).check_call()
 
     def _multica_list(self, *args):
         process = self.manager.runtime.create_docker_process(
@@ -214,11 +295,14 @@ class Container(BaseContainer):
                 continue
             if requested and not (
                 identifier.startswith(requested)
-                or any(isinstance(row.get(key), str) and row[key].casefold() == requested.casefold()
+                or any(isinstance(row.get(key), str) and (
+                    row[key] == requested if kind == "resource" else row[key].casefold() == requested.casefold()
+                )
                        for key in ("title", "name", "slug"))
             ):
                 continue
-            choices[identifier] = f"{self._multica_display_name(row)} ({identifier})"
+            prefix = f"[{row['resource_type']}] " if kind == "resource" and row.get("resource_type") else ""
+            choices[identifier] = f"{prefix}{self._multica_display_name(row)} ({identifier})"
         if not choices:
             if requested:
                 raise ContainerError(f"No {kind} matches {requested!r}")

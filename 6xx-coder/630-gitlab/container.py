@@ -30,6 +30,7 @@ import tempfile
 import uuid
 from typing import Iterable
 
+from linktools import utils
 from linktools.cli import subcommand, subcommand_argument
 from linktools.cntr import BaseContainer, ExposeLink
 from linktools.core import ConfigField, PromptProvider
@@ -69,7 +70,10 @@ class Container(BaseContainer):
                 proxy_url="http://gitlab:8181",
                 auth_enable=True,
                 auth_extra={
-                    "oidc_redirect_uris": ["{base_url}/users/auth/openid_connect/callback"]
+                    "oidc_redirect_uris": [utils.make_url(
+                        "https", self.get_config("GITLAB_DOMAIN"), self.get_config("NGINX_HTTPS_PORT"),
+                        "/users/auth/openid_connect/callback",
+                    )]
                 }
             )),
         ]
