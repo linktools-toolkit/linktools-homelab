@@ -34,6 +34,10 @@ services:
       - 'ALLOWED_EMAIL_DOMAINS={{ MULTICA_ALLOWED_EMAIL_DOMAINS }}'
       - 'GOOGLE_CLIENT_ID={{ MULTICA_GOOGLE_CLIENT_ID }}'
       - 'GOOGLE_CLIENT_SECRET={{ MULTICA_GOOGLE_CLIENT_SECRET }}'
+      - 'GITHUB_APP_SLUG={{ MULTICA_GITHUB_APP_SLUG }}'
+      - 'GITHUB_WEBHOOK_SECRET={{ MULTICA_GITHUB_WEBHOOK_SECRET }}'
+      - 'GITHUB_APP_ID={{ MULTICA_GITHUB_APP_ID }}'
+      - 'GITHUB_APP_PRIVATE_KEY={{ MULTICA_GITHUB_APP_PRIVATE_KEY }}'
       - 'GOOGLE_REDIRECT_URI={{ utils.make_url(NGINX_DEFAULT_SCHEME, MULTICA_DOMAIN, NGINX_DEFAULT_PORT, "auth", "callback") }}'
       - 'RESEND_API_KEY={{ MULTICA_RESEND_API_KEY }}'
       - 'RESEND_FROM_EMAIL={{ MULTICA_RESEND_FROM_EMAIL }}'
@@ -45,6 +49,15 @@ services:
       - 'SMTP_TLS={{ MULTICA_SMTP_TLS }}'
       - 'MULTICA_VCS_INTEGRATION_ENABLED=true'
       - 'MULTICA_VCS_SECRET_KEY={{ MULTICA_VCS_SECRET_KEY }}'
+      - 'MULTICA_LARK_SECRET_KEY={{ MULTICA_LARK_SECRET_KEY }}'
+      - 'MULTICA_SLACK_SECRET_KEY={{ MULTICA_SLACK_SECRET_KEY }}'
+      - 'MULTICA_DINGTALK_SECRET_KEY={{ MULTICA_DINGTALK_SECRET_KEY }}'
+      - 'MULTICA_WECOM_SECRET_KEY={{ MULTICA_WECOM_SECRET_KEY }}'
+      - 'MULTICA_TELEGRAM_SECRET_KEY={{ MULTICA_TELEGRAM_SECRET_KEY }}'
+#     {% for name, field in container.extend_configs.items() | sort %}
+#     {% set value = config.get(field) %}
+      - {{ (name ~ "=" ~ (value | lower if value is boolean else value)) | replace("$", "$$") | tojson }}
+#     {% endfor %}
 #   {% if MULTICA_BACKEND_PORT > 0 %}
     ports:
       - '{{ MULTICA_BACKEND_PORT }}:8080'
