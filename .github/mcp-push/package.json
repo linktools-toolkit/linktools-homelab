@@ -1,0 +1,15 @@
+{
+  "name": "mcp-push",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/node": "2.1.0",
+    "@modelcontextprotocol/server": "2.2.0",
+    "push-all-in-one": "4.5.4",
+    "zod": "4.6.5"
+  }
+}
