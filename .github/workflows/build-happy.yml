@@ -1,6 +1,10 @@
 name: Build Happy Server
 
 on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/build-happy.yml'
   workflow_dispatch:
     inputs:
       tag:
@@ -29,7 +33,7 @@ jobs:
           fi
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
-          if [ "${{ inputs.force }}" = "true" ]; then
+          if [ "${{ inputs.force }}" = "true" ] || [ "$GITHUB_EVENT_NAME" = "push" ]; then
             echo "skip=false" >> $GITHUB_OUTPUT
           elif docker manifest inspect ghcr.io/linktools-toolkit/happy-server:$TAG > /dev/null 2>&1; then
             echo "skip=true" >> $GITHUB_OUTPUT

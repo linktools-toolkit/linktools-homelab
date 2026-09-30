@@ -1,6 +1,12 @@
 name: Build Multica
 
 on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/build-multica.yml'
+      - '.github/dockerfiles/multica.Dockerfile'
+      - '.github/scripts/multica-entrypoint.sh'
   schedule:
     - cron: '35 2 * * *'
   workflow_dispatch:
@@ -44,7 +50,7 @@ jobs:
           fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
-          if [ "$FORCE" = "true" ]; then
+          if [ "$FORCE" = "true" ] || [ "$GITHUB_EVENT_NAME" = "push" ]; then
             echo "skip=false" >> "$GITHUB_OUTPUT"
           elif docker manifest inspect "ghcr.io/linktools-toolkit/multica:$TAG" >/dev/null 2>&1; then
             echo "skip=true" >> "$GITHUB_OUTPUT"

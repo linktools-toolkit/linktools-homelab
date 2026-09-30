@@ -1,6 +1,14 @@
 name: Build AionUI
 
 on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/build-aionui.yml'
+      - '.github/dockerfiles/aionui.Dockerfile'
+      - '.github/scripts/render-dockerfile.sh'
+      - '.github/dockerfiles/fragments/install-base-cli.dockerfile'
+      - '.github/dockerfiles/fragments/install-preinstalled.dockerfile'
   schedule:
     - cron: '0 2 * * *'
   workflow_dispatch:
@@ -51,7 +59,7 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "channel=$CHANNEL" >> $GITHUB_OUTPUT
 
-          if [ "${{ inputs.force }}" = "true" ]; then
+          if [ "${{ inputs.force }}" = "true" ] || [ "$GITHUB_EVENT_NAME" = "push" ]; then
             echo "skip=false" >> $GITHUB_OUTPUT
           elif docker manifest inspect ghcr.io/linktools-toolkit/aionui:$TAG > /dev/null 2>&1; then
             echo "skip=true" >> $GITHUB_OUTPUT

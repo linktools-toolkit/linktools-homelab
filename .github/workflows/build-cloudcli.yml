@@ -1,6 +1,14 @@
 name: Build CloudCLI
 
 on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/build-cloudcli.yml'
+      - '.github/dockerfiles/cloudcli.Dockerfile'
+      - '.github/scripts/render-dockerfile.sh'
+      - '.github/dockerfiles/fragments/install-base-cli.dockerfile'
+      - '.github/dockerfiles/fragments/install-preinstalled.dockerfile'
   schedule:
     - cron: '20 2 * * *'
   workflow_dispatch:
@@ -34,7 +42,7 @@ jobs:
           echo "sha=$SHORT_SHA" >> $GITHUB_OUTPUT
           echo "full-sha=$FULL_SHA" >> $GITHUB_OUTPUT
 
-          if [ "${{ inputs.force }}" = "true" ]; then
+          if [ "${{ inputs.force }}" = "true" ] || [ "$GITHUB_EVENT_NAME" = "push" ]; then
             echo "skip=false" >> $GITHUB_OUTPUT
           elif docker manifest inspect ghcr.io/linktools-toolkit/cloudcli:$SHORT_SHA > /dev/null 2>&1; then
             echo "skip=true" >> $GITHUB_OUTPUT

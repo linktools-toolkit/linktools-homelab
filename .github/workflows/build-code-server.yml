@@ -1,6 +1,15 @@
 name: Build Code Server
 
 on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/build-code-server.yml'
+      - '.github/dockerfiles/code-server.Dockerfile'
+      - '.github/scripts/render-dockerfile.sh'
+      - '.github/dockerfiles/fragments/install-base-cli.dockerfile'
+      - '.github/dockerfiles/fragments/install-chrome.dockerfile'
+      - '.github/dockerfiles/fragments/install-preinstalled.dockerfile'
   schedule:
     - cron: '5 2 * * *'
   workflow_dispatch:
@@ -38,7 +47,7 @@ jobs:
             exit 0
           fi
 
-          if [ "${{ inputs.force }}" = "true" ]; then
+          if [ "${{ inputs.force }}" = "true" ] || [ "$GITHUB_EVENT_NAME" = "push" ]; then
             echo "skip=false" >> $GITHUB_OUTPUT
           elif docker manifest inspect ghcr.io/linktools-toolkit/code-server:$TAG > /dev/null 2>&1; then
             echo "skip=true" >> $GITHUB_OUTPUT
