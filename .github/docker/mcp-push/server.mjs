@@ -26,8 +26,7 @@ function configHeaderName(key) {
 
 function parameterHeaderName(key) {
     const normalized = key.replace(/([a-z0-9])([A-Z])/g, '$1-$2').replaceAll('_', '-').toUpperCase();
-    if (normalized === 'CHANNEL') return 'X-ARG-CHANNEL';
-    return `X-${normalized}`;
+    return `X-ARG-${normalized}`;
 }
 
 const channelConfigHeaders = new Set(channels.flatMap(channel =>
@@ -346,8 +345,8 @@ function buildServer({ requestInfo } = {}) {
     const server = new McpServer({ name: 'mcp-push', version: '1.0.0' });
     server.registerTool('send_push', {
         description: channelSelected
-            ? `Send a ${selectedChannel} notification. Channel-specific arguments are listed with their types, descriptions, allowed values and required status. Parameters supplied through matching X-<argument-name> headers are read per request and omitted from the tool schema. Channel credentials use channel-specific X-* request headers. This sends a real external message; do not retry automatically after a timeout because delivery may already have occurred. Inspect the provider response for acceptance; HTTP 200 alone does not confirm delivery.`
-            : 'Send a notification using the channel selected by the X-CHANNEL HTTP header. Set that header in the MCP client configuration before listing tools to expose the channel-specific arguments. Parameters supplied through matching X-<argument-name> headers are read per request and omitted from the tool schema. This sends a real external message; do not retry automatically after a timeout because delivery may already have occurred. Inspect the provider response for acceptance; HTTP 200 alone does not confirm delivery.',
+            ? `Send a ${selectedChannel} notification. Channel-specific arguments are listed with their types, descriptions, allowed values and required status. Parameters supplied through matching X-ARG-<argument-name> headers are read per request and omitted from the tool schema. Channel credentials use channel-specific X-* request headers. This sends a real external message; do not retry automatically after a timeout because delivery may already have occurred. Inspect the provider response for acceptance; HTTP 200 alone does not confirm delivery.`
+            : `Send a notification using the channel selected by the ${channelHeaderName} HTTP header. Set that header in the MCP client configuration before listing tools to expose the channel-specific arguments. Parameters supplied through matching X-ARG-<argument-name> headers are read per request and omitted from the tool schema. This sends a real external message; do not retry automatically after a timeout because delivery may already have occurred. Inspect the provider response for acceptance; HTTP 200 alone does not confirm delivery.`,
         inputSchema,
         annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     }, async (args, context) => {

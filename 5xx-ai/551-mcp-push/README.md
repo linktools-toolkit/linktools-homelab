@@ -57,7 +57,7 @@ ct-cntr exec mcp-push show Feishu
 | `Qmsg` | `X-QMSG-KEY` |
 | `XiZhi` | `X-XI-ZHI-KEY`（上游已标记该渠道服务停止） |
 
-发送参数也可以固定在请求头中，头名称为 `X-<参数名>`，参数名中的下划线和驼峰边界转换为连字符并大写。例如飞书接收者可以写成 `X-RECEIVE-ID`。`X-CHANNEL` 保留用于选择推送渠道；若要通过 header 固定 PushPlus 的 `channel` 参数，使用 `X-ARG-CHANNEL`。服务端在 `tools/list` 时会隐藏已通过请求头提供的参数，并在调用时从请求头读取；因此 MCP 客户端需要在列出工具和调用工具时都发送相同的 headers。ASCII 字符串直接传值；含中文等非 ASCII 字符时，对 UTF-8 值进行百分号编码。数字传数字文本，布尔值传 `true` 或 `false`，数组和对象传 JSON（含非 ASCII 字符时对整个 JSON 编码），枚举值必须匹配上游允许值。
+发送参数也可以固定在请求头中，头名称统一为 `X-ARG-<参数名>`，参数名中的下划线和驼峰边界转换为连字符并大写。例如飞书接收者使用 `X-ARG-RECEIVE-ID`，PushPlus 的 `channel` 参数使用 `X-ARG-CHANNEL`。`X-CHANNEL` 只用于选择推送渠道。服务端在 `tools/list` 时会隐藏已通过请求头提供的参数，并在调用时从请求头读取；因此 MCP 客户端需要在列出工具和调用工具时都发送相同的 headers。ASCII 字符串直接传值；含中文等非 ASCII 字符时，对 UTF-8 值进行百分号编码。数字传数字文本，布尔值传 `true` 或 `false`，数组和对象传 JSON（含非 ASCII 字符时对整个 JSON 编码），枚举值必须匹配上游允许值。
 
 可为同一 URL 配置多个 MCP server 条目，每个条目使用不同的 `X-CHANNEL` 和对应凭据，从而让同一客户端连接多个渠道。代理可配置 `MCP_PUSH_HTTP_PROXY`、`MCP_PUSH_HTTPS_PROXY`、`MCP_PUSH_SOCKS_PROXY`；`MCP_PUSH_NO_PROXY=true` 按上游规则禁用代理。浏览器来源默认允许 Nginx 公开地址，也可通过 `ct-cntr config set 'MCP_PUSH_ALLOWED_ORIGINS=https://extra.example.com,https://localhost:3000'` 追加来源，多个地址用逗号分隔；普通 MCP 客户端无需发送 Origin。
 
@@ -96,9 +96,9 @@ header 中的字段按请求生效，不同 MCP 客户端可以使用各自的�
   "X-CHANNEL": "Feishu",
   "X-FEISHU-APP-ID": "<FEISHU_APP_ID>",
   "X-FEISHU-APP-SECRET": "<FEISHU_APP_SECRET>",
-  "X-RECEIVE-ID-TYPE": "chat_id",
-  "X-RECEIVE-ID": "oc_xxx",
-  "X-MSG-TYPE": "text"
+  "X-ARG-RECEIVE-ID-TYPE": "chat_id",
+  "X-ARG-RECEIVE-ID": "oc_xxx",
+  "X-ARG-MSG-TYPE": "text"
 }
 ```
 

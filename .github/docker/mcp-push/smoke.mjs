@@ -12,9 +12,9 @@ const ntfyHeaders = {
     'X-Ntfy-Url': 'http://127.0.0.1:18932',
     'X-Ntfy-Topic': 'smoke-topic',
     'X-Ntfy-Auth': ntfyAuth,
-    'X-PRIORITY': '5',
-    'X-MARKDOWN': 'true',
-    'X-BODY': encodeURIComponent('你好'),
+    'X-ARG-PRIORITY': '5',
+    'X-ARG-MARKDOWN': 'true',
+    'X-ARG-BODY': encodeURIComponent('你好'),
 };
 assert.ok(token);
 let nextId = 0;
@@ -82,14 +82,13 @@ try {
     assert.deepEqual(feishuInput.properties.receive_id_type.enum, ['open_id', 'union_id', 'user_id', 'email', 'chat_id']);
     assert.deepEqual(feishuInput.properties.msg_type.enum, ['text', 'post', 'image', 'file', 'audio', 'media', 'sticker', 'interactive', 'share_chat', 'share_user', 'system']);
     assert.equal(feishuInput.additionalProperties, false);
-
     const fixedFeishuHeaders = {
         'X-CHANNEL': 'Feishu',
-        'X-TITLE': 'fixed title',
-        'X-BODY': 'fixed body',
-        'X-RECEIVE-ID-TYPE': 'chat_id',
-        'X-RECEIVE-ID': 'oc_smoke',
-        'X-MSG-TYPE': 'text',
+        'X-ARG-TITLE': 'fixed title',
+        'X-ARG-BODY': 'fixed body',
+        'X-ARG-RECEIVE-ID-TYPE': 'chat_id',
+        'X-ARG-RECEIVE-ID': 'oc_smoke',
+        'X-ARG-MSG-TYPE': 'text',
     };
     const fixedFeishuTools = await rpc('tools/list', {}, fixedFeishuHeaders);
     const fixedFeishuInput = fixedFeishuTools.tools[0].inputSchema;
@@ -100,7 +99,7 @@ try {
 
     const objectHeaderCall = await rpc('tools/call', {
         name: 'send_push', arguments: { title: 'Dingtalk object header' },
-    }, { 'X-CHANNEL': 'Dingtalk', 'X-MARKDOWN': '{"title":"title","text":"body"}' });
+    }, { 'X-CHANNEL': 'Dingtalk', 'X-ARG-MARKDOWN': '{"title":"title","text":"body"}' });
     assert.equal(objectHeaderCall.isError, true);
     assert.ok(JSON.parse(objectHeaderCall.content[0].text).missing.includes('X-DINGTALK-ACCESS-TOKEN'));
 
@@ -108,8 +107,8 @@ try {
         name: 'send_push', arguments: { title: 'WxPusher array header' },
     }, {
         'X-CHANNEL': 'WxPusher',
-        'X-TOPIC-IDS': '[123]',
-        'X-UIDS': '["uid-smoke"]',
+        'X-ARG-TOPIC-IDS': '[123]',
+        'X-ARG-UIDS': '["uid-smoke"]',
     });
     assert.equal(arrayHeaderCall.isError, true);
     assert.ok(JSON.parse(arrayHeaderCall.content[0].text).missing.includes('X-WX-PUSHER-APP-TOKEN'));
@@ -121,8 +120,8 @@ try {
         name: 'send_push', arguments: { title: 'WechatApp enum header' },
     }, {
         'X-CHANNEL': 'WechatApp',
-        'X-SAFE': '1',
-        'X-MSGTYPE': 'text',
+        'X-ARG-SAFE': '1',
+        'X-ARG-MSGTYPE': 'text',
     });
     assert.equal(numericEnumHeaderCall.isError, true);
     assert.ok(JSON.parse(numericEnumHeaderCall.content[0].text).missing.includes('X-WECHAT-APP-CORPID'));
@@ -135,7 +134,6 @@ try {
     }, pushPlusHeaders);
     assert.equal(pushPlusHeaderCall.isError, true);
     assert.ok(JSON.parse(pushPlusHeaderCall.content[0].text).missing.includes('X-PUSH-PLUS-TOKEN'));
-
     const oneBotTools = await rpc('tools/list', {}, { 'X-CHANNEL': 'OneBot' });
     const oneBotSchemas = oneBotTools.tools[0].inputSchema.anyOf;
     assert.equal(oneBotSchemas.length, 2);
@@ -150,7 +148,7 @@ try {
     }, { 'X-CHANNEL': 'OneBot' });
     assert.equal(oneBotMissingRecipient.isError, true);
     assert.match(oneBotMissingRecipient.content[0].text, /Input validation error/);
-    const fixedGroupTools = await rpc('tools/list', {}, { 'X-CHANNEL': 'OneBot', 'X-MESSAGE-TYPE': 'group' });
+    const fixedGroupTools = await rpc('tools/list', {}, { 'X-CHANNEL': 'OneBot', 'X-ARG-MESSAGE-TYPE': 'group' });
     const fixedGroupSchema = fixedGroupTools.tools[0].inputSchema;
     assert.equal(Object.hasOwn(fixedGroupSchema.properties, 'message_type'), false);
     assert.ok(fixedGroupSchema.required.includes('group_id'));
@@ -164,9 +162,9 @@ try {
     assert.deepEqual(dingtalkProperties.feedCard.properties.links.items.required, ['title', 'messageURL', 'picURL']);
     const invalidDingtalkHeader = await rpc('tools/call', {
         name: 'send_push', arguments: { title: 'Dingtalk nested validation' },
-    }, { 'X-CHANNEL': 'Dingtalk', 'X-MARKDOWN': '{"text":2}' });
+    }, { 'X-CHANNEL': 'Dingtalk', 'X-ARG-MARKDOWN': '{"text":2}' });
     assert.equal(invalidDingtalkHeader.isError, true);
-    assert.match(JSON.parse(invalidDingtalkHeader.content[0].text).error, /X-MARKDOWN has an invalid value/);
+    assert.match(JSON.parse(invalidDingtalkHeader.content[0].text).error, /X-ARG-MARKDOWN has an invalid value/);
 
     const serverChanTools = await rpc('tools/list', {}, { 'X-CHANNEL': 'ServerChanV3' });
     assert.equal(serverChanTools.tools[0].inputSchema.properties.tags.items.type, 'string');
@@ -175,9 +173,9 @@ try {
     assert.equal(wxPusherTools.tools[0].inputSchema.properties.uids.items.type, 'string');
     const invalidArrayHeader = await rpc('tools/call', {
         name: 'send_push', arguments: { title: 'WxPusher item validation' },
-    }, { 'X-CHANNEL': 'WxPusher', 'X-TOPIC-IDS': '["not-a-number"]' });
+    }, { 'X-CHANNEL': 'WxPusher', 'X-ARG-TOPIC-IDS': '["not-a-number"]' });
     assert.equal(invalidArrayHeader.isError, true);
-    assert.match(JSON.parse(invalidArrayHeader.content[0].text).error, /X-TOPIC-IDS has an invalid value/);
+    assert.match(JSON.parse(invalidArrayHeader.content[0].text).error, /X-ARG-TOPIC-IDS has an invalid value/);
 
     const ntfyTools = await rpc('tools/list');
     const ntfyFile = ntfyTools.tools[0].inputSchema.properties.file;
@@ -187,6 +185,8 @@ try {
 
     const unselectedTools = await rpc('tools/list', {}, { 'X-CHANNEL': '' });
     assert.deepEqual(Object.keys(unselectedTools.tools[0].inputSchema.properties).sort(), ['body', 'title']);
+    const ignoredSelectorTools = await rpc('tools/list', {}, { 'X-PUSH-CHANNEL': 'Feishu' });
+    assert.deepEqual(Object.keys(ignoredSelectorTools.tools[0].inputSchema.properties).sort(), ['body', 'title']);
 
     // Every published channel must produce a concrete tool schema from its metadata.
     for (const channel of Object.keys(push.PushAllInOne)) {
