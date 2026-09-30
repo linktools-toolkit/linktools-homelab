@@ -55,7 +55,9 @@ websockify --web=/usr/share/novnc 6080 127.0.0.1:5900 &
 pids+=("$!")
 
 browser="$(node -p 'require("/opt/playwright/node_modules/playwright").chromium.executablePath()')"
-"$browser" --no-sandbox --no-first-run --no-default-browser-check \
+# Mark this automated browser as a test session to suppress startup flag infobars.
+# This only changes the UI; Chromium's sandbox remains disabled in this image.
+"$browser" --test-type --no-sandbox --no-first-run --no-default-browser-check \
     --remote-debugging-address=127.0.0.1 --remote-debugging-port=9222 \
     --user-data-dir=/workspace/profile --window-size="${width},${height}" about:blank &
 pids+=("$!")
