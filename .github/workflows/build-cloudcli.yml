@@ -5,10 +5,10 @@ on:
     branches: [master]
     paths:
       - '.github/workflows/build-cloudcli.yml'
-      - '.github/dockerfiles/cloudcli.Dockerfile'
-      - '.github/scripts/render-dockerfile.sh'
-      - '.github/dockerfiles/fragments/install-base-cli.dockerfile'
-      - '.github/dockerfiles/fragments/install-preinstalled.dockerfile'
+      - '.github/docker/cloudcli/**'
+      - '.github/docker/scripts/render-dockerfile.sh'
+      - '.github/docker/fragments/install-base-cli.dockerfile'
+      - '.github/docker/fragments/install-preinstalled.dockerfile'
   schedule:
     - cron: '20 2 * * *'
   workflow_dispatch:
@@ -72,7 +72,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Render Dockerfile
-        run: bash .github/scripts/render-dockerfile.sh .github/dockerfiles/cloudcli.Dockerfile > /tmp/cloudcli.Dockerfile
+        run: bash .github/docker/scripts/render-dockerfile.sh .github/docker/cloudcli/Dockerfile > /tmp/cloudcli.Dockerfile
 
       - name: Build and push
         uses: docker/build-push-action@v5

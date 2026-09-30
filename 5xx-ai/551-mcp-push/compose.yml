@@ -5,10 +5,14 @@ services:
     init: true
     environment:
       - {{ ("MCP_PUSH_TOKEN=" ~ MCP_PUSH_TOKEN) | replace("$", "$$") | tojson }}
-      - 'MCP_PUSH_ALLOWED_ORIGINS={{ utils.make_url(NGINX_DEFAULT_SCHEME, MCP_PUSH_DOMAIN, NGINX_DEFAULT_PORT) }}'
+#     {% set extra_origins_field = container.extend_configs.get("MCP_PUSH_ALLOWED_ORIGINS") %}
+#     {% set extra_origins = config.get(extra_origins_field) if extra_origins_field else "" %}
+      - {{ ("MCP_PUSH_ALLOWED_ORIGINS=" ~ utils.make_url(NGINX_DEFAULT_SCHEME, MCP_PUSH_DOMAIN, NGINX_DEFAULT_PORT) ~ ("," ~ extra_origins if extra_origins else "")) | replace("$", "$$") | tojson }}
 #     {% for name, field in container.extend_configs.items() | sort %}
+#     {% if name != "MCP_PUSH_ALLOWED_ORIGINS" %}
 #     {% set value = config.get(field) %}
       - {{ (name ~ "=" ~ (value | lower if value is boolean else value)) | replace("$", "$$") | tojson }}
+#     {% endif %}
 #     {% endfor %}
 #   {% if MCP_PUSH_PORT > 0 %}
     ports:

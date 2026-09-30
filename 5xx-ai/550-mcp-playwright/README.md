@@ -24,13 +24,13 @@ noVNC 页面及 WebSocket 沿用 nginx / Authelia 登录保护。根路径也可
 ## MCP 连接
 
 Nginx 将同一域名的 `/mcp` 转发到 MCP 服务，无需开放宿主机端口。
-MCP 使用独立的 Bearer Token，不跳转到 Authelia 登录页。Token 首次自动生成并缓存，使用以下命令查看：
+MCP 使用独立的 Bearer Token，不跳转到 Authelia 登录页。Token 首次自动生成并缓存，运行以下命令可打印完整的 MCP 客户端 JSON 配置（包含 URL 和 Bearer Token）：
 
 ```bash
-ct-cntr exec mcp-playwright token
+ct-cntr exec mcp-playwright show
 ```
 
-将输出填入 MCP 客户端配置：
+将输出复制到 MCP 客户端配置：
 
 ```json
 {
@@ -46,12 +46,12 @@ ct-cntr exec mcp-playwright token
 ```
 
 缺少或携带错误 Token 时返回 HTTP 401。Nginx 支持 MCP 流式响应及会话头；noVNC 的认证不受此 Token 影响。
-Token 可通过 `ct-cntr config set mcp-playwright MCP_PLAYWRIGHT_TOKEN=<新Token>` 修改，要求 32–128 位字母、数字、下划线或连字符；修改后执行 `ct-cntr up mcp-playwright` 更新 Nginx 配置。
+Token 可通过 `ct-cntr config set MCP_PLAYWRIGHT_TOKEN=<新Token>` 修改，要求 32–128 位字母、数字、下划线或连字符；修改后执行 `ct-cntr up mcp-playwright` 更新 Nginx 配置。
 
 同一 `nginx` Docker 网络内仍可直连 `http://mcp-playwright:8931/mcp`。需要从宿主机或局域网直连时，开启相应端口后重新部署：
 
 ```bash
-ct-cntr config set mcp-playwright MCP_PLAYWRIGHT_PORT=8931 MCP_PLAYWRIGHT_NOVNC_PORT=6080
+ct-cntr config set MCP_PLAYWRIGHT_PORT=8931 MCP_PLAYWRIGHT_NOVNC_PORT=6080
 ct-cntr up mcp-playwright
 ```
 

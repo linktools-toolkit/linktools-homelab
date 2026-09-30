@@ -17,7 +17,7 @@ RUN set -eux; \
     install -m 0755 /tmp/multica /usr/local/bin/multica; \
     rm -f /tmp/multica /tmp/multica-cli.tar.gz
 
-COPY .github/scripts/multica-entrypoint.sh /usr/local/bin/multica-entrypoint
+COPY .github/docker/multica/entrypoint.sh /usr/local/bin/multica-entrypoint
 RUN chmod 0755 /usr/local/bin/multica-entrypoint
 
 ENTRYPOINT ["/usr/local/bin/multica-entrypoint"]

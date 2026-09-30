@@ -16,7 +16,7 @@ RUN npm install --save-exact "@playwright/mcp@${MCP_PLAYWRIGHT_VERSION}" \
     && chown node:node /workspace \
     && rm -rf /var/lib/apt/lists/* /root/.npm
 
-COPY .github/scripts/mcp-playwright-entrypoint.sh /usr/local/bin/mcp-playwright-entrypoint.sh
+COPY .github/docker/mcp-playwright/entrypoint.sh /usr/local/bin/mcp-playwright-entrypoint.sh
 
 ENV HOME=/workspace DISPLAY=:99
 WORKDIR /workspace

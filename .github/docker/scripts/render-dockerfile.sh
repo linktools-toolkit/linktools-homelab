@@ -4,7 +4,7 @@
 set -e
 
 DOCKERFILE="$1"
-FRAGMENTS_DIR="$(cd "$(dirname "$0")/../dockerfiles/fragments" && pwd)"
+FRAGMENTS_DIR="$(cd "$(dirname "$0")/../fragments" && pwd)"
 
 if [ -z "$DOCKERFILE" ]; then
     echo "Usage: $0 <Dockerfile>" >&2

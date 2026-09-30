@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import json
 import re
 import secrets
 from typing import Iterable
@@ -58,6 +59,16 @@ class Container(BaseContainer):
             )),
         ]
 
-    @subcommand("token", help="print the Bearer token for the public MCP endpoint")
-    def on_exec_token(self):
-        print(self.get_config("MCP_PLAYWRIGHT_TOKEN"))
+    @subcommand("show", help="print MCP server JSON configuration")
+    def on_exec_show(self):
+        config = {
+            "mcpServers": {
+                "playwright": {
+                    "url": str(self.load_exist_nginx_url("MCP_PLAYWRIGHT_DOMAIN", "mcp")),
+                    "headers": {
+                        "Authorization": f"Bearer {self.get_config('MCP_PLAYWRIGHT_TOKEN')}",
+                    },
+                },
+            },
+        }
+        print(json.dumps(config, indent=2, ensure_ascii=False))

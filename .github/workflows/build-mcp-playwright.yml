@@ -4,9 +4,7 @@ on:
   push:
     branches: [master]
     paths:
-      - '.github/dockerfiles/mcp-playwright.Dockerfile'
-      - '.github/scripts/mcp-playwright-*.sh'
-      - '.github/scripts/mcp-playwright-*.mjs'
+      - '.github/docker/mcp-playwright/**'
       - '.github/workflows/build-mcp-playwright.yml'
   schedule:
     - cron: '50 2 * * *'
@@ -92,7 +90,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: .github/dockerfiles/mcp-playwright.Dockerfile
+          file: .github/docker/mcp-playwright/Dockerfile
           platforms: linux/amd64
           load: true
           provenance: false
@@ -111,7 +109,7 @@ jobs:
           trap 'docker logs mcp-playwright-test; docker rm -f mcp-playwright-test' EXIT
           for attempt in {1..60}; do
             if [ "$(docker inspect -f '{{.State.Health.Status}}' mcp-playwright-test)" = 'healthy' ]; then
-              docker exec -i mcp-playwright-test node --input-type=module < .github/scripts/mcp-playwright-smoke.mjs
+              docker exec -i mcp-playwright-test node --input-type=module < .github/docker/mcp-playwright/smoke.mjs
               exit 0
             fi
             sleep 2

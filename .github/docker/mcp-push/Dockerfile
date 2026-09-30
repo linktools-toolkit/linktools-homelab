@@ -1,10 +1,10 @@
 FROM node:22-bookworm-slim
 
 WORKDIR /app
-COPY .github/mcp-push/package*.json ./
+COPY .github/docker/mcp-push/package*.json ./
 RUN npm ci --omit=dev --ignore-scripts \
     && npm cache clean --force
-COPY .github/mcp-push/server.mjs ./server.mjs
+COPY .github/docker/mcp-push/server.mjs ./server.mjs
 
 ENV NODE_ENV=production PORT=8931
 USER node

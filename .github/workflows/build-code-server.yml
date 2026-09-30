@@ -5,11 +5,11 @@ on:
     branches: [master]
     paths:
       - '.github/workflows/build-code-server.yml'
-      - '.github/dockerfiles/code-server.Dockerfile'
-      - '.github/scripts/render-dockerfile.sh'
-      - '.github/dockerfiles/fragments/install-base-cli.dockerfile'
-      - '.github/dockerfiles/fragments/install-chrome.dockerfile'
-      - '.github/dockerfiles/fragments/install-preinstalled.dockerfile'
+      - '.github/docker/code-server/**'
+      - '.github/docker/scripts/render-dockerfile.sh'
+      - '.github/docker/fragments/install-base-cli.dockerfile'
+      - '.github/docker/fragments/install-chrome.dockerfile'
+      - '.github/docker/fragments/install-preinstalled.dockerfile'
   schedule:
     - cron: '5 2 * * *'
   workflow_dispatch:
@@ -77,7 +77,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Render Dockerfile
-        run: bash .github/scripts/render-dockerfile.sh .github/dockerfiles/code-server.Dockerfile > /tmp/code-server.Dockerfile
+        run: bash .github/docker/scripts/render-dockerfile.sh .github/docker/code-server/Dockerfile > /tmp/code-server.Dockerfile
 
       - name: Build and push
         uses: docker/build-push-action@v5

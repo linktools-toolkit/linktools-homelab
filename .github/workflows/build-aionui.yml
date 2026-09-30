@@ -5,10 +5,10 @@ on:
     branches: [master]
     paths:
       - '.github/workflows/build-aionui.yml'
-      - '.github/dockerfiles/aionui.Dockerfile'
-      - '.github/scripts/render-dockerfile.sh'
-      - '.github/dockerfiles/fragments/install-base-cli.dockerfile'
-      - '.github/dockerfiles/fragments/install-preinstalled.dockerfile'
+      - '.github/docker/aionui/**'
+      - '.github/docker/scripts/render-dockerfile.sh'
+      - '.github/docker/fragments/install-base-cli.dockerfile'
+      - '.github/docker/fragments/install-preinstalled.dockerfile'
   schedule:
     - cron: '0 2 * * *'
   workflow_dispatch:
@@ -128,7 +128,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Render Dockerfile
-        run: bash .github/scripts/render-dockerfile.sh .github/dockerfiles/aionui.Dockerfile > /tmp/aionui.Dockerfile
+        run: bash .github/docker/scripts/render-dockerfile.sh .github/docker/aionui/Dockerfile > /tmp/aionui.Dockerfile
 
       - name: Build and push
         uses: docker/build-push-action@v5
