@@ -2,10 +2,10 @@
 set -Eeuo pipefail
 
 export DISPLAY="${DISPLAY:-:99}"
-width="${SCREEN_WIDTH:-1440}"
-height="${SCREEN_HEIGHT:-900}"
+width="${MCP_PLAYWRIGHT_SCREEN_WIDTH:-1440}"
+height="${MCP_PLAYWRIGHT_SCREEN_HEIGHT:-900}"
 if [[ ! "$width" =~ ^[1-9][0-9]*$ || ! "$height" =~ ^[1-9][0-9]*$ ]]; then
-    echo 'SCREEN_WIDTH and SCREEN_HEIGHT must be positive integers' >&2
+    echo 'MCP_PLAYWRIGHT_SCREEN_WIDTH and MCP_PLAYWRIGHT_SCREEN_HEIGHT must be positive integers' >&2
     exit 1
 fi
 

@@ -97,7 +97,7 @@ jobs:
           load: true
           provenance: false
           build-args: |
-            PLAYWRIGHT_MCP_VERSION=${{ needs.check.outputs.version }}
+            MCP_PLAYWRIGHT_VERSION=${{ needs.check.outputs.version }}
           tags: |
             ghcr.io/linktools-toolkit/mcp-playwright:${{ needs.check.outputs.version }}
             ghcr.io/linktools-toolkit/mcp-playwright:latest

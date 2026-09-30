@@ -1,11 +1,11 @@
 FROM node:22-bookworm-slim
 
-ARG PLAYWRIGHT_MCP_VERSION=0.0.83
+ARG MCP_PLAYWRIGHT_VERSION=0.0.83
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 WORKDIR /opt/playwright
 
 # Install the Chromium revision required by the selected MCP version.
-RUN npm install --save-exact "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" \
+RUN npm install --save-exact "@playwright/mcp@${MCP_PLAYWRIGHT_VERSION}" \
     && ./node_modules/.bin/playwright install --with-deps --no-shell chromium \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
