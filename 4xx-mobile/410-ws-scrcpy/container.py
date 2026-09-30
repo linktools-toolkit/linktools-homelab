@@ -31,7 +31,7 @@ from typing import Iterable
 import yaml
 
 from linktools.cntr import SourceContainer, ExposeLink, EventContext
-from linktools.core import Config
+from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
 
@@ -42,7 +42,7 @@ class Container(SourceContainer):
         return dict(
             WS_SCRCPY_TAG="master",
             WS_SCRCPY_URL="https://github.com/redroid-rockchip/ws-scrcpy/archive/refs/heads/{tag}.zip",
-            WS_SCRCPY_PORT=Config.Alias(default=8000, type=int),
+            WS_SCRCPY_PORT=ConfigField(cast=int, default=8000),
         )
 
     @cached_property

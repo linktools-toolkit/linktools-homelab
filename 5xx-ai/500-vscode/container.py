@@ -33,9 +33,10 @@ from typing import Iterable
 
 from linktools import utils
 from linktools.cli import subcommand
-from linktools.core import Config
+from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, ExposeLink
+from linktools.rich import prompt
 
 
 class Container(BaseContainer):
@@ -49,13 +50,11 @@ class Container(BaseContainer):
         return dict(
             VSCODE_TAG="latest",
             VSCODE_DOMAIN=self.get_nginx_domain(),
-            VSCODE_PORT=Config.Alias(type=int, default=0),
-            VSCODE_PASSWORD=Config.Lazy(
-                lambda cfg:
-                Config.Prompt(cached=True)
-                if not cfg.get("NGINX_AUTH_ENABLE")
-                else ""
-            ),
+            VSCODE_PORT=ConfigField(cast=int, default=0),
+            VSCODE_PASSWORD=ConfigField(provider=LazyProvider(
+                lambda r: prompt("VSCODE_PASSWORD") if not r.get("NGINX_AUTH_ENABLE") else "",
+                cached=True,
+            )),
         )
 
     @cached_property
@@ -107,11 +106,11 @@ class Container(BaseContainer):
     @subcommand("install", help="install modules into the running container")
     def on_exec_install(self):
         # self.logger.info("Install cc-switch-cli to `code-server`")
-        # self.manager.create_docker_process(
+        # self.manager.runtime.create_docker_process(
         #     "exec", "-it", self.get_service_name("code-server"),
         #     "sh", "-c", "curl -fsSL https://github.com/SaladDay/cc-switch-cli/releases/latest/download/install.sh | bash",
         # ).check_call()
-        # self.manager.create_docker_process(
+        # self.manager.runtime.create_docker_process(
         #     "exec", "-it", self.get_service_name("code-server"),
         #     "cc-switch", "completions", "install", "--activate", "--shell", "bash"
         # ).check_call()
@@ -127,8 +126,8 @@ class Container(BaseContainer):
         )
         for extension in extensions:
             self.logger.info(f"Install {extension} to `code-server`")
-            self.manager.create_docker_process(
-                "exec", "-it", self.get_service_name("code-server"),
+            self.manager.runtime.create_docker_process(
+                "exec", "-it", self.get_service_name(key="code-server"),
                 "code-server", "--install-extension", extension,
             ).check_call()
 
@@ -140,8 +139,11 @@ class Container(BaseContainer):
             except ValueError:
                 settings = {}
             def merge_setting(key, value):
-                original = settings.get(key, None)
-                if original is None or not str(original):
+                original = settings.get(key)
+                if isinstance(original, dict) and isinstance(value, dict):
+                    for item_key, item_value in value.items():
+                        original.setdefault(item_key, item_value)
+                elif original is None or not str(original):
                     settings[key] = value
             merge_setting("python.venvPath", "/workspace")
             merge_setting("python.pythonPath",  "/workspace/.venv/bin/python")
@@ -150,6 +152,7 @@ class Container(BaseContainer):
             merge_setting("claudeCode.allowDangerouslySkipPermissions", True)
             merge_setting("markdown-preview-enhanced.enablePreviewZenMode",  True)
             merge_setting("markdown-preview-enhanced.chromePath",  "/usr/bin/google-chrome-stable")
+            merge_setting("remote.extensionKind", {"openai.codex-audio": ["workspace"]})
             settings_path.write_text(
                 json.dumps(settings, indent=2, ensure_ascii=False) + "\n",
                 encoding="utf-8",

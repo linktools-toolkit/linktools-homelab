@@ -30,7 +30,7 @@ import random
 import string
 from typing import Iterable
 
-from linktools.core import Config
+from linktools.core import ConfigField, LazyProvider
 from linktools.cli import subcommand
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, ExposeLink
@@ -51,9 +51,11 @@ class Container(BaseContainer):
             NEXTCLOUD_MYSQL_DATABASE="nas",
             NEXTCLOUD_MYSQL_USER="nas",
             NEXTCLOUD_MYSQL_PASSWORD="password",
-            NEXTCLOUD_ONLYOFFICE_ENABLED=Config.Alias(type=bool, default=False),
-            NEXTCLOUD_ONLYOFFICE_SECRET=Config.Alias(default="".join(random.sample(string.ascii_letters + string.digits, 12)), cached=True),
-            NEXTCLOUD_MAINTENANCE_WINDOW_START=Config.Alias(type=int, default=2),
+            NEXTCLOUD_ONLYOFFICE_ENABLED=ConfigField(cast=bool, default=False),
+            NEXTCLOUD_ONLYOFFICE_SECRET=ConfigField(provider=LazyProvider(
+                lambda r: "".join(random.sample(string.ascii_letters + string.digits, 12)), cached=True,
+            )),
+            NEXTCLOUD_MAINTENANCE_WINDOW_START=ConfigField(cast=int, default=2),
             NEXTCLOUD_PHP_MEMORY_LIMIT=None,
             NEXTCLOUD_PHP_UPLOAD_LIMIT=None,
         )
@@ -69,6 +71,6 @@ class Container(BaseContainer):
 
     @subcommand("scan", help="scan all files")
     def on_exec_scan(self):
-        self.manager.create_docker_process(
+        self.manager.runtime.create_docker_process(
             "exec", self.get_service_name("nextcloud"), "./occ", "files:scan", "--all"
         ).check_call()

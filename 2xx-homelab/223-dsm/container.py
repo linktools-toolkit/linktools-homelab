@@ -29,7 +29,7 @@
 from typing import Iterable
 
 from linktools.cntr import BaseContainer, ExposeLink
-from linktools.core import Config
+from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
 
@@ -44,7 +44,7 @@ class Container(BaseContainer):
         return dict(
             DSM_TAG="latest",
             DSM_DOMAIN="",
-            DSM_PORT=Config.Alias(type=int, default=5000),
+            DSM_PORT=ConfigField(cast=int, default=5000),
             DSM_DISK_FMT="qcow2",
             DSM_DISK_SIZE="6G",
         )

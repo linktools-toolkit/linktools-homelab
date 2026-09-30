@@ -4,7 +4,7 @@
 from typing import Iterable
 
 from linktools.cntr import BaseContainer, ExposeLink
-from linktools.core import Config
+from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
 
@@ -19,7 +19,7 @@ class Container(BaseContainer):
         return dict(
             CLOUD_CLI_TAG="latest",
             CLOUD_CLI_DOMAIN=self.get_nginx_domain(),
-            CLOUD_CLI_PORT=Config.Alias(type=int, default=0),
+            CLOUD_CLI_PORT=ConfigField(cast=int, default=0),
         )
 
     @cached_property

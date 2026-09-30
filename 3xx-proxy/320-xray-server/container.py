@@ -30,7 +30,7 @@ import uuid
 from typing import Iterable
 
 from linktools.cntr import BaseContainer
-from linktools.core import Config
+from linktools.core import ConfigField, AliasProvider, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
 
 
@@ -45,10 +45,13 @@ class Container(BaseContainer):
         return dict(
             XRAY_TAG="latest",
             XRAY_DOMAIN=self.get_nginx_domain(),
-            XRAY_ID=Config.Prompt(default=str(uuid.uuid4()), cached=True),
-            XRAY_WEBSOCKET_PATH=Config.Alias("XRAY_PATH") | Config.Prompt(default="/i/am/websocket", cached=True),
-            XRAY_GRPC_SERVICE_NAME=Config.Prompt(default="/i/am/grpc", cached=True),
-            XRAY_XHTTP_PATH=Config.Prompt(default="/i/am/xhttp", cached=True),
+            XRAY_ID=ConfigField(provider=LazyProvider(lambda r: str(uuid.uuid4()), cached=True)),
+            XRAY_WEBSOCKET_PATH=ConfigField.chain(
+                AliasProvider("XRAY_PATH"),
+                PromptProvider(default="/i/am/websocket", cached=True),
+            ),
+            XRAY_GRPC_SERVICE_NAME=ConfigField(provider=PromptProvider(default="/i/am/grpc", cached=True)),
+            XRAY_XHTTP_PATH=ConfigField(provider=PromptProvider(default="/i/am/xhttp", cached=True)),
         )
 
     def on_starting(self):

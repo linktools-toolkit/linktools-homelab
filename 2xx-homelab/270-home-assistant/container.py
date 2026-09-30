@@ -29,7 +29,7 @@
 from typing import Iterable
 
 from linktools.cntr import BaseContainer, ExposeLink
-from linktools.core import Config
+from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
 
@@ -44,7 +44,7 @@ class Container(BaseContainer):
         return dict(
             HOME_ASSISTANT_TAG="stable",
             HOME_ASSISTANT_DOMAIN=self.get_nginx_domain("homeassistant"),
-            HOME_ASSISTANT_PORT=Config.Alias(type=int, default=8123),
+            HOME_ASSISTANT_PORT=ConfigField(cast=int, default=8123),
         )
 
     @cached_property

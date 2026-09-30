@@ -30,7 +30,7 @@ import os
 
 from linktools import utils
 from linktools.cntr import BaseContainer
-from linktools.core import Config
+from linktools.core import ConfigField, PromptProvider
 from linktools.decorator import cached_property
 
 
@@ -40,10 +40,10 @@ class Container(BaseContainer):
     def configs(self):
         return dict(
             FRPS_TAG="latest",
-            FRPS_BIND_PORT=Config.Prompt(default=7000, cached=True, type=int),
-            FRPS_BIND_TOKEN=Config.Prompt(default=utils.make_uuid()[:12], cached=True),
-            FRPS_VHOST_HTTP_PORT=Config.Prompt(default=80, cached=True, type=int),
-            FRPS_VHOST_HTTPS_PORT=Config.Prompt(default=443, cached=True, type=int),
+            FRPS_BIND_PORT=ConfigField(cast=int, provider=PromptProvider(default=7000, cached=True)),
+            FRPS_BIND_TOKEN=ConfigField(provider=PromptProvider(default=utils.make_uuid()[:12], cached=True)),
+            FRPS_VHOST_HTTP_PORT=ConfigField(cast=int, provider=PromptProvider(default=80, cached=True)),
+            FRPS_VHOST_HTTPS_PORT=ConfigField(cast=int, provider=PromptProvider(default=443, cached=True)),
         )
 
     def on_starting(self):

@@ -29,7 +29,7 @@
 from typing import Iterable
 
 from linktools.cntr import BaseContainer, ExposeLink
-from linktools.core import Config
+from linktools.core import ConfigField, AliasProvider
 from linktools.decorator import cached_property
 
 
@@ -44,10 +44,10 @@ class Container(BaseContainer):
         return dict(
             SUBLINK_TAG="latest",
             SUBLINK_DOMAIN=self.get_nginx_domain(),
-            SUBLINK_PORT=Config.Alias(type=int, default=0),
+            SUBLINK_PORT=ConfigField(cast=int, default=0),
             SUBLINK_API_KEY="",
             SUBLINK_ADMIN_PASSWORD="123456",
-            SUBLINK_ADMIN_PASSWORD_REST=Config.Alias("SUBLINK_ADMIN_PASSWORD"),
+            SUBLINK_ADMIN_PASSWORD_REST=ConfigField(provider=AliasProvider("SUBLINK_ADMIN_PASSWORD")),
         )
 
     @cached_property

@@ -1,0 +1,33 @@
+services:
+  mcp-playwright:
+    image: 'ghcr.io/linktools-toolkit/mcp-playwright:{{ MCP_PLAYWRIGHT_TAG }}'
+    restart: unless-stopped
+    user: '{{ DOCKER_UID }}:{{ DOCKER_GID }}'
+    shm_size: '1gb'
+    environment:
+      - 'HOME=/workspace'
+      - 'DISPLAY=:99'
+      - 'MCP_PLAYWRIGHT_SCREEN_WIDTH={{ MCP_PLAYWRIGHT_SCREEN_WIDTH }}'
+      - 'MCP_PLAYWRIGHT_SCREEN_HEIGHT={{ MCP_PLAYWRIGHT_SCREEN_HEIGHT }}'
+#   {% if MCP_PLAYWRIGHT_PORT > 0 or MCP_PLAYWRIGHT_NOVNC_PORT > 0 %}
+    ports:
+#     {% if MCP_PLAYWRIGHT_PORT > 0 %}
+      - '{{ MCP_PLAYWRIGHT_PORT }}:8931'
+#     {% endif %}
+#     {% if MCP_PLAYWRIGHT_NOVNC_PORT > 0 %}
+      - '{{ MCP_PLAYWRIGHT_NOVNC_PORT }}:6080'
+#     {% endif %}
+#   {% endif %}
+    volumes:
+      - '{{ (APP_PATH/"home") | mkdir | chown }}:/workspace'
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fsS http://127.0.0.1:6080/vnc.html >/dev/null && curl -fsS http://127.0.0.1:9222/json/version >/dev/null && curl -sS http://127.0.0.1:8931/mcp >/dev/null']
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
+    networks:
+      - nginx
+
+networks:
+  nginx:

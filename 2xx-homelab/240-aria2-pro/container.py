@@ -29,7 +29,7 @@
 from typing import Iterable
 
 from linktools.cntr import BaseContainer, ExposeLink
-from linktools.core import Config
+from linktools.core import ConfigField, PromptProvider
 from linktools.decorator import cached_property
 
 
@@ -40,8 +40,8 @@ class Container(BaseContainer):
         return dict(
             ARIA2_TAG="latest",
             ARIA2_DOMAIN=self.get_nginx_domain(),
-            ARIA2_PORT=Config.Alias(type=int, default=0),
-            ARIA2_RPC_SECRET=Config.Prompt(default="159753", type=str, cached=True),
+            ARIA2_PORT=ConfigField(cast=int, default=0),
+            ARIA2_RPC_SECRET=ConfigField(provider=PromptProvider(default="159753", cached=True)),
         )
 
     @cached_property

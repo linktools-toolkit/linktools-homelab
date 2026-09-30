@@ -31,7 +31,7 @@ import shutil
 
 from linktools.cli import subcommand
 from linktools.cntr import BaseContainer
-from linktools.core import Config
+from linktools.core import ConfigField, PromptProvider, ConfirmProvider
 from linktools.decorator import cached_property
 from linktools.rich import confirm
 
@@ -42,16 +42,18 @@ class Container(BaseContainer):
     def configs(self):
         return dict(
             REDROID_IMAGE="iceblacktea/redroid-arm64:12.0.0-241218",
-            REDROID_COUNT=Config.Prompt(default=3, type=int, cached=True),
-            REDROID_WIDTH=Config.Alias(default=720, type=int),
-            REDROID_HEIGHT=Config.Alias(default=1280, type=int),
-            REDROID_DPI=Config.Alias(default=320, type=int),
-            REDROID_ADB_PORT=Config.Prompt(default=5555, type=int, cached=True),
-            REDROID_GPU_MODE=Config.Prompt(default="mali", type=str, choices=["auto", "host", "guest", "mali"], cached=True),
-            REDROID_RADIO=Config.Confirm(default=True, cached=True),
-            REDROID_WIFI=Config.Confirm(default=True, cached=True),
+            REDROID_COUNT=ConfigField(cast=int, provider=PromptProvider(default=3, cached=True)),
+            REDROID_WIDTH=ConfigField(cast=int, default=720),
+            REDROID_HEIGHT=ConfigField(cast=int, default=1280),
+            REDROID_DPI=ConfigField(cast=int, default=320),
+            REDROID_ADB_PORT=ConfigField(cast=int, provider=PromptProvider(default=5555, cached=True)),
+            REDROID_GPU_MODE=ConfigField(provider=PromptProvider(
+                default="mali", choices=["auto", "host", "guest", "mali"], cached=True,
+            )),
+            REDROID_RADIO=ConfigField(cast=bool, provider=ConfirmProvider(default=True, cached=True)),
+            REDROID_WIFI=ConfigField(cast=bool, provider=ConfirmProvider(default=True, cached=True)),
             REDROID_WIFI_GATEWAY="10.23.45.1/24",
-            REDROID_MAGISK=Config.Confirm(default=True, cached=True),
+            REDROID_MAGISK=ConfigField(cast=bool, provider=ConfirmProvider(default=True, cached=True)),
         )
 
     @cached_property

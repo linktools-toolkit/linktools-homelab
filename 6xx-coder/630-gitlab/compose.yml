@@ -4,7 +4,7 @@ services:
     environment:
       GITLAB_ROOT_PASSWORD: '{{ GITLAB_ROOT_PASSWORD }}'
       GITLAB_OMNIBUS_CONFIG: |
-          external_url 'https://{{ GITLAB_DOMAIN }}:{{ NGINX_HTTPS_PORT }}'
+          external_url '{{ utils.make_url("https", GITLAB_DOMAIN, NGINX_HTTPS_PORT) }}'
           gitlab_rails['gitlab_shell_ssh_port'] = {{ GITLAB_SSH_PORT }}
 
           # nginx['enable'] = true
@@ -123,9 +123,11 @@ services:
 
 # {% if GITLAB_DB_HOST == 'gitlab-postgres' %}
   gitlab-postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     volumes:
-      - '{{ (APP_PATH/"postgres") | mkdir | chown }}:/var/lib/postgresql/data'
+      # PostgreSQL 18 默认数据目录为 /var/lib/postgresql/18/docker。
+      # 已有旧版本数据须通过 pg_upgrade 或导出/导入迁移，仅修改挂载路径不会升级数据。
+      - '{{ (APP_PATH/"postgres") | mkdir | chown }}:/var/lib/postgresql'
     environment:
       POSTGRES_DB: '{{ GITLAB_DB_DATABASE }}'
       POSTGRES_USER: '{{ GITLAB_DB_USERNAME }}'

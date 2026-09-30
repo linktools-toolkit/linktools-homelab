@@ -34,7 +34,7 @@ from typing import Iterable
 from linktools import utils
 from linktools.cli import subcommand, subcommand_argument
 from linktools.cntr import BaseContainer
-from linktools.core import Config
+from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
 
 
@@ -48,7 +48,9 @@ class Container(BaseContainer):
     @cached_property
     def configs(self):
         return dict(
-            REDROID_BUILD_PATH=Config.Lazy(lambda cfg: utils.join_path(cfg.get("CODER_PROJECT_PATH"), "redroid")),
+            REDROID_BUILD_PATH=ConfigField(provider=LazyProvider(
+                lambda r: utils.join_path(r.get("CODER_PROJECT_PATH"), "redroid")
+            )),
         )
 
     @subcommand("init-repo", help="Initialize redroid repo")
@@ -61,26 +63,26 @@ class Container(BaseContainer):
         default="redroid-12.0.0",
         help="manifest branch or revision (use HEAD for default)")
     def on_exec_repo_init(self, manifest_url: str, manifest_branch: str):
-        self.manager.create_docker_process(
+        self.manager.runtime.create_docker_process(
             "exec", "-it", self.get_service_name("redroid-builder"),
             "repo", "init", "-u", manifest_url, "-b", manifest_branch, "--depth=1", "--git-lfs",
         ).check_call()
 
     @subcommand("sync-repo", help="Sync redroid repo")
     def on_exec_repo_sync(self):
-        self.manager.create_docker_process(
+        self.manager.runtime.create_docker_process(
             "exec", "-it", self.get_service_name("redroid-builder"),
             "repo", "sync", "-c",
         ).check_call()
 
-        self.manager.create_docker_process(
+        self.manager.runtime.create_docker_process(
             "exec", "-it", self.get_service_name("redroid-builder"),
             "repo", "forall", "-g", "lfs", "-c", "git", "lfs", "pull",
         ).check_call()
 
     @subcommand("build-rk3588", help="Build rk3588 redroid arm64 image")
     def on_exec_build_rk3588(self):
-        self.manager.create_docker_process(
+        self.manager.runtime.create_docker_process(
             "exec", "-it", self.get_service_name("redroid-builder"),
             "build-rk3588",
         ).check_call()
@@ -94,26 +96,26 @@ class Container(BaseContainer):
         )
 
         try:
-            self.manager.create_process(
+            self.manager.runtime.create_process(
                 "sh", "-c", "mount system.img system -o ro",
                 cwd=path,
                 privilege=True
             ).check_call()
 
-            self.manager.create_process(
+            self.manager.runtime.create_process(
                 "sh", "-c", "mount vendor.img vendor -o ro",
                 cwd=path,
                 privilege=True
             ).check_call()
 
-            p1 = self.manager.create_process(
+            p1 = self.manager.runtime.create_process(
                 "sh", "-c", "tar --xattrs -c vendor -C system --exclude=\"./vendor\" . ",
                 cwd=path,
                 stdout=subprocess.PIPE,
                 privilege=True
             )
 
-            p2 = self.manager.create_docker_process(
+            p2 = self.manager.runtime.create_docker_process(
                 "import",
                 "-c", "ENTRYPOINT [\"/init\", \"androidboot.hardware=redroid\"]",
                 "--platform", "linux/arm64",
@@ -131,7 +133,7 @@ class Container(BaseContainer):
             if p2:
                 utils.ignore_errors(p2.kill)
 
-            self.manager.create_process(
+            self.manager.runtime.create_process(
                 "sh", "-c", "umount system vendor",
                 cwd=path,
                 privilege=True
@@ -139,7 +141,7 @@ class Container(BaseContainer):
 
     @subcommand("fix-permission", help="fix redroid source permission")
     def on_exec_fix_permission(self):
-        self.manager.create_docker_process(
+        self.manager.runtime.create_docker_process(
             "exec", "-it", self.get_service_name("redroid-builder"),
             "sudo", "chown", "-R", self.get_config("DOCKER_USER"), "/src/"
         ).check_call()
