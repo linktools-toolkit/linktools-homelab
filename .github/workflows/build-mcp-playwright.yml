@@ -1,13 +1,13 @@
-name: Build Playwright MCP
+name: Build MCP Playwright
 
 on:
   push:
     branches: [master]
     paths:
-      - '.github/dockerfiles/playwright-mcp.Dockerfile'
-      - '.github/scripts/playwright-mcp-*.sh'
-      - '.github/scripts/playwright-mcp-*.mjs'
-      - '.github/workflows/build-playwright-mcp.yml'
+      - '.github/dockerfiles/mcp-playwright.Dockerfile'
+      - '.github/scripts/mcp-playwright-*.sh'
+      - '.github/scripts/mcp-playwright-*.mjs'
+      - '.github/workflows/build-mcp-playwright.yml'
   schedule:
     - cron: '50 2 * * *'
   workflow_dispatch:
@@ -21,7 +21,7 @@ on:
         type: boolean
 
 concurrency:
-  group: build-playwright-mcp
+  group: build-mcp-playwright
   cancel-in-progress: false
 
 jobs:
@@ -60,7 +60,7 @@ jobs:
 
           if [ "$FORCE" = "true" ] || [ "$EVENT_NAME" = "push" ]; then
             echo 'skip=false' >> "$GITHUB_OUTPUT"
-          elif docker manifest inspect "ghcr.io/linktools-toolkit/playwright-mcp:$VERSION" >/dev/null 2>&1; then
+          elif docker manifest inspect "ghcr.io/linktools-toolkit/mcp-playwright:$VERSION" >/dev/null 2>&1; then
             echo 'skip=true' >> "$GITHUB_OUTPUT"
           else
             echo 'skip=false' >> "$GITHUB_OUTPUT"
@@ -92,26 +92,26 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: .github/dockerfiles/playwright-mcp.Dockerfile
+          file: .github/dockerfiles/mcp-playwright.Dockerfile
           platforms: linux/amd64
           load: true
           provenance: false
           build-args: |
             PLAYWRIGHT_MCP_VERSION=${{ needs.check.outputs.version }}
           tags: |
-            ghcr.io/linktools-toolkit/playwright-mcp:${{ needs.check.outputs.version }}
-            ghcr.io/linktools-toolkit/playwright-mcp:latest
-          cache-from: type=gha,scope=playwright-mcp
-          cache-to: type=gha,scope=playwright-mcp,mode=max
+            ghcr.io/linktools-toolkit/mcp-playwright:${{ needs.check.outputs.version }}
+            ghcr.io/linktools-toolkit/mcp-playwright:latest
+          cache-from: type=gha,scope=mcp-playwright
+          cache-to: type=gha,scope=mcp-playwright,mode=max
 
       - name: Test browser, noVNC and MCP
         timeout-minutes: 3
         run: |
-          docker run -d --name playwright-mcp-test --shm-size=1g ghcr.io/linktools-toolkit/playwright-mcp:latest
-          trap 'docker logs playwright-mcp-test; docker rm -f playwright-mcp-test' EXIT
+          docker run -d --name mcp-playwright-test --shm-size=1g ghcr.io/linktools-toolkit/mcp-playwright:latest
+          trap 'docker logs mcp-playwright-test; docker rm -f mcp-playwright-test' EXIT
           for attempt in {1..60}; do
-            if [ "$(docker inspect -f '{{.State.Health.Status}}' playwright-mcp-test)" = 'healthy' ]; then
-              docker exec -i playwright-mcp-test node --input-type=module < .github/scripts/playwright-mcp-smoke.mjs
+            if [ "$(docker inspect -f '{{.State.Health.Status}}' mcp-playwright-test)" = 'healthy' ]; then
+              docker exec -i mcp-playwright-test node --input-type=module < .github/scripts/mcp-playwright-smoke.mjs
               exit 0
             fi
             sleep 2
@@ -123,8 +123,8 @@ jobs:
         env:
           VERSION: ${{ needs.check.outputs.version }}
         run: |
-          docker push "ghcr.io/linktools-toolkit/playwright-mcp:$VERSION"
-          docker push ghcr.io/linktools-toolkit/playwright-mcp:latest
+          docker push "ghcr.io/linktools-toolkit/mcp-playwright:$VERSION"
+          docker push ghcr.io/linktools-toolkit/mcp-playwright:latest
 
   cleanup:
     needs: build
@@ -136,6 +136,6 @@ jobs:
       - name: Delete untagged versions
         uses: actions/delete-package-versions@v5
         with:
-          package-name: playwright-mcp
+          package-name: mcp-playwright
           package-type: container
           delete-only-untagged-versions: true

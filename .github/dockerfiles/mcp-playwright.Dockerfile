@@ -16,7 +16,7 @@ RUN npm install --save-exact "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" \
     && chown node:node /workspace \
     && rm -rf /var/lib/apt/lists/* /root/.npm
 
-COPY .github/scripts/playwright-mcp-entrypoint.sh /usr/local/bin/playwright-entrypoint.sh
+COPY .github/scripts/mcp-playwright-entrypoint.sh /usr/local/bin/mcp-playwright-entrypoint.sh
 
 ENV HOME=/workspace DISPLAY=:99
 WORKDIR /workspace
@@ -26,4 +26,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
     CMD curl -fsS http://127.0.0.1:6080/vnc.html >/dev/null \
         && curl -fsS http://127.0.0.1:9222/json/version >/dev/null \
         && curl -sS http://127.0.0.1:8931/mcp >/dev/null
-ENTRYPOINT ["/usr/bin/tini", "--", "/bin/bash", "/usr/local/bin/playwright-entrypoint.sh"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/bin/bash", "/usr/local/bin/mcp-playwright-entrypoint.sh"]
