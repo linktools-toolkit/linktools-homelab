@@ -1,0 +1,141 @@
+name: Build Playwright MCP
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/dockerfiles/playwright-mcp.Dockerfile'
+      - '.github/scripts/playwright-mcp-*.sh'
+      - '.github/scripts/playwright-mcp-*.mjs'
+      - '.github/workflows/build-playwright-mcp.yml'
+  schedule:
+    - cron: '50 2 * * *'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'MCP npm version (leave empty to use latest)'
+        required: false
+      force:
+        description: 'Force rebuild even if image already exists'
+        default: false
+        type: boolean
+
+concurrency:
+  group: build-playwright-mcp
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      skip: ${{ steps.resolve.outputs.skip }}
+    steps:
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve npm version and check image
+        id: resolve
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          FORCE: ${{ inputs.force }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          VERSION="$INPUT_VERSION"
+          if [ -z "$VERSION" ]; then
+            VERSION=$(curl -fsSL https://registry.npmjs.org/@playwright/mcp/latest | jq -er .version)
+          fi
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
+            echo "Invalid MCP version: $VERSION" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+          if [ "$FORCE" = "true" ] || [ "$EVENT_NAME" = "push" ]; then
+            echo 'skip=false' >> "$GITHUB_OUTPUT"
+          elif docker manifest inspect "ghcr.io/linktools-toolkit/playwright-mcp:$VERSION" >/dev/null 2>&1; then
+            echo 'skip=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'skip=false' >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: check
+    if: needs.check.outputs.skip == 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and load for testing
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: .github/dockerfiles/playwright-mcp.Dockerfile
+          platforms: linux/amd64
+          load: true
+          provenance: false
+          build-args: |
+            PLAYWRIGHT_MCP_VERSION=${{ needs.check.outputs.version }}
+          tags: |
+            ghcr.io/linktools-toolkit/playwright-mcp:${{ needs.check.outputs.version }}
+            ghcr.io/linktools-toolkit/playwright-mcp:latest
+          cache-from: type=gha,scope=playwright-mcp
+          cache-to: type=gha,scope=playwright-mcp,mode=max
+
+      - name: Test browser, noVNC and MCP
+        timeout-minutes: 3
+        run: |
+          docker run -d --name playwright-mcp-test --shm-size=1g ghcr.io/linktools-toolkit/playwright-mcp:latest
+          trap 'docker logs playwright-mcp-test; docker rm -f playwright-mcp-test' EXIT
+          for attempt in {1..60}; do
+            if [ "$(docker inspect -f '{{.State.Health.Status}}' playwright-mcp-test)" = 'healthy' ]; then
+              docker exec -i playwright-mcp-test node --input-type=module < .github/scripts/playwright-mcp-smoke.mjs
+              exit 0
+            fi
+            sleep 2
+          done
+          echo 'Container did not become healthy' >&2
+          exit 1
+
+      - name: Push tested image
+        env:
+          VERSION: ${{ needs.check.outputs.version }}
+        run: |
+          docker push "ghcr.io/linktools-toolkit/playwright-mcp:$VERSION"
+          docker push ghcr.io/linktools-toolkit/playwright-mcp:latest
+
+  cleanup:
+    needs: build
+    if: needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Delete untagged versions
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: playwright-mcp
+          package-type: container
+          delete-only-untagged-versions: true
