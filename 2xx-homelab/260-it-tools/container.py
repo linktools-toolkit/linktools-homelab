@@ -31,7 +31,7 @@ from typing import Iterable
 
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, ExposeLink
+from linktools.cntr import BaseContainer, ExposeLink, NginxSite
 
 
 class Container(BaseContainer):
@@ -45,24 +45,27 @@ class Container(BaseContainer):
         )
 
     @cached_property
+    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
+        return {
+            "nginx": {
+                "web": NginxSite(
+                    server_name=self.get_config_later("IT_TOOLS_DOMAIN"),
+                    proxy="http://it-tools",
+                    auth_bypass=(r"\.(css|js|webmanifest)$",),
+                    auth_rule={"policy": "one_factor"},
+                ),
+            },
+        }
+
+    @cached_property
     def exposes(self) -> Iterable[ExposeLink]:
         return [
-            self.expose_other("正则表达式测试", "regex", "", self.load_exist_nginx_url("IT_TOOLS_DOMAIN", "regex-tester")),
-            self.expose_other("正则表达式手册", "regex", "", self.load_exist_nginx_url("IT_TOOLS_DOMAIN", "regex-memo")),
-            self.expose_other("在线json解析", "codeJson", "", self.load_exist_nginx_url("IT_TOOLS_DOMAIN", "json-prettify")),
+            self.expose_other("正则表达式测试", "regex", "", self.load_nginx_url("web", "regex-tester")),
+            self.expose_other("正则表达式手册", "regex", "", self.load_nginx_url("web", "regex-memo")),
+            self.expose_other("在线json解析", "codeJson", "", self.load_nginx_url("web", "json-prettify")),
             self.expose_other("DNS查询", "dns", "", "https://tool.chinaz.com/dns/"),
             self.expose_other("图标下载", "progressDownload", "", "https://materialdesignicons.com/"),
 
             self.expose_container("IT Tools", "tools", "it工具集", self.load_port_url("IT_TOOLS_PORT", https=False)),
-            self.expose_public("IT Tools", "tools", "it工具集", self.load_nginx_url(
-                "IT_TOOLS_DOMAIN",
-                proxy_url="http://it-tools",
-                auth_enable=True,
-                auth_extra={
-                    "acl_bypass": ["\\.(css|js|webmanifest)$"],
-                    "acl_rule": {
-                        "policy": "one_factor",
-                    }
-                }
-            )),
+            self.expose_public("IT Tools", "tools", "it工具集", self.load_nginx_url("web")),
         ]

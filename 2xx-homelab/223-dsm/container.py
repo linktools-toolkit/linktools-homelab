@@ -28,7 +28,7 @@
 """
 from typing import Iterable
 
-from linktools.cntr import BaseContainer, ExposeLink
+from linktools.cntr import BaseContainer, ExposeLink, NginxSite
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
@@ -50,12 +50,21 @@ class Container(BaseContainer):
         )
 
     @cached_property
+    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
+        return {
+            "nginx": {
+                "web": NginxSite(
+                    server_name=self.get_config_later("DSM_DOMAIN"),
+                    proxy="http://dsm:5000",
+                    auth=False,
+                ),
+            },
+        }
+
+    @cached_property
     def exposes(self) -> Iterable[ExposeLink]:
         return [
-            self.expose_public("DSM", "nas", "群晖系统", self.load_nginx_url(
-                "DSM_DOMAIN",
-                proxy_url="http://dsm:5000",
-            )),
+            self.expose_public("DSM", "nas", "群晖系统", self.load_nginx_url("web")),
             self.expose_private("DSM", "nas", "群晖系统", self.load_port_url(
                 "DSM_PORT",
                 https=False,

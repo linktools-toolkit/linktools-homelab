@@ -30,7 +30,7 @@ from typing import Iterable
 
 from linktools import utils
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, ExposeLink
+from linktools.cntr import BaseContainer, ExposeLink, NginxSite
 
 
 class Container(BaseContainer):
@@ -47,12 +47,21 @@ class Container(BaseContainer):
         )
 
     @cached_property
+    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
+        return {
+            "nginx": {
+                "web": NginxSite(
+                    server_name=self.get_config_later("OMV_DOMAIN"),
+                    proxy=self.get_config_later("OMV_LOCAL_URL"),
+                    auth=False,
+                ),
+            },
+        }
+
+    @cached_property
     def exposes(self) -> Iterable[ExposeLink]:
         return [
-            self.expose_public("OpenMediaVault", "nas", "OMV系统", self.load_nginx_url(
-                "OMV_DOMAIN",
-                proxy_url=self.get_config("OMV_LOCAL_URL")
-            )),
+            self.expose_public("OpenMediaVault", "nas", "OMV系统", self.load_nginx_url("web")),
             self.expose_private("OpenMediaVault", "nas", "OMV系统", self.load_config_url(
                 "OMV_LOCAL_URL"
             )),
