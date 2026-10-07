@@ -28,7 +28,7 @@
 """
 from typing import Iterable
 
-from linktools.cntr import BaseContainer, ExposeLink
+from linktools.cntr import BaseContainer, ExposeLink, NginxSite
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
@@ -45,14 +45,23 @@ class Container(BaseContainer):
         )
 
     @cached_property
+    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
+        return {
+            "nginx": {
+                "web": NginxSite(
+                    server_name=self.get_config_later("QBITTORRENT_DOMAIN"),
+                    template=self.get_source_path("nginx.conf"),
+                    auth=False,
+                ),
+            },
+        }
+
+    @cached_property
     def exposes(self) -> Iterable[ExposeLink]:
         return [
             self.expose_container("qBittorrent", "tools", "", self.load_port_url(
                 "QBITTORRENT_PORT",
                 https=False
             )),
-            self.expose_public("qBittorrent", "tools", "", self.load_nginx_url(
-                "QBITTORRENT_DOMAIN",
-                proxy_conf=self.get_source_path("nginx.conf"),
-            )),
+            self.expose_public("qBittorrent", "tools", "", self.load_nginx_url("web")),
         ]

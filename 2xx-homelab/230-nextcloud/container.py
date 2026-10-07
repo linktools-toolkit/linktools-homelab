@@ -33,7 +33,7 @@ from typing import Iterable
 from linktools.core import ConfigField, LazyProvider
 from linktools.cli import subcommand
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, ExposeLink
+from linktools.cntr import BaseContainer, ExposeLink, NginxSite
 
 
 class Container(BaseContainer):
@@ -61,12 +61,21 @@ class Container(BaseContainer):
         )
 
     @cached_property
+    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
+        return {
+            "nginx": {
+                "web": NginxSite(
+                    server_name=self.get_config_later("NEXTCLOUD_DOMAIN"),
+                    template=self.get_source_path("nginx.conf"),
+                    auth=False,
+                ),
+            },
+        }
+
+    @cached_property
     def exposes(self) -> Iterable[ExposeLink]:
         return [
-            self.expose_public("Nextcloud", "cloudDownloadOutline", "私人网盘", self.load_nginx_url(
-                "NEXTCLOUD_DOMAIN",
-                proxy_conf=self.get_source_path("nginx.conf"),
-            )),
+            self.expose_public("Nextcloud", "cloudDownloadOutline", "私人网盘", self.load_nginx_url("web")),
         ]
 
     @subcommand("scan", help="scan all files")
