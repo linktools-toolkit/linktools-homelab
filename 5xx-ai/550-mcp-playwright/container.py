@@ -7,7 +7,7 @@ import secrets
 from typing import Iterable
 
 from linktools.cli import subcommand
-from linktools.cntr import BaseContainer, ExposeLink
+from linktools.cntr import BaseContainer, ExposeLink, NginxSite
 from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
 
@@ -40,17 +40,23 @@ class Container(BaseContainer):
         )
 
     @cached_property
+    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
+        return {
+            "nginx": {
+                "web": NginxSite(
+                    server_name=self.get_config_later("MCP_PLAYWRIGHT_DOMAIN"),
+                    template=self.get_source_path("nginx.conf"),
+                    waf=False,
+                    auth=True,
+                ),
+            },
+        }
+
+    @cached_property
     def exposes(self) -> Iterable[ExposeLink]:
         return [
-            self.expose_public("Playwright Browser", "web", "通过 noVNC 操作 MCP 浏览器", self.load_nginx_url(
-                "MCP_PLAYWRIGHT_DOMAIN",
-                proxy_conf=self.get_source_path("nginx.conf"),
-                auth_enable=True,
-                waf_enable=False,
-            )),
-            self.expose_public("Playwright MCP", "robot", "MCP HTTP 服务（Bearer Token 认证）", self.load_exist_nginx_url(
-                "MCP_PLAYWRIGHT_DOMAIN", "mcp",
-            )),
+            self.expose_public("Playwright Browser", "web", "通过 noVNC 操作 MCP 浏览器", self.load_nginx_url("web")),
+            self.expose_public("Playwright MCP", "robot", "MCP HTTP 服务（Bearer Token 认证）", self.load_nginx_url("web", "mcp")),
             self.expose_container("Playwright Browser", "web", "noVNC 浏览器", self.load_port_url(
                 "MCP_PLAYWRIGHT_NOVNC_PORT", https=False,
             )),

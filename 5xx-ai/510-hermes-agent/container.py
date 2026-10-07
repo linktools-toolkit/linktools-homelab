@@ -7,7 +7,7 @@ from linktools import utils
 from linktools.cli import subcommand, subcommand_argument
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, ExposeLink
+from linktools.cntr import BaseContainer, ExposeLink, NginxSite
 
 
 class Container(BaseContainer):
@@ -26,15 +26,23 @@ class Container(BaseContainer):
         )
 
     @cached_property
+    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
+        return {
+            "nginx": {
+                "web": NginxSite(
+                    server_name=self.get_config_later("HERMES_AGENT_DOMAIN"),
+                    proxy="http://hermes-dashboard:9120",
+                    template=self.get_source_path("nginx.conf"),
+                    waf=False,
+                    auth=True,
+                ),
+            },
+        }
+
+    @cached_property
     def exposes(self) -> Iterable[ExposeLink]:
         return [
-            self.expose_public("Hermes Agent", "robot", "AI Agent Dashboard", self.load_nginx_url(
-                "HERMES_AGENT_DOMAIN",
-                proxy_url="http://hermes-dashboard:9120",
-                proxy_conf=self.get_source_path("nginx.conf"),
-                auth_enable=True,
-                waf_enable=False,
-            )),
+            self.expose_public("Hermes Agent", "robot", "AI Agent Dashboard", self.load_nginx_url("web")),
             self.expose_container("Hermes API", "robot", "AI Agent Gateway API", self.load_port_url(
                 "HERMES_AGENT_PORT",
                 https=False,

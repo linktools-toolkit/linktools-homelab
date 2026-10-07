@@ -7,7 +7,7 @@ from typing import Any, Iterable
 
 from linktools.core import ConfigField, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, ExposeLink
+from linktools.cntr import BaseContainer, ExposeLink, NginxSite
 
 
 class Container(BaseContainer):
@@ -82,14 +82,22 @@ class Container(BaseContainer):
         return configs
 
     @cached_property
+    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
+        return {
+            "nginx": {
+                "web": NginxSite(
+                    server_name=self.get_config_later("MULTICA_DOMAIN"),
+                    template=self.get_source_path("nginx.conf"),
+                    waf=False,
+                    auth=True,
+                ),
+            },
+        }
+
+    @cached_property
     def exposes(self) -> Iterable[ExposeLink]:
         return [
-            self.expose_public("Multica", "robot", "AI Agent Team Platform", self.load_nginx_url(
-                "MULTICA_DOMAIN",
-                proxy_conf=self.get_source_path("nginx.conf"),
-                auth_enable=True,
-                waf_enable=False,
-            )),
+            self.expose_public("Multica", "robot", "AI Agent Team Platform", self.load_nginx_url("web")),
             self.expose_container("Multica", "robot", "AI Agent Team Platform", self.load_port_url(
                 "MULTICA_FRONTEND_PORT", https=False,
             )),
