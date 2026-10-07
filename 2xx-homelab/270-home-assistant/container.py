@@ -28,7 +28,7 @@
 """
 from typing import Iterable
 
-from linktools.cntr import BaseContainer, ExposeLink
+from linktools.cntr import BaseContainer, ExposeLink, NginxSite
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
@@ -48,12 +48,21 @@ class Container(BaseContainer):
         )
 
     @cached_property
+    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
+        return {
+            "nginx": {
+                "web": NginxSite(
+                    server_name=self.get_config_later("HOME_ASSISTANT_DOMAIN"),
+                    proxy="http://home-assistant:8123",
+                    auth=False,
+                ),
+            },
+        }
+
+    @cached_property
     def exposes(self) -> Iterable[ExposeLink]:
         return [
-            self.expose_public("HomeAssistant", "homeAssistant", "Home Assistant", self.load_nginx_url(
-                "HOME_ASSISTANT_DOMAIN",
-                proxy_url="http://home-assistant:8123",
-            )),
+            self.expose_public("HomeAssistant", "homeAssistant", "Home Assistant", self.load_nginx_url("web")),
             self.expose_container("HomeAssistant", "homeAssistant", "Home Assistant", self.load_port_url(
                 "HOME_ASSISTANT_PORT",
                 https=False,

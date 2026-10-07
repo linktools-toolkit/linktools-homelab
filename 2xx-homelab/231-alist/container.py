@@ -29,7 +29,7 @@
 from typing import Iterable
 
 from linktools import utils
-from linktools.cntr import BaseContainer, ExposeLink
+from linktools.cntr import BaseContainer, ExposeLink, NginxSite
 from linktools.core import ConfigField, AliasProvider, LazyProvider
 from linktools.decorator import cached_property
 
@@ -51,14 +51,23 @@ class Container(BaseContainer):
         )
 
     @cached_property
+    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
+        return {
+            "nginx": {
+                "web": NginxSite(
+                    server_name=self.get_config_later("ALIST_DOMAIN"),
+                    proxy="http://alist:5244",
+                    auth=False,
+                ),
+            },
+        }
+
+    @cached_property
     def exposes(self) -> Iterable[ExposeLink]:
         return [
             self.expose_container("Alist", "folderSync", "", self.load_port_url(
                 "ALIST_PORT",
                 https=False,
             )),
-            self.expose_public("Alist", "folderSync", "", self.load_nginx_url(
-                "ALIST_DOMAIN",
-                proxy_url="http://alist:5244",
-            )),
+            self.expose_public("Alist", "folderSync", "", self.load_nginx_url("web")),
         ]
