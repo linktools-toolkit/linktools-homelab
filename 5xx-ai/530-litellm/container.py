@@ -7,7 +7,7 @@ from typing import Iterable
 from linktools.cli import subcommand
 from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, ExposeLink
+from linktools.cntr import BaseContainer, ExposeLink, NginxSite
 
 
 class Container(BaseContainer):
@@ -34,23 +34,19 @@ class Container(BaseContainer):
         )
 
     @cached_property
+    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
+        return {"nginx": {"web": NginxSite(
+                    server_name=self.get_config_later("LITELLM_DOMAIN"),
+                    proxy="http://litellm:4000",
+                    auth=None,
+                    auth_bypass=("^/v1/", "^/chat/completions", "^/completions", "^/embeddings", "^/health",),
+                    oidc_redirects=("/sso/callback",) if self.get_config("NGINX_AUTH_ENABLE") else (),
+        )}}
+
+    @cached_property
     def exposes(self) -> Iterable[ExposeLink]:
         return [
-            self.expose_public("LiteLLM", "api", "LiteLLM Proxy & Web UI", self.load_nginx_url(
-                "LITELLM_DOMAIN", "ui",
-                proxy_url="http://litellm:4000",
-                auth_enable=True,
-                auth_extra={
-                    "oidc_redirect_uris": ["{base_url}/sso/callback"],
-                    "acl_bypass": [
-                        "^/v1/",
-                        "^/chat/completions",
-                        "^/completions",
-                        "^/embeddings",
-                        "^/health",
-                    ],
-                },
-            )),
+            self.expose_public("LiteLLM", "api", "LiteLLM Proxy & Web UI", self.load_nginx_url("web", "ui")),
             self.expose_container("LiteLLM", "api", "LiteLLM Proxy & Web UI", self.load_port_url(
                 "LITELLM_PORT", "ui",
                 https=False,
