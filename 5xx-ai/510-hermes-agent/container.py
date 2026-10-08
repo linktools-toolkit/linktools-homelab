@@ -34,7 +34,7 @@ class Container(BaseContainer):
                     proxy="http://hermes-dashboard:9120",
                     template=self.get_source_path("nginx.conf"),
                     waf=False,
-                    auth=True,
+                    auth=None,
                 ),
             },
         }
