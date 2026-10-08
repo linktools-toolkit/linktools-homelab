@@ -89,7 +89,7 @@ class Container(BaseContainer):
                     server_name=self.get_config_later("MULTICA_DOMAIN"),
                     template=self.get_source_path("nginx.conf"),
                     waf=False,
-                    auth=True,
+                    auth=None,
                 ),
             },
         }
