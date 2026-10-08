@@ -28,7 +28,7 @@
 """
 from typing import Iterable
 
-from linktools.cntr import BaseContainer, ExposeLink
+from linktools.cntr import BaseContainer, ExposeLink, NginxSite
 from linktools.core import ConfigField, PromptProvider
 from linktools.decorator import cached_property
 
@@ -50,8 +50,11 @@ class Container(BaseContainer):
             self.expose_container("aria2", "tools", "", self.load_port_url("ARIA2_PORT", https=False)),
         ]
 
-    def on_starting(self):
-        self.write_nginx_conf(
-            self.get_config("ARIA2_DOMAIN"),
-            proxy_url="http://aria2-pro:6800",
-        )
+    @cached_property
+    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
+        return {"nginx": {"web": NginxSite(
+                    server_name=self.get_config_later("ARIA2_DOMAIN"),
+                    proxy="http://aria2-pro:6800",
+                    auth=False,
+        )}}
+
