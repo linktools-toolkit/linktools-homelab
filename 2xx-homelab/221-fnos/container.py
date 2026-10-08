@@ -26,9 +26,9 @@
   / ==ooooooooooooooo==.o.  ooo= //   ,``--{)B     ,"
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
-from typing import Iterable
+from typing import Any, Iterable
 
-from linktools.cntr import BaseContainer, ExposeLink, NginxSite
+from linktools.cntr import BaseContainer, NginxSite
 from linktools.decorator import cached_property
 
 
@@ -47,7 +47,7 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
+    def integrations(self) -> "dict[str, dict[str, Any]]":
         return {
             "nginx": {
                 "web": NginxSite(
@@ -56,13 +56,10 @@ class Container(BaseContainer):
                     auth=False,
                 ),
             },
+            "flare": {
+                "public": self.expose_public("fnOS", "nas", "飞牛系统", self.load_nginx_url("web")),
+                "private": self.expose_private("fnOS", "nas", "飞牛系统", self.load_config_url(
+                    "FNOS_LOCAL_URL",
+                )),
+            },
         }
-
-    @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_public("fnOS", "nas", "飞牛系统", self.load_nginx_url("web")),
-            self.expose_private("fnOS", "nas", "飞牛系统", self.load_config_url(
-                "FNOS_LOCAL_URL",
-            )),
-        ]

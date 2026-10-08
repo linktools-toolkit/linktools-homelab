@@ -26,9 +26,9 @@
   / ==ooooooooooooooo==.o.  ooo= //   ,``--{)B     ,"
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
-from typing import Iterable
+from typing import Any
 
-from linktools.cntr import BaseContainer, ExposeLink, NginxSite
+from linktools.cntr import BaseContainer, NginxSite
 from linktools.core import ConfigField, PromptProvider
 from linktools.decorator import cached_property
 
@@ -45,16 +45,16 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_container("aria2", "tools", "", self.load_port_url("ARIA2_PORT", https=False)),
-        ]
-
-    @cached_property
-    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
-        return {"nginx": {"web": NginxSite(
+    def integrations(self) -> "dict[str, dict[str, Any]]":
+        return {
+            "nginx": {
+                "web": NginxSite(
                     server_name=self.get_config_later("ARIA2_DOMAIN"),
                     proxy="http://aria2-pro:6800",
                     auth=False,
-        )}}
-
+                ),
+            },
+            "flare": {
+                "direct": self.expose_container("aria2", "tools", "", self.load_port_url("ARIA2_PORT", https=False)),
+            },
+        }

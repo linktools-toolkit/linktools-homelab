@@ -26,9 +26,9 @@
   / ==ooooooooooooooo==.o.  ooo= //   ,``--{)B     ,"
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
-from typing import Iterable
+from typing import Any, Iterable
 
-from linktools.cntr import BaseContainer, ExposeLink, NginxSite
+from linktools.cntr import BaseContainer, NginxSite
 from linktools.core import ConfigField, PromptProvider
 from linktools.decorator import cached_property
 
@@ -51,22 +51,23 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
-        return {"nginx": {"web": NginxSite(
+    def integrations(self) -> "dict[str, dict[str, Any]]":
+        return {
+            "nginx": {
+                "web": NginxSite(
                     server_name=self.get_config_later("PYPISERVER_DOMAIN"),
                     template=self.get_source_path("nginx.conf"),
                     auth=False,
-        )}}
-
-    @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_public("pypiserver", "languagePython", "pypiserver", self.load_nginx_url("web", "simple")),
-            self.expose_container("pypiserver", "languagePython", "pypiserver", self.load_port_url(
-                "PYPISERVER_PORT",
-                https=False
-            )),
-        ]
+                ),
+            },
+            "flare": {
+                "public": self.expose_public("pypiserver", "languagePython", "pypiserver", self.load_nginx_url("web", "simple")),
+                "direct": self.expose_container("pypiserver", "languagePython", "pypiserver", self.load_port_url(
+                    "PYPISERVER_PORT",
+                    https=False
+                )),
+            },
+        }
 
     def on_starting(self):
         path = self.get_app_data_path("auth", ".htpasswd", create_parent=True)

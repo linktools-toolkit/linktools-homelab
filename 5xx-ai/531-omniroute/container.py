@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 import secrets
-from typing import Iterable
+from typing import Any, Iterable
 
 from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, ExposeLink, NginxSite
+from linktools.cntr import BaseContainer, NginxSite
 
 
 class Container(BaseContainer):
@@ -27,7 +27,7 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
+    def integrations(self) -> "dict[str, dict[str, Any]]":
         return {
             "nginx": {
                 "web": NginxSite(
@@ -37,13 +37,10 @@ class Container(BaseContainer):
                     auth_bypass=(r"^/(v1|vscode|api/mcp)(/|$)", r"\.(css|js|webmanifest)$"),
                 ),
             },
+            "flare": {
+                "public": self.expose_public("OmniRoute", "transitConnectionVariant", "Free self-hosted AI gateway", self.load_nginx_url("web")),
+                "direct": self.expose_container("OmniRoute", "transitConnectionVariant", "Free self-hosted AI gateway", self.load_port_url(
+                    "OMNIROUTE_PORT", https=False,
+                )),
+            },
         }
-
-    @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_public("OmniRoute", "transitConnectionVariant", "Free self-hosted AI gateway", self.load_nginx_url("web")),
-            self.expose_container("OmniRoute", "transitConnectionVariant", "Free self-hosted AI gateway", self.load_port_url(
-                "OMNIROUTE_PORT", https=False,
-            )),
-        ]

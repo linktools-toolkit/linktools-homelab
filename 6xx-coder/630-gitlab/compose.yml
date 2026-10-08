@@ -4,7 +4,7 @@ services:
     environment:
       GITLAB_ROOT_PASSWORD: '{{ GITLAB_ROOT_PASSWORD }}'
       GITLAB_OMNIBUS_CONFIG: |
-          external_url '{{ utils.make_url("https", GITLAB_DOMAIN, NGINX_HTTPS_PORT) }}'
+          external_url '{{ container.load_nginx_url("web") }}'
           gitlab_rails['gitlab_shell_ssh_port'] = {{ GITLAB_SSH_PORT }}
 
           # nginx['enable'] = true
@@ -93,7 +93,7 @@ services:
                 client_options: {
                   identifier: "{{ client['client_id'] }}",
                   secret: "{{ client['client_secret'] }}",
-                  redirect_uri: "{{ utils.make_url("https", GITLAB_DOMAIN, NGINX_HTTPS_PORT, "/users/auth/openid_connect/callback") }}"
+                  redirect_uri: "{{ container.load_nginx_url("web", "users/auth/openid_connect/callback") }}"
                 }
               }
             }

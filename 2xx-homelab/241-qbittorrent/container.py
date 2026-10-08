@@ -26,9 +26,9 @@
   / ==ooooooooooooooo==.o.  ooo= //   ,``--{)B     ,"
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
-from typing import Iterable
+from typing import Any
 
-from linktools.cntr import BaseContainer, ExposeLink, NginxSite
+from linktools.cntr import BaseContainer, NginxSite
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
@@ -45,7 +45,7 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
+    def integrations(self) -> "dict[str, dict[str, Any]]":
         return {
             "nginx": {
                 "web": NginxSite(
@@ -54,14 +54,11 @@ class Container(BaseContainer):
                     auth=False,
                 ),
             },
+            "flare": {
+                "direct": self.expose_container("qBittorrent", "tools", "", self.load_port_url(
+                    "QBITTORRENT_PORT",
+                    https=False
+                )),
+                "public": self.expose_public("qBittorrent", "tools", "", self.load_nginx_url("web")),
+            },
         }
-
-    @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_container("qBittorrent", "tools", "", self.load_port_url(
-                "QBITTORRENT_PORT",
-                https=False
-            )),
-            self.expose_public("qBittorrent", "tools", "", self.load_nginx_url("web")),
-        ]

@@ -6,7 +6,7 @@ import secrets
 from typing import Any, Iterable
 
 from linktools.cli import subcommand, subcommand_argument
-from linktools.cntr import BaseContainer, ExposeLink, NginxSite
+from linktools.cntr import BaseContainer, NginxSite
 from linktools.core import ConfigField, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
 
@@ -59,7 +59,7 @@ class Container(BaseContainer):
         }
 
     @cached_property
-    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
+    def integrations(self) -> "dict[str, dict[str, Any]]":
         return {
             "nginx": {
                 "web": NginxSite(
@@ -69,16 +69,13 @@ class Container(BaseContainer):
                     auth=False,
                 ),
             },
+            "flare": {
+                "public": self.expose_public("Push MCP", "bell", "多渠道消息推送 MCP（Bearer Token 认证）", self.load_nginx_url("web", "mcp")),
+                "direct": self.expose_container("Push MCP", "bell", "多渠道消息推送 MCP", self.load_port_url(
+                    "MCP_PUSH_PORT", "mcp", https=False,
+                )),
+            },
         }
-
-    @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_public("Push MCP", "bell", "多渠道消息推送 MCP（Bearer Token 认证）", self.load_nginx_url("web", "mcp")),
-            self.expose_container("Push MCP", "bell", "多渠道消息推送 MCP", self.load_port_url(
-                "MCP_PUSH_PORT", "mcp", https=False,
-            )),
-        ]
 
     @subcommand("show", help="print MCP server JSON configuration, optionally with a channel example")
     @subcommand_argument("channel", nargs="?", choices=tuple(PUSH_CHANNEL_HEADERS),

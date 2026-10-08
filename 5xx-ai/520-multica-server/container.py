@@ -7,7 +7,7 @@ from typing import Any, Iterable
 
 from linktools.core import ConfigField, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, ExposeLink, NginxSite
+from linktools.cntr import BaseContainer, NginxSite
 
 
 class Container(BaseContainer):
@@ -82,7 +82,7 @@ class Container(BaseContainer):
         return configs
 
     @cached_property
-    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
+    def integrations(self) -> "dict[str, dict[str, Any]]":
         return {
             "nginx": {
                 "web": NginxSite(
@@ -92,16 +92,13 @@ class Container(BaseContainer):
                     auth=None,
                 ),
             },
+            "flare": {
+                "public": self.expose_public("Multica", "robot", "AI Agent Team Platform", self.load_nginx_url("web")),
+                "frontend_direct": self.expose_container("Multica", "robot", "AI Agent Team Platform", self.load_port_url(
+                    "MULTICA_FRONTEND_PORT", https=False,
+                )),
+                "api_direct": self.expose_container("Multica API", "robot", "AI Agent Team API", self.load_port_url(
+                    "MULTICA_BACKEND_PORT", https=False,
+                )),
+            },
         }
-
-    @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_public("Multica", "robot", "AI Agent Team Platform", self.load_nginx_url("web")),
-            self.expose_container("Multica", "robot", "AI Agent Team Platform", self.load_port_url(
-                "MULTICA_FRONTEND_PORT", https=False,
-            )),
-            self.expose_container("Multica API", "robot", "AI Agent Team API", self.load_port_url(
-                "MULTICA_BACKEND_PORT", https=False,
-            )),
-        ]

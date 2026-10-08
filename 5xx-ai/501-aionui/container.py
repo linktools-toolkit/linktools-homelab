@@ -7,12 +7,12 @@ import hmac
 import json
 import secrets
 import time
-from typing import Iterable
+from typing import Any, Iterable
 
 from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
 from linktools.runtime import lazy_load
-from linktools.cntr import BaseContainer, ExposeLink, NginxSite
+from linktools.cntr import BaseContainer, NginxSite
 
 
 class Container(BaseContainer):
@@ -32,25 +32,26 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
-        return {"nginx": {"web": NginxSite(
-            server_name=self.get_config_later("AIONUI_DOMAIN"),
-            proxy="http://aionui:3000",
-            template=self.get_source_path("nginx.conf"),
-            auth=None,
-            auth_headers={"Authorization": lazy_load(lambda: "Bearer " + self.get_config("AIONUI_TOKEN"))},
-            auth_bypass=(r"\.(css|js|webmanifest)$",),
-        )}}
-
-    @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_public("AionUI", "robot", "AI 助手 Web UI", self.load_nginx_url("web")),
-            self.expose_container("AionUI", "robot", "AI 助手 Web UI", self.load_port_url(
-                "AIONUI_PORT",
-                https=False,
-            )),
-        ]
+    def integrations(self) -> "dict[str, dict[str, Any]]":
+        return {
+            "nginx": {
+                "web": NginxSite(
+                    server_name=self.get_config_later("AIONUI_DOMAIN"),
+                    proxy="http://aionui:3000",
+                    template=self.get_source_path("nginx.conf"),
+                    auth=None,
+                    auth_headers={"Authorization": lazy_load(lambda: "Bearer " + self.get_config("AIONUI_TOKEN"))},
+                    auth_bypass=(r"\.(css|js|webmanifest)$",),
+                ),
+            },
+            "flare": {
+                "public": self.expose_public("AionUI", "robot", "AI 助手 Web UI", self.load_nginx_url("web")),
+                "direct": self.expose_container("AionUI", "robot", "AI 助手 Web UI", self.load_port_url(
+                    "AIONUI_PORT",
+                    https=False,
+                )),
+            },
+        }
 
     @classmethod
     def _make_jwt(cls, secret: str) -> str:

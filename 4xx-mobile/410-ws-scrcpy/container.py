@@ -26,8 +26,6 @@
   / ==ooooooooooooooo==.o.  ooo= //   ,``--{)B     ,"
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
-from typing import Iterable
-
 import yaml
 
 from linktools.cntr import SourceContainer, ExposeLink, EventContext
@@ -46,12 +44,14 @@ class Container(SourceContainer):
         )
 
     @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_container(
-                "ws-scrcpy", "cellphone", "ws-scrcpy",
-                self.load_port_url("WS_SCRCPY_PORT", https=False)),
-        ]
+    def integrations(self) -> "dict[str, dict[str, ExposeLink]]":
+        return {
+            "flare": {
+                "direct": self.expose_container(
+                    "ws-scrcpy", "cellphone", "ws-scrcpy",
+                    self.load_port_url("WS_SCRCPY_PORT", https=False)),
+            },
+        }
 
     @property
     def _source_url(self):

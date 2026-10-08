@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from typing import Iterable
+from typing import Any, Iterable
 
 from linktools import utils
 from linktools.cli import subcommand, subcommand_argument
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, ExposeLink, NginxSite
+from linktools.cntr import BaseContainer, NginxSite
 
 
 class Container(BaseContainer):
@@ -26,7 +26,7 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
+    def integrations(self) -> "dict[str, dict[str, Any]]":
         return {
             "nginx": {
                 "web": NginxSite(
@@ -37,21 +37,18 @@ class Container(BaseContainer):
                     auth=None,
                 ),
             },
+            "flare": {
+                "public": self.expose_public("Hermes Agent", "robot", "AI Agent Dashboard", self.load_nginx_url("web")),
+                "api_direct": self.expose_container("Hermes API", "robot", "AI Agent Gateway API", self.load_port_url(
+                    "HERMES_AGENT_PORT",
+                    https=False,
+                )),
+                "dashboard_direct": self.expose_container("Hermes Dashboard", "robot", "AI Agent Dashboard", self.load_port_url(
+                    "HERMES_AGENT_DASHBOARD_PORT",
+                    https=False,
+                )),
+            },
         }
-
-    @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_public("Hermes Agent", "robot", "AI Agent Dashboard", self.load_nginx_url("web")),
-            self.expose_container("Hermes API", "robot", "AI Agent Gateway API", self.load_port_url(
-                "HERMES_AGENT_PORT",
-                https=False,
-            )),
-            self.expose_container("Hermes Dashboard", "robot", "AI Agent Dashboard", self.load_port_url(
-                "HERMES_AGENT_DASHBOARD_PORT",
-                https=False,
-            )),
-        ]
 
     @subcommand("cli", help="run hermes CLI command", prefix_chars=chr(1))
     @subcommand_argument("args", nargs="...", metavar="ARGS", help="hermes args")

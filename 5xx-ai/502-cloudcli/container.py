@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from typing import Iterable
+from typing import Any, Iterable
 
-from linktools.cntr import BaseContainer, ExposeLink, NginxSite
+from linktools.cntr import BaseContainer, NginxSite
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
@@ -23,7 +23,7 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
+    def integrations(self) -> "dict[str, dict[str, Any]]":
         return {
             "nginx": {
                 "web": NginxSite(
@@ -32,14 +32,11 @@ class Container(BaseContainer):
                     auth_bypass=(r"\.(css|js)$",),
                 ),
             },
+            "flare": {
+                "public": self.expose_public("CloudCLI", "messageOutline", "Cloud CLI", self.load_nginx_url("web")),
+                "direct": self.expose_container("CloudCLI", "messageOutline", "Cloud CLI", self.load_port_url(
+                    "CLOUD_CLI_PORT",
+                    https=False
+                )),
+            },
         }
-
-    @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_public("CloudCLI", "messageOutline", "Cloud CLI", self.load_nginx_url("web")),
-            self.expose_container("CloudCLI", "messageOutline", "Cloud CLI", self.load_port_url(
-                "CLOUD_CLI_PORT",
-                https=False
-            )),
-        ]

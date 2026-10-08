@@ -29,13 +29,13 @@
 import json
 import re
 import shutil
-from typing import Iterable
+from typing import Any, Iterable
 
 from linktools import utils
 from linktools.cli import subcommand
 from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, ExposeLink, NginxSite
+from linktools.cntr import BaseContainer, NginxSite
 from linktools.rich import prompt
 from linktools.runtime import lazy_load
 
@@ -59,7 +59,7 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
+    def integrations(self) -> "dict[str, dict[str, Any]]":
         return {
             "nginx": {
                 "web": NginxSite(
@@ -88,17 +88,14 @@ class Container(BaseContainer):
                     cert_domains=(lazy_load(lambda: "*." + self.get_config("VSCODE_DOMAIN")),),
                 ),
             },
+            "flare": {
+                "public": self.expose_public("VS Code", "microsoftVisualStudioCode", "在线vscode", self.load_nginx_url("web")),
+                "direct": self.expose_container("VS Code", "microsoftVisualStudioCode", "在线vscode", self.load_port_url(
+                    "VSCODE_PORT",
+                    https=False
+                )),
+            },
         }
-
-    @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_public("VS Code", "microsoftVisualStudioCode", "在线vscode", self.load_nginx_url("web")),
-            self.expose_container("VS Code", "microsoftVisualStudioCode", "在线vscode", self.load_port_url(
-                "VSCODE_PORT",
-                https=False
-            )),
-        ]
 
     @cached_property
     def proxy_url(self):

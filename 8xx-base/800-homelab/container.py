@@ -26,9 +26,9 @@
   / ==ooooooooooooooo==.o.  ooo= //   ,``--{)B     ,"
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
-from typing import Iterable
+from typing import Any, Iterable
 
-from linktools.cntr import BaseContainer, ExposeLink, NginxSite
+from linktools.cntr import BaseContainer, NginxSite
 from linktools.decorator import cached_property
 from linktools.runtime import lazy_load
 
@@ -64,63 +64,55 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
+    def integrations(self) -> "dict[str, dict[str, Any]]":
         return {
             "nginx": {
-            "pve": NginxSite(
-                server_name=lazy_load(lambda: self.get_config("PVE_DOMAIN") if self.get_config("PVE_LOCAL_URL") else ""),
-                proxy=self.get_config_later("PVE_LOCAL_URL"),
-                auth=None,
-                oidc_redirects=("", self.get_config_later("PVE_LOCAL_URL")) if self.get_config("NGINX_AUTH_ENABLE") else (),
-            ),
-            "primary_gateway": NginxSite(
-                server_name=lazy_load(lambda: self.get_config("PRIMARY_GATEWAY_DOMAIN") if self.get_config("PRIMARY_GATEWAY_LOCAL_URL") else ""),
-                proxy=self.get_config_later("PRIMARY_GATEWAY_LOCAL_URL"),
-                auth=None,
-                auth_headers={"Authorization": self.get_config_later("PRIMARY_GATEWAY_AUTHORIZATION")},
-            ),
-            "bypass_gateway": NginxSite(
-                server_name=lazy_load(lambda: self.get_config("BYPASS_GATEWAY_DOMAIN") if self.get_config("BYPASS_GATEWAY_LOCAL_URL") else ""),
-                proxy=self.get_config_later("BYPASS_GATEWAY_LOCAL_URL"),
-                auth=None,
-                auth_headers={"Authorization": self.get_config_later("BYPASS_GATEWAY_AUTHORIZATION")},
-            ),
-            "xiaoya_alist": NginxSite(
-                server_name=lazy_load(lambda: self.get_config("XIAOYA_ALIST_DOMAIN") if self.get_config("XIAOYA_ALIST_LOCAL_URL") else ""),
-                proxy=self.get_config_later("XIAOYA_ALIST_LOCAL_URL"),
-                auth=False,
-            ),
-            "emby": NginxSite(
-                server_name=lazy_load(lambda: self.get_config("EMBY_DOMAIN") if self.get_config("EMBY_LOCAL_URL") else ""),
-                proxy=self.get_config_later("EMBY_LOCAL_URL"),
-                auth=False,
-            ),
-            "jellyfin": NginxSite(
-                server_name=lazy_load(lambda: self.get_config("JELLYFIN_DOMAIN") if self.get_config("JELLYFIN_LOCAL_URL") else ""),
-                proxy=self.get_config_later("JELLYFIN_LOCAL_URL"),
-                auth=False,
-            ),
+                "pve": NginxSite(
+                    server_name=lazy_load(lambda: self.get_config("PVE_DOMAIN") if self.get_config("PVE_LOCAL_URL") else ""),
+                    proxy=self.get_config_later("PVE_LOCAL_URL"),
+                    auth=None,
+                    oidc_redirects=("", self.get_config_later("PVE_LOCAL_URL")) if self.get_config("NGINX_AUTH_ENABLE") else (),
+                ),
+                "primary_gateway": NginxSite(
+                    server_name=lazy_load(lambda: self.get_config("PRIMARY_GATEWAY_DOMAIN") if self.get_config("PRIMARY_GATEWAY_LOCAL_URL") else ""),
+                    proxy=self.get_config_later("PRIMARY_GATEWAY_LOCAL_URL"),
+                    auth=None,
+                    auth_headers={"Authorization": self.get_config_later("PRIMARY_GATEWAY_AUTHORIZATION")},
+                ),
+                "bypass_gateway": NginxSite(
+                    server_name=lazy_load(lambda: self.get_config("BYPASS_GATEWAY_DOMAIN") if self.get_config("BYPASS_GATEWAY_LOCAL_URL") else ""),
+                    proxy=self.get_config_later("BYPASS_GATEWAY_LOCAL_URL"),
+                    auth=None,
+                    auth_headers={"Authorization": self.get_config_later("BYPASS_GATEWAY_AUTHORIZATION")},
+                ),
+                "xiaoya_alist": NginxSite(
+                    server_name=lazy_load(lambda: self.get_config("XIAOYA_ALIST_DOMAIN") if self.get_config("XIAOYA_ALIST_LOCAL_URL") else ""),
+                    proxy=self.get_config_later("XIAOYA_ALIST_LOCAL_URL"),
+                    auth=False,
+                ),
+                "emby": NginxSite(
+                    server_name=lazy_load(lambda: self.get_config("EMBY_DOMAIN") if self.get_config("EMBY_LOCAL_URL") else ""),
+                    proxy=self.get_config_later("EMBY_LOCAL_URL"),
+                    auth=False,
+                ),
+                "jellyfin": NginxSite(
+                    server_name=lazy_load(lambda: self.get_config("JELLYFIN_DOMAIN") if self.get_config("JELLYFIN_LOCAL_URL") else ""),
+                    proxy=self.get_config_later("JELLYFIN_LOCAL_URL"),
+                    auth=False,
+                ),
+            },
+            "flare": {
+                "pve_private": self.expose_private("Proxmox", "server", "虚拟化环境", self.load_config_url("PVE_LOCAL_URL")),
+                "pve_public": self.expose_public("Proxmox", "server", "虚拟化环境", self.load_nginx_url("pve")),
+                "primary_gateway_private": self.expose_private("GW1", "RouterNetwork", "主路由管理", self.load_config_url("PRIMARY_GATEWAY_LOCAL_URL")),
+                "primary_gateway_public": self.expose_public("GW1", "RouterNetwork", "主路由管理", self.load_nginx_url("primary_gateway")),
+                "bypass_gateway_private": self.expose_private("GW2", "RouterNetwork", "旁路由管理", self.load_config_url("BYPASS_GATEWAY_LOCAL_URL")),
+                "bypass_gateway_public": self.expose_public("GW2", "RouterNetwork", "旁路由管理", self.load_nginx_url("bypass_gateway")),
+                "xiaoya_alist_private": self.expose_private("Xiaoya-Alist", "folderSync", "小雅Alist", self.load_config_url("XIAOYA_ALIST_LOCAL_URL")),
+                "xiaoya_alist_public": self.expose_public("Xiaoya-Alist", "folderSync", "小雅Alist", self.load_nginx_url("xiaoya_alist")),
+                "emby_private": self.expose_private("Emby", "movie", "Emby", self.load_config_url("EMBY_LOCAL_URL")),
+                "emby_public": self.expose_public("Emby", "movie", "Emby", self.load_nginx_url("emby")),
+                "jellyfin_private": self.expose_private("Jellyfin", "movie", "jellyfin", self.load_config_url("JELLYFIN_LOCAL_URL")),
+                "jellyfin_public": self.expose_public("Jellyfin", "movie", "jellyfin", self.load_nginx_url("jellyfin")),
             },
         }
-
-    @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_private("Proxmox", "server", "虚拟化环境", self.load_config_url("PVE_LOCAL_URL")),
-            self.expose_public("Proxmox", "server", "虚拟化环境", self.load_nginx_url("pve")),
-
-            self.expose_private("GW1", "RouterNetwork", "主路由管理", self.load_config_url("PRIMARY_GATEWAY_LOCAL_URL")),
-            self.expose_public("GW1", "RouterNetwork", "主路由管理", self.load_nginx_url("primary_gateway")),
-
-            self.expose_private("GW2", "RouterNetwork", "旁路由管理", self.load_config_url("BYPASS_GATEWAY_LOCAL_URL")),
-            self.expose_public("GW2", "RouterNetwork", "旁路由管理", self.load_nginx_url("bypass_gateway")),
-
-            self.expose_private("Xiaoya-Alist", "folderSync", "小雅Alist", self.load_config_url("XIAOYA_ALIST_LOCAL_URL")),
-            self.expose_public("Xiaoya-Alist", "folderSync", "小雅Alist", self.load_nginx_url("xiaoya_alist")),
-
-            self.expose_private("Emby", "movie", "Emby", self.load_config_url("EMBY_LOCAL_URL")),
-            self.expose_public("Emby", "movie", "Emby", self.load_nginx_url("emby")),
-
-            self.expose_private("Jellyfin", "movie", "jellyfin", self.load_config_url("JELLYFIN_LOCAL_URL")),
-            self.expose_public("Jellyfin", "movie", "jellyfin", self.load_nginx_url("jellyfin")),
-        ]

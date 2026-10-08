@@ -37,13 +37,19 @@ ct-cntr exec <container-name> <subcommand> [args]
 Every service folder contains at minimum a `container.py` that defines a `Container(BaseContainer)` class. This class declares:
 
 - **`dependencies`** — other container names that must be deployed first (e.g. `["nginx", "coder"]`)
-- **`configs`** (cached_property) — a dict of config keys with defaults, using `Config.Alias`, `Config.Lazy`, `Config.Prompt`, `Config.Property` helpers from `linktools.core`
-- **`exposes`** (cached_property) — list of `ExposeLink` objects produced by `self.expose_public(...)`, `self.expose_private(...)`, `self.expose_container(...)` — each wires up an nginx reverse-proxy entry and/or a direct port
+- **`configs`** (cached_property) — a dict of config keys with defaults, using `ConfigField`, `LazyProvider`, and `PromptProvider` helpers from `linktools.core`
+- **`integrations`** (cached_property) — consumer-keyed declaration maps: `"nginx"` maps stable local IDs to `NginxSite` objects, and `"flare"` maps stable local IDs to `ExposeLink` objects. Navigation links are created by `self.expose_public(...)`, `self.expose_private(...)`, `self.expose_container(...)`, or `self.expose_other(...)`; they do not register proxy sites. Keep link insertion order and use unique IDs within each consumer map
 - **Custom subcommands** — methods decorated with `@subcommand(...)` and `@subcommand_argument(...)` become CLI subcommands under `exec <container>`
 
 ### `compose.yml` as Jinja2 Templates
 
 The `compose.yml` in each folder is a **Jinja2 template**, not plain Docker Compose YAML. The framework renders it before passing to docker compose. Template variables include all `configs` keys plus framework-provided globals like `APP_PATH`, `DOCKER_UID`, `DOCKER_GID`, `DOCKER_USER`, and `containers["<name>"]` object access. Comments starting with `#` can contain Jinja2 control flow (e.g. `# {% if PORT > 0 %}`).
+
+### Applying Configuration Changes
+
+A targeted `ct-cntr up <container-name>` compares the current rendered configuration with the last successfully applied configuration. Besides starting the requested containers and their required runtime dependencies, it also applies pending configuration changes to other already-running services. This can include changes outside the requested container. Unrelated stopped services remain stopped.
+
+Ordinary container authors declare `configs`, `dependencies`, and `integrations`; the framework handles configuration comparison and application, including values read across containers in Compose templates. Keep runtime dependencies explicit and declare each nginx site or Flare link under its consumer.
 
 ### `Dockerfile` as Jinja2 Templates
 
@@ -63,24 +69,25 @@ The `linktools-cntr` built-in containers (nginx, authelia, lldap, flare, portain
 
 ### Nginx Integration
 
-Containers declare their public domain via `self.get_nginx_domain()` in configs. The `load_nginx_url(...)` call in `exposes` registers a hook that writes the nginx proxy config at deploy time.
+Containers declare their public domain via `self.get_nginx_domain()` in configs and register sites under `integrations["nginx"]`. Each site has a stable local ID, such as `"web"`, and a `NginxSite` declaration. Keep config-backed values lazy with `self.get_config_later(...)` or `lazy_load(...)`, especially credentials and URLs.
 
-`load_nginx_url` key parameters:
+`self.load_nginx_url("web", *path, queries=...)` is a lazy reference to that container's resolved site URL. It does not register a site or accept proxy/auth options. The URL follows the site's enabled state, HTTP/HTTPS policy and configured port. Use the same helper in Compose templates (`container.load_nginx_url(...)`) instead of rebuilding public URLs manually.
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `proxy_url` | `str` | Upstream URL (default: inferred from service name) |
-| `proxy_conf` | `Path` | Path to a custom nginx `nginx.conf` snippet |
-| `auth_enable` | `bool` | Enable Authelia SSO protection (default: `False`) |
-| `auth_extra` | `dict` | Fine-grained SSO options (see below) |
+Common `NginxSite` fields:
 
-`auth_extra` sub-keys:
+| Field | Description |
+|-------|-------------|
+| `server_name` | Required hostname, usually `self.get_config_later("MY_DOMAIN")` |
+| `proxy` | Explicit upstream URL, such as `"http://my-service:8080"` |
+| `template` | Optional custom nginx snippet path from `self.get_source_path(...)` |
+| `https`, `waf`, `auth` | `None` inherits the global capability, `False` disables it, and `True` requires it to be enabled globally |
+| `auth_bypass`, `waf_bypass` | Tuples of path regexes that bypass the selected protection |
+| `auth_headers` | Headers injected after authentication; use lazy values for secrets |
+| `auth_rule` | Optional Authelia access-control rule, such as `{"policy": "one_factor"}` |
+| `oidc_redirects` | Redirect paths relative to the resolved site URL, or absolute redirect URLs |
+| `url` | Explicit lazy public URL when `server_name` is nonliteral, such as a regex hostname |
 
-| Key | Example | Description |
-|-----|---------|-------------|
-| `acl_bypass` | `["\\.(css\|js)$"]` | URL patterns that skip Authelia auth (regex list) |
-| `auth_headers` | `{"Authorization": "Basic ..."}` | Headers injected into proxied requests after auth; values are rendered as Jinja2 templates, so config keys like `{{ MY_TOKEN }}` work |
-| `oidc_redirect_uris` | `["{base_url}/callback"]` | Extra OIDC redirect URIs registered with Authelia; `{base_url}` is replaced with the service's public URL |
+Direct-port links and external bookmarks belong only in `integrations["flare"]`; a proxy-only service can declare an nginx site without a navigation link. Flare keeps the declared order within each container and omits links whose lazy URL is empty. Site and link declarations are independent: creating one never creates the other.
 
 ## Creating a New Container
 
@@ -97,9 +104,9 @@ Pick the appropriate category prefix and choose an unused number:
 Minimal template (copy and adapt):
 
 ```python
-from typing import Iterable
-from linktools.cntr import BaseContainer, ExposeLink
-from linktools.core import Config
+from typing import Any, Iterable
+from linktools.cntr import BaseContainer, NginxSite
+from linktools.core import ConfigField, PromptProvider
 from linktools.decorator import cached_property
 
 
@@ -114,29 +121,37 @@ class Container(BaseContainer):
         return dict(
             MY_TAG="latest",
             MY_DOMAIN=self.get_nginx_domain(),
-            MY_PORT=Config.Alias(type=int, default=0),
-            MY_PASSWORD=Config.Prompt(cached=True),
+            MY_PORT=ConfigField(cast=int, default=0),
+            MY_PASSWORD=ConfigField(provider=PromptProvider(cached=True)),
         )
 
     @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_public("My Service", "icon-name", "服务描述", self.load_nginx_url(
-                "MY_DOMAIN",
-                auth_enable=True,
-            )),
-            self.expose_container("My Service", "icon-name", "服务描述", self.load_port_url(
-                "MY_PORT", https=False,
-            )),
-        ]
+    def integrations(self) -> "dict[str, dict[str, Any]]":
+        return {
+            "nginx": {
+                "web": NginxSite(
+                    server_name=self.get_config_later("MY_DOMAIN"),
+                    proxy="http://my-service:8080",
+                    auth=None,
+                ),
+            },
+            "flare": {
+                "public": self.expose_public(
+                    "My Service", "link", "服务描述", self.load_nginx_url("web"),
+                ),
+                "direct": self.expose_container(
+                    "My Service", "link", "服务描述", self.load_port_url("MY_PORT", https=False),
+                ),
+            },
+        }
 ```
 
 The second argument to `expose_public`/`expose_container` is a [Material Design Icons](https://pictogrammers.com/library/mdi/) icon name in camelCase (e.g. `"link"`, `"microsoftVisualStudioCode"`).
 
-Key `Config` helpers:
-- `Config.Alias(type=int, default=0)` — typed alias with a default value
-- `Config.Lazy(lambda cfg: ...)` — computed at render time from other config values
-- `Config.Prompt(cached=True)` — interactive prompt, value stored after first entry
+Key config helpers:
+- `ConfigField(cast=int, default=0)` — typed field with a default value
+- `ConfigField(provider=LazyProvider(lambda cfg: ...))` — computed when resolved from other config values
+- `ConfigField(provider=PromptProvider(cached=True))` — interactive prompt, value stored after first entry
 
 ### Step 3: Write `compose.yml`
 
@@ -161,7 +176,7 @@ networks:
   nginx:
 ```
 
-Available Jinja2 globals: all `configs` keys, `APP_PATH` (pathlib.Path), `SOURCE_PATH` (pathlib.Path), `DOCKER_UID`, `DOCKER_GID`, `DOCKER_USER`, `containers["name"]`.
+Available Jinja2 globals: all `configs` keys, `APP_PATH` (pathlib.Path), `SOURCE_PATH` (pathlib.Path), `DOCKER_UID`, `DOCKER_GID`, `DOCKER_USER`, `container` (the owning container), `containers["name"]`.
 
 - `APP_PATH` — runtime data directory (writable, persisted)
 - `SOURCE_PATH` — container source directory (read-only; use for mounting scripts/configs baked into the repo)
@@ -172,10 +187,13 @@ Use `$$` in compose templates to produce a literal `$` in the rendered output (n
 
 ### Step 4 (optional): Add a custom nginx config
 
-Create a `nginx.conf` and reference it in `container.py`:
+Create a `nginx.conf` and reference it in the site declaration in `container.py`:
 
 ```python
-self.load_nginx_url("MY_DOMAIN", proxy_conf=self.get_source_path("nginx.conf"))
+"web": NginxSite(
+    server_name=self.get_config_later("MY_DOMAIN"),
+    template=self.get_source_path("nginx.conf"),
+),
 ```
 
 ### Step 5 (optional): Add a custom `Dockerfile`

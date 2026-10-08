@@ -28,12 +28,12 @@
 """
 import random
 import string
-from typing import Iterable
+from typing import Any, Iterable
 
 from linktools.core import ConfigField, LazyProvider
 from linktools.cli import subcommand
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, ExposeLink, NginxSite
+from linktools.cntr import BaseContainer, NginxSite
 
 
 class Container(BaseContainer):
@@ -61,7 +61,7 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
+    def integrations(self) -> "dict[str, dict[str, Any]]":
         return {
             "nginx": {
                 "web": NginxSite(
@@ -70,13 +70,10 @@ class Container(BaseContainer):
                     auth=False,
                 ),
             },
+            "flare": {
+                "public": self.expose_public("Nextcloud", "cloudDownloadOutline", "私人网盘", self.load_nginx_url("web")),
+            },
         }
-
-    @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_public("Nextcloud", "cloudDownloadOutline", "私人网盘", self.load_nginx_url("web")),
-        ]
 
     @subcommand("scan", help="scan all files")
     def on_exec_scan(self):

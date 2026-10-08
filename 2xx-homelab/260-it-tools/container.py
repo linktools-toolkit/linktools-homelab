@@ -27,11 +27,11 @@
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
 
-from typing import Iterable
+from typing import Any
 
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, ExposeLink, NginxSite
+from linktools.cntr import BaseContainer, NginxSite
 
 
 class Container(BaseContainer):
@@ -45,7 +45,7 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
+    def integrations(self) -> "dict[str, dict[str, Any]]":
         return {
             "nginx": {
                 "web": NginxSite(
@@ -55,17 +55,13 @@ class Container(BaseContainer):
                     auth_rule={"policy": "one_factor"},
                 ),
             },
+            "flare": {
+                "regex_tester": self.expose_other("正则表达式测试", "regex", "", self.load_nginx_url("web", "regex-tester")),
+                "regex_memo": self.expose_other("正则表达式手册", "regex", "", self.load_nginx_url("web", "regex-memo")),
+                "json_prettify": self.expose_other("在线json解析", "codeJson", "", self.load_nginx_url("web", "json-prettify")),
+                "dns_lookup": self.expose_other("DNS查询", "dns", "", "https://tool.chinaz.com/dns/"),
+                "icons": self.expose_other("图标下载", "progressDownload", "", "https://materialdesignicons.com/"),
+                "direct": self.expose_container("IT Tools", "tools", "it工具集", self.load_port_url("IT_TOOLS_PORT", https=False)),
+                "public": self.expose_public("IT Tools", "tools", "it工具集", self.load_nginx_url("web")),
+            },
         }
-
-    @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_other("正则表达式测试", "regex", "", self.load_nginx_url("web", "regex-tester")),
-            self.expose_other("正则表达式手册", "regex", "", self.load_nginx_url("web", "regex-memo")),
-            self.expose_other("在线json解析", "codeJson", "", self.load_nginx_url("web", "json-prettify")),
-            self.expose_other("DNS查询", "dns", "", "https://tool.chinaz.com/dns/"),
-            self.expose_other("图标下载", "progressDownload", "", "https://materialdesignicons.com/"),
-
-            self.expose_container("IT Tools", "tools", "it工具集", self.load_port_url("IT_TOOLS_PORT", https=False)),
-            self.expose_public("IT Tools", "tools", "it工具集", self.load_nginx_url("web")),
-        ]
