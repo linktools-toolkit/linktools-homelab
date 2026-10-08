@@ -11,7 +11,8 @@ from typing import Iterable
 
 from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, EventContext, ExposeLink
+from linktools.runtime import lazy_load
+from linktools.cntr import BaseContainer, ExposeLink, NginxSite
 
 
 class Container(BaseContainer):
@@ -31,32 +32,25 @@ class Container(BaseContainer):
         )
 
     @cached_property
+    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
+        return {"nginx": {"web": NginxSite(
+            server_name=self.get_config_later("AIONUI_DOMAIN"),
+            proxy="http://aionui:3000",
+            template=self.get_source_path("nginx.conf"),
+            auth=None,
+            auth_headers={"Authorization": lazy_load(lambda: "Bearer " + self.get_config("AIONUI_TOKEN"))},
+            auth_bypass=(r"\.(css|js|webmanifest)$",),
+        )}}
+
+    @cached_property
     def exposes(self) -> Iterable[ExposeLink]:
         return [
-            self.expose_public("AionUI", "robot", "AI 助手 Web UI", self.load_nginx_url(
-                "AIONUI_DOMAIN",
-                proxy_url="http://aionui:3000",
-                auth_enable=True,
-                auth_extra={
-                    "auth_headers": {
-                        "Authorization": f"Bearer {self.get_config('AIONUI_TOKEN')}"
-                    },
-                    "acl_bypass": ["\\.(css|js|webmanifest)$"],
-                },
-            )),
+            self.expose_public("AionUI", "robot", "AI 助手 Web UI", self.load_nginx_url("web")),
             self.expose_container("AionUI", "robot", "AI 助手 Web UI", self.load_port_url(
                 "AIONUI_PORT",
                 https=False,
             )),
         ]
-
-    def on_starting(self, context: "EventContext"):
-        self.write_nginx_conf(
-            self.get_config("AIONUI_DOMAIN"),
-            proxy_name="logout",
-            proxy_conf=self.get_source_path("nginx.conf"),
-            auth_enable=True
-        )
 
     @classmethod
     def _make_jwt(cls, secret: str) -> str:
