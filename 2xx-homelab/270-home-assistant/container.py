@@ -28,7 +28,8 @@
 """
 from typing import Iterable
 
-from linktools.cntr import BaseContainer, Integrations, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
+from linktools.cntr.urls import load_port_url
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
@@ -52,16 +53,16 @@ class Container(BaseContainer):
         return {
             "nginx": {
                 "web": NginxSite(
-                    expose=self.expose_public("HomeAssistant", "homeAssistant", "Home Assistant"),
+                    expose=ExposeLink.public("HomeAssistant", "homeAssistant", "Home Assistant"),
                     server_name=self.get_config_later("HOME_ASSISTANT_DOMAIN"),
                     proxy="http://home-assistant:8123",
                     auth=False,
                 ),
             },
-            "flare": {
-                "direct": self.expose_container("HomeAssistant", "homeAssistant", "Home Assistant", self.load_port_url(
-                    "HOME_ASSISTANT_PORT",
+            "flare": [
+                ExposeLink.container("HomeAssistant", "homeAssistant", "Home Assistant", load_port_url(
+                    self, "HOME_ASSISTANT_PORT",
                     https=False,
                 )),
-            },
+            ],
         }

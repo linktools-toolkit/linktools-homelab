@@ -28,7 +28,8 @@
 """
 from typing import Iterable
 
-from linktools.cntr import BaseContainer, Integrations, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
+from linktools.cntr.urls import load_nginx_url, load_port_url
 from linktools.core import ConfigField, PromptProvider
 from linktools.decorator import cached_property
 
@@ -60,13 +61,13 @@ class Container(BaseContainer):
                     auth=False,
                 ),
             },
-            "flare": {
-                "public": self.expose_public("pypiserver", "languagePython", "pypiserver", self.load_nginx_url("web", "simple")),
-                "direct": self.expose_container("pypiserver", "languagePython", "pypiserver", self.load_port_url(
-                    "PYPISERVER_PORT",
+            "flare": [
+                ExposeLink.public("pypiserver", "languagePython", "pypiserver", load_nginx_url(self, "web", "simple")),
+                ExposeLink.container("pypiserver", "languagePython", "pypiserver", load_port_url(
+                    self, "PYPISERVER_PORT",
                     https=False
                 )),
-            },
+            ],
         }
 
     def on_starting(self):

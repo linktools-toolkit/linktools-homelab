@@ -28,7 +28,8 @@
 """
 from typing import Iterable
 
-from linktools.cntr import BaseContainer, Integrations, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
+from linktools.cntr.urls import load_port_url
 from linktools.core import ConfigField, AliasProvider
 from linktools.decorator import cached_property
 
@@ -55,16 +56,16 @@ class Container(BaseContainer):
         return {
             "nginx": {
                 "web": NginxSite(
-                    expose=self.expose_public("SublinkPro", "link", "代理订阅管理"),
+                    expose=ExposeLink.public("SublinkPro", "link", "代理订阅管理"),
                     server_name=self.get_config_later("SUBLINK_DOMAIN"),
                     template=self.get_source_path("nginx.conf"),
                     auth=None,
                 ),
             },
-            "flare": {
-                "direct": self.expose_container("SublinkPro", "link", "代理订阅管理", self.load_port_url(
-                    "SUBLINK_PORT",
+            "flare": [
+                ExposeLink.container("SublinkPro", "link", "代理订阅管理", load_port_url(
+                    self, "SUBLINK_PORT",
                     https=False
                 )),
-            },
+            ],
         }

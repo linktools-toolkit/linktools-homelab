@@ -7,7 +7,8 @@ from typing import Any, Iterable
 
 from linktools.core import ConfigField, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, Integrations, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
+from linktools.cntr.urls import load_port_url
 
 
 class Container(BaseContainer):
@@ -86,19 +87,19 @@ class Container(BaseContainer):
         return {
             "nginx": {
                 "web": NginxSite(
-                    expose=self.expose_public("Multica", "robot", "AI Agent Team Platform"),
+                    expose=ExposeLink.public("Multica", "robot", "AI Agent Team Platform"),
                     server_name=self.get_config_later("MULTICA_DOMAIN"),
                     template=self.get_source_path("nginx.conf"),
                     waf=False,
                     auth=None,
                 ),
             },
-            "flare": {
-                "frontend_direct": self.expose_container("Multica", "robot", "AI Agent Team Platform", self.load_port_url(
-                    "MULTICA_FRONTEND_PORT", https=False,
+            "flare": [
+                ExposeLink.container("Multica", "robot", "AI Agent Team Platform", load_port_url(
+                    self, "MULTICA_FRONTEND_PORT", https=False,
                 )),
-                "api_direct": self.expose_container("Multica API", "robot", "AI Agent Team API", self.load_port_url(
-                    "MULTICA_BACKEND_PORT", https=False,
+                ExposeLink.container("Multica API", "robot", "AI Agent Team API", load_port_url(
+                    self, "MULTICA_BACKEND_PORT", https=False,
                 )),
-            },
+            ],
         }

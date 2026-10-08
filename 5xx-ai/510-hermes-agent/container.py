@@ -7,7 +7,8 @@ from linktools import utils
 from linktools.cli import subcommand, subcommand_argument
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, Integrations, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
+from linktools.cntr.urls import load_port_url
 
 
 class Container(BaseContainer):
@@ -30,7 +31,7 @@ class Container(BaseContainer):
         return {
             "nginx": {
                 "web": NginxSite(
-                    expose=self.expose_public("Hermes Agent", "robot", "AI Agent Dashboard"),
+                    expose=ExposeLink.public("Hermes Agent", "robot", "AI Agent Dashboard"),
                     server_name=self.get_config_later("HERMES_AGENT_DOMAIN"),
                     proxy="http://hermes-dashboard:9120",
                     template=self.get_source_path("nginx.conf"),
@@ -38,16 +39,16 @@ class Container(BaseContainer):
                     auth=None,
                 ),
             },
-            "flare": {
-                "api_direct": self.expose_container("Hermes API", "robot", "AI Agent Gateway API", self.load_port_url(
-                    "HERMES_AGENT_PORT",
+            "flare": [
+                ExposeLink.container("Hermes API", "robot", "AI Agent Gateway API", load_port_url(
+                    self, "HERMES_AGENT_PORT",
                     https=False,
                 )),
-                "dashboard_direct": self.expose_container("Hermes Dashboard", "robot", "AI Agent Dashboard", self.load_port_url(
-                    "HERMES_AGENT_DASHBOARD_PORT",
+                ExposeLink.container("Hermes Dashboard", "robot", "AI Agent Dashboard", load_port_url(
+                    self, "HERMES_AGENT_DASHBOARD_PORT",
                     https=False,
                 )),
-            },
+            ],
         }
 
     @subcommand("cli", help="run hermes CLI command", prefix_chars=chr(1))

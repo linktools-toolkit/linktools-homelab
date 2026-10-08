@@ -26,7 +26,8 @@
   / ==ooooooooooooooo==.o.  ooo= //   ,``--{)B     ,"
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
-from linktools.cntr import BaseContainer, Integrations, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
+from linktools.cntr.urls import load_port_url
 from linktools.core import ConfigField, PromptProvider
 from linktools.decorator import cached_property
 
@@ -52,7 +53,7 @@ class Container(BaseContainer):
                     auth=False,
                 ),
             },
-            "flare": {
-                "direct": self.expose_container("aria2", "tools", "", self.load_port_url("ARIA2_PORT", https=False)),
-            },
+            "flare": [
+                ExposeLink.container("aria2", "tools", "", load_port_url(self, "ARIA2_PORT", https=False)),
+            ],
         }

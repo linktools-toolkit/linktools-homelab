@@ -6,7 +6,8 @@ from typing import Iterable
 
 from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, Integrations, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
+from linktools.cntr.urls import load_port_url
 
 
 class Container(BaseContainer):
@@ -31,16 +32,16 @@ class Container(BaseContainer):
         return {
             "nginx": {
                 "web": NginxSite(
-                    expose=self.expose_public("OmniRoute", "transitConnectionVariant", "Free self-hosted AI gateway"),
+                    expose=ExposeLink.public("OmniRoute", "transitConnectionVariant", "Free self-hosted AI gateway"),
                     server_name=self.get_config_later("OMNIROUTE_DOMAIN"),
                     proxy="http://omniroute:20128",
                     waf=False,
                     auth_bypass=(r"^/(v1|vscode|api/mcp)(/|$)", r"\.(css|js|webmanifest)$"),
                 ),
             },
-            "flare": {
-                "direct": self.expose_container("OmniRoute", "transitConnectionVariant", "Free self-hosted AI gateway", self.load_port_url(
-                    "OMNIROUTE_PORT", https=False,
+            "flare": [
+                ExposeLink.container("OmniRoute", "transitConnectionVariant", "Free self-hosted AI gateway", load_port_url(
+                    self, "OMNIROUTE_PORT", https=False,
                 )),
-            },
+            ],
         }

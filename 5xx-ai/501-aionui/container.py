@@ -12,7 +12,8 @@ from typing import Iterable
 from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
 from linktools.runtime import lazy_load
-from linktools.cntr import BaseContainer, Integrations, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
+from linktools.cntr.urls import load_port_url
 
 
 class Container(BaseContainer):
@@ -36,7 +37,7 @@ class Container(BaseContainer):
         return {
             "nginx": {
                 "web": NginxSite(
-                    expose=self.expose_public("AionUI", "robot", "AI 助手 Web UI"),
+                    expose=ExposeLink.public("AionUI", "robot", "AI 助手 Web UI"),
                     server_name=self.get_config_later("AIONUI_DOMAIN"),
                     proxy="http://aionui:3000",
                     template=self.get_source_path("nginx.conf"),
@@ -45,12 +46,12 @@ class Container(BaseContainer):
                     auth_bypass=(r"\.(css|js|webmanifest)$",),
                 ),
             },
-            "flare": {
-                "direct": self.expose_container("AionUI", "robot", "AI 助手 Web UI", self.load_port_url(
-                    "AIONUI_PORT",
+            "flare": [
+                ExposeLink.container("AionUI", "robot", "AI 助手 Web UI", load_port_url(
+                    self, "AIONUI_PORT",
                     https=False,
                 )),
-            },
+            ],
         }
 
     @classmethod

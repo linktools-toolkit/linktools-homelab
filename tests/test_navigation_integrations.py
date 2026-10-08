@@ -15,7 +15,7 @@ from jinja2 import Environment
 import yaml
 
 import linktools.cntr
-from linktools.cntr import ContainerManager, ExposeLink
+from linktools.cntr import ContainerManager, ExposeLink, urls
 from linktools.cntr.generation import FlareGeneration
 
 
@@ -68,7 +68,7 @@ def make_manager(**values):
     manager.env_config = FakeConfig(**values)
     containers = {
         name: SimpleNamespace(name=name, integrations={})
-        for name in ("nginx", "flare", "authelia")
+        for name in ("nginx", "flare", "authelia", "safeline")
     }
     for path in declaration_paths():
         container = load_container(path)(manager, path.parent, path.parent.name)
@@ -95,7 +95,7 @@ def render_compose(container, auth):
     environment = Environment()
     environment.filters.update(mkdir=lambda path: path, chown=lambda path: path)
     context = dict(
-        container=container, manager=container.manager,
+        container=container, manager=container.manager, urls=urls,
         APP_PATH=Path("/mock/app"), APP_DATA_PATH=Path("/mock/data"),
         SOURCE_PATH=container.root_path, NGINX_AUTH_ENABLE=auth,
     )
@@ -118,7 +118,7 @@ class NavigationIntegrationTests(unittest.TestCase):
         self.assertEqual(len(attached), 24)
         self.assertEqual(len({producer.name for producer, _, _ in entries + attached}), 25)
         self.assertEqual(len(manager.nginx_sites), 31)
-        self.assertEqual(len({(producer.name, key) for producer, key, _ in entries}), 41)
+        self.assertTrue(all(key is None for _, key, _ in entries))
         self.assertEqual(len({(producer.name, key) for producer, key, _ in attached}), 24)
         self.assertTrue(all(isinstance(link, ExposeLink) for _, _, link in entries + attached))
         self.assertEqual(set(manager.env_config.reads), {"NGINX_AUTH_ENABLE"})
@@ -133,16 +133,20 @@ class NavigationIntegrationTests(unittest.TestCase):
         self.assertEqual(Counter(["public"] * len(apps) + [link["category"] for link in bookmarks]), {
             "public": 29, "private": 9, "container": 22, "other": 5,
         })
+        for container in manager.containers.values():
+            if "flare" in container.integrations:
+                self.assertIsInstance(container.integrations["flare"], (list, tuple))
         for path in declaration_paths():
             self.assertNotIn("exposes", load_container(path).__dict__)
 
     def test_it_tools_preserves_all_links_and_bookmark_order(self):
         manager = make_manager()
         links = manager.containers["it-tools"].integrations["flare"]
-        self.assertEqual(list(links), [
-            "regex_tester", "regex_memo", "json_prettify", "dns_lookup", "icons", "direct",
+        self.assertIsInstance(links, list)
+        self.assertEqual([link.name for link in links], [
+            "正则表达式测试", "正则表达式手册", "在线json解析", "DNS查询", "图标下载", "IT Tools",
         ])
-        self.assertEqual([link.url for link in links.values()], [
+        self.assertEqual([link.url for link in links], [
             "https://it-tools.example.test:8443/regex-tester",
             "https://it-tools.example.test:8443/regex-memo",
             "https://it-tools.example.test:8443/json-prettify",
@@ -154,7 +158,7 @@ class NavigationIntegrationTests(unittest.TestCase):
         manager = make_manager()
         self.assertEqual(list(manager.containers["ws-scrcpy"].integrations), ["flare"])
         self.assertEqual(list(manager.containers["xray-server"].integrations), ["nginx"])
-        self.assertEqual(manager.containers["ws-scrcpy"].integrations["flare"]["direct"].url,
+        self.assertEqual(manager.containers["ws-scrcpy"].integrations["flare"][0].url,
                          "http://host.example.test:9000")
 
     def test_flare_renders_all_links_with_preserved_categories_and_order(self):
@@ -182,6 +186,25 @@ class NavigationIntegrationTests(unittest.TestCase):
         self.assertEqual([link["link"] for link in links if link["category"] == "other"], [
             "https://tool.chinaz.com/dns/", "https://materialdesignicons.com/",
         ])
+
+    def test_vscode_proxy_url_keeps_literal_placeholder_and_site_policy(self):
+        for https, wildcard, expected in (
+            (True, True, "https://{{port}}.vscode.example.test:8443"),
+            (False, True, "http://{{port}}.vscode.example.test:8080"),
+            (True, False, ""),
+        ):
+            with self.subTest(https=https, wildcard=wildcard):
+                manager = make_manager(NGINX_HTTPS_ENABLE=https, NGINX_WILDCARD_DOMAIN=wildcard)
+                self.assertEqual(str(manager.containers["vscode"].proxy_url), expected)
+
+    def test_no_removed_container_helpers_remain(self):
+        removed = {"expose_public", "expose_private", "expose_container", "expose_other",
+                   "load_nginx_url", "load_port_url", "load_config_url", "load_exist_nginx_url"}
+        for path in ROOT.glob("*/*/container.py"):
+            for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+                if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
+                    if node.value.id in ("self", "container"):
+                        self.assertNotIn(node.attr, removed, str(path))
 
     def test_gitlab_and_litellm_use_site_policy_in_compose(self):
         for https, port, auth in ((False, 8080, False), (True, 8443, False), (True, 8443, True)):

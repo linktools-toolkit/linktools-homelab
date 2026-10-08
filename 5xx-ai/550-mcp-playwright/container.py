@@ -7,7 +7,8 @@ import secrets
 from typing import Iterable
 
 from linktools.cli import subcommand
-from linktools.cntr import BaseContainer, Integrations, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
+from linktools.cntr.urls import load_nginx_url, load_port_url
 from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
 
@@ -44,22 +45,22 @@ class Container(BaseContainer):
         return {
             "nginx": {
                 "web": NginxSite(
-                    expose=self.expose_public("Playwright Browser", "web", "通过 noVNC 操作 MCP 浏览器"),
+                    expose=ExposeLink.public("Playwright Browser", "web", "通过 noVNC 操作 MCP 浏览器"),
                     server_name=self.get_config_later("MCP_PLAYWRIGHT_DOMAIN"),
                     template=self.get_source_path("nginx.conf"),
                     waf=False,
                     auth=None,
                 ),
             },
-            "flare": {
-                "mcp_public": self.expose_public("Playwright MCP", "robot", "MCP HTTP 服务（Bearer Token 认证）", self.load_nginx_url("web", "mcp")),
-                "browser_direct": self.expose_container("Playwright Browser", "web", "noVNC 浏览器", self.load_port_url(
-                    "MCP_PLAYWRIGHT_NOVNC_PORT", https=False,
+            "flare": [
+                ExposeLink.public("Playwright MCP", "robot", "MCP HTTP 服务（Bearer Token 认证）", load_nginx_url(self, "web", "mcp")),
+                ExposeLink.container("Playwright Browser", "web", "noVNC 浏览器", load_port_url(
+                    self, "MCP_PLAYWRIGHT_NOVNC_PORT", https=False,
                 )),
-                "mcp_direct": self.expose_container("Playwright MCP", "robot", "MCP HTTP 服务（路径 /mcp）", self.load_port_url(
-                    "MCP_PLAYWRIGHT_PORT", "mcp", https=False,
+                ExposeLink.container("Playwright MCP", "robot", "MCP HTTP 服务（路径 /mcp）", load_port_url(
+                    self, "MCP_PLAYWRIGHT_PORT", "mcp", https=False,
                 )),
-            },
+            ],
         }
 
     @subcommand("show", help="print MCP server JSON configuration")
@@ -67,7 +68,7 @@ class Container(BaseContainer):
         config = {
             "mcpServers": {
                 "playwright": {
-                    "url": str(self.load_exist_nginx_url("MCP_PLAYWRIGHT_DOMAIN", "mcp")),
+                    "url": str(load_nginx_url(self, "web", "mcp")),
                     "headers": {
                         "Authorization": f"Bearer {self.get_config('MCP_PLAYWRIGHT_TOKEN')}",
                     },

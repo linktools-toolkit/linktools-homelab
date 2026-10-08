@@ -28,7 +28,8 @@
 """
 from typing import Iterable
 
-from linktools.cntr import BaseContainer, Integrations, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
+from linktools.cntr.urls import load_config_url
 from linktools.decorator import cached_property
 
 
@@ -51,15 +52,15 @@ class Container(BaseContainer):
         return {
             "nginx": {
                 "web": NginxSite(
-                    expose=self.expose_public("fnOS", "nas", "飞牛系统"),
+                    expose=ExposeLink.public("fnOS", "nas", "飞牛系统"),
                     server_name=self.get_config_later("FNOS_DOMAIN"),
                     template=self.get_source_path("nginx.conf"),
                     auth=False,
                 ),
             },
-            "flare": {
-                "private": self.expose_private("fnOS", "nas", "飞牛系统", self.load_config_url(
-                    "FNOS_LOCAL_URL",
+            "flare": [
+                ExposeLink.private("fnOS", "nas", "飞牛系统", load_config_url(
+                    self, "FNOS_LOCAL_URL",
                 )),
-            },
+            ],
         }

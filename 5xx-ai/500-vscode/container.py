@@ -35,7 +35,8 @@ from linktools import utils
 from linktools.cli import subcommand
 from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, Integrations, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
+from linktools.cntr.urls import load_nginx_url, load_port_url
 from linktools.rich import prompt
 from linktools.runtime import lazy_load
 
@@ -63,7 +64,7 @@ class Container(BaseContainer):
         return {
             "nginx": {
                 "web": NginxSite(
-                    expose=self.expose_public("VS Code", "microsoftVisualStudioCode", "在线vscode"),
+                    expose=ExposeLink.public("VS Code", "microsoftVisualStudioCode", "在线vscode"),
                     server_name=self.get_config_later("VSCODE_DOMAIN"),
                     proxy="http://code-server:8080",
                     auth=None,
@@ -89,17 +90,17 @@ class Container(BaseContainer):
                     cert_domains=(lazy_load(lambda: "*." + self.get_config("VSCODE_DOMAIN")),),
                 ),
             },
-            "flare": {
-                "direct": self.expose_container("VS Code", "microsoftVisualStudioCode", "在线vscode", self.load_port_url(
-                    "VSCODE_PORT",
+            "flare": [
+                ExposeLink.container("VS Code", "microsoftVisualStudioCode", "在线vscode", load_port_url(
+                    self, "VSCODE_PORT",
                     https=False
                 )),
-            },
+            ],
         }
 
     @cached_property
     def proxy_url(self):
-        return self.load_nginx_url("proxy")
+        return load_nginx_url(self, "proxy")
 
     @subcommand("install", help="install modules into the running container")
     def on_exec_install(self):

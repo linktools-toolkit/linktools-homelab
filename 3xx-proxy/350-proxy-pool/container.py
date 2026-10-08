@@ -28,7 +28,8 @@
 """
 from typing import Iterable
 
-from linktools.cntr import BaseContainer, Integrations, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
+from linktools.cntr.urls import load_port_url
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
@@ -52,16 +53,16 @@ class Container(BaseContainer):
         return {
             "nginx": {
                 "web": NginxSite(
-                    expose=self.expose_public("Proxy Pool", "tools", "代理池"),
+                    expose=ExposeLink.public("Proxy Pool", "tools", "代理池"),
                     server_name=self.get_config_later("PROXY_POOL_DOMAIN"),
                     proxy="http://proxy-pool:5010",
                     auth=False,
                 ),
             },
-            "flare": {
-                "direct": self.expose_container("Proxy Pool", "tools", "代理池", self.load_port_url(
-                    "PROXY_POOL_PORT",
+            "flare": [
+                ExposeLink.container("Proxy Pool", "tools", "代理池", load_port_url(
+                    self, "PROXY_POOL_PORT",
                     https=False
                 )),
-            },
+            ],
         }

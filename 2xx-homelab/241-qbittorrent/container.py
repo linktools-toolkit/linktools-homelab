@@ -26,7 +26,8 @@
   / ==ooooooooooooooo==.o.  ooo= //   ,``--{)B     ,"
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
-from linktools.cntr import BaseContainer, Integrations, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
+from linktools.cntr.urls import load_port_url
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
@@ -47,16 +48,16 @@ class Container(BaseContainer):
         return {
             "nginx": {
                 "web": NginxSite(
-                    expose=self.expose_public("qBittorrent", "tools", ""),
+                    expose=ExposeLink.public("qBittorrent", "tools", ""),
                     server_name=self.get_config_later("QBITTORRENT_DOMAIN"),
                     template=self.get_source_path("nginx.conf"),
                     auth=False,
                 ),
             },
-            "flare": {
-                "direct": self.expose_container("qBittorrent", "tools", "", self.load_port_url(
-                    "QBITTORRENT_PORT",
+            "flare": [
+                ExposeLink.container("qBittorrent", "tools", "", load_port_url(
+                    self, "QBITTORRENT_PORT",
                     https=False
                 )),
-            },
+            ],
         }

@@ -18,7 +18,7 @@
             "streamSettings": {
                 "network": "ws",
                 "wsSettings": {
-                    "path": "{{ XRAY_WEBSOCKET_PATH }}"
+                    "path": {{ container.get_route_path("XRAY_WEBSOCKET_PATH") | tojson }}
                 }
             },
             "sniffing": {
@@ -44,7 +44,7 @@
             "streamSettings": {
                 "network": "grpc",
                 "grpcSettings": {
-                    "serviceName": "{{ XRAY_GRPC_SERVICE_NAME }}"
+                    "serviceName": {{ container.get_route_path("XRAY_GRPC_SERVICE_NAME") | tojson }}
                 }
             },
             "sniffing": {
@@ -70,7 +70,7 @@
             "streamSettings": {
                 "network": "xhttp",
                 "xhttpSettings": {
-                    "path": "{{ XRAY_XHTTP_PATH }}",
+                    "path": {{ container.get_route_path("XRAY_XHTTP_PATH") | tojson }},
                     "mode": "stream-one",
                     "httpVersion": "2"
                 }

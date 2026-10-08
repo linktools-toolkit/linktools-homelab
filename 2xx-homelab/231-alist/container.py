@@ -29,7 +29,8 @@
 from typing import Iterable
 
 from linktools import utils
-from linktools.cntr import BaseContainer, Integrations, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
+from linktools.cntr.urls import load_port_url
 from linktools.core import ConfigField, AliasProvider, LazyProvider
 from linktools.decorator import cached_property
 
@@ -55,16 +56,16 @@ class Container(BaseContainer):
         return {
             "nginx": {
                 "web": NginxSite(
-                    expose=self.expose_public("Alist", "folderSync", ""),
+                    expose=ExposeLink.public("Alist", "folderSync", ""),
                     server_name=self.get_config_later("ALIST_DOMAIN"),
                     proxy="http://alist:5244",
                     auth=False,
                 ),
             },
-            "flare": {
-                "direct": self.expose_container("Alist", "folderSync", "", self.load_port_url(
-                    "ALIST_PORT",
+            "flare": [
+                ExposeLink.container("Alist", "folderSync", "", load_port_url(
+                    self, "ALIST_PORT",
                     https=False,
                 )),
-            },
+            ],
         }

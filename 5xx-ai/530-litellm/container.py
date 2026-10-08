@@ -7,7 +7,8 @@ from typing import Iterable
 from linktools.cli import subcommand
 from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, Integrations, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
+from linktools.cntr.urls import load_nginx_url, load_port_url
 
 
 class Container(BaseContainer):
@@ -45,13 +46,13 @@ class Container(BaseContainer):
                     oidc_redirects=("/sso/callback",) if self.get_config("NGINX_AUTH_ENABLE") else (),
                 ),
             },
-            "flare": {
-                "public": self.expose_public("LiteLLM", "api", "LiteLLM Proxy & Web UI", self.load_nginx_url("web", "ui")),
-                "direct": self.expose_container("LiteLLM", "api", "LiteLLM Proxy & Web UI", self.load_port_url(
-                    "LITELLM_PORT", "ui",
+            "flare": [
+                ExposeLink.public("LiteLLM", "api", "LiteLLM Proxy & Web UI", load_nginx_url(self, "web", "ui")),
+                ExposeLink.container("LiteLLM", "api", "LiteLLM Proxy & Web UI", load_port_url(
+                    self, "LITELLM_PORT", "ui",
                     https=False,
                 )),
-            },
+            ],
         }
 
     @subcommand("key", help="print the master key for Web UI login")

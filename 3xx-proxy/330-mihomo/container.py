@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from linktools import utils
-from linktools.cntr import BaseContainer, EventContext, NginxSite, Integrations
+from linktools.cntr import BaseContainer, EventContext, NginxSite, Integrations, ExposeLink
+from linktools.cntr.urls import load_nginx_url, load_port_url
 from linktools.core import ConfigField, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
 
@@ -36,16 +37,16 @@ class Container(BaseContainer):
                     auth=None,
                 ),
             },
-            "flare": {
-                "public": self.expose_public("Mihomo", "vpn", "Mihomo监控", self.load_nginx_url("web", "ui", "metacubexd", "#", "setup",
+            "flare": [
+                ExposeLink.public("Mihomo", "vpn", "Mihomo监控", load_nginx_url(self, "web", "ui", "metacubexd", "#", "setup",
                     queries=dict(
                         hostname=self.get_config_later("MIHOMO_DOMAIN"),
                         port=self.get_config_later("NGINX_HTTPS_PORT"),
                         secret=self.get_config_later("MIHOMO_SECRET"),
                     ),
                 )),
-                "direct": self.expose_container("Mihomo", "vpn", "Mihomo监控", self.load_port_url(
-                    "MIHOMO_PORT", "ui", "metacubexd", "#", "setup",
+                ExposeLink.container("Mihomo", "vpn", "Mihomo监控", load_port_url(
+                    self, "MIHOMO_PORT", "ui", "metacubexd", "#", "setup",
                     queries=dict(
                         hostname=self.get_config_later("HOST"),
                         port=self.get_config_later("MIHOMO_PORT"),
@@ -53,7 +54,7 @@ class Container(BaseContainer):
                     ),
                     https=False,
                 )),
-            },
+            ],
         }
 
     def on_starting(self, context: EventContext):

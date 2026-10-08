@@ -28,7 +28,8 @@
 """
 import yaml
 
-from linktools.cntr import SourceContainer, EventContext, Integrations
+from linktools.cntr import SourceContainer, EventContext, Integrations, ExposeLink
+from linktools.cntr.urls import load_port_url
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
@@ -46,11 +47,11 @@ class Container(SourceContainer):
     @cached_property
     def integrations(self) -> Integrations:
         return {
-            "flare": {
-                "direct": self.expose_container(
+            "flare": [
+                ExposeLink.container(
                     "ws-scrcpy", "cellphone", "ws-scrcpy",
-                    self.load_port_url("WS_SCRCPY_PORT", https=False)),
-            },
+                    load_port_url(self, "WS_SCRCPY_PORT", https=False)),
+            ],
         }
 
     @property

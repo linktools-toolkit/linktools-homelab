@@ -58,19 +58,29 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
+        grpc_pattern = lazy_load(lambda: "^" + re.escape(
+            self.get_route_path("XRAY_GRPC_SERVICE_NAME")) + r"(?:/(?:Tun|TunMulti))?$")
+        xhttp_pattern = lazy_load(lambda: "^" + re.escape(
+            self.get_route_path("XRAY_XHTTP_PATH")) + r"(?:/|$)")
         return {"nginx": {"web": NginxSite(
-                    server_name=self.get_config_later("XRAY_DOMAIN"),
-                    template=self.get_source_path("nginx.conf"),
-                    auth=False,
-                    waf_bypass=(
-                        lazy_load(lambda: "^" + re.escape(self.get_config("XRAY_GRPC_SERVICE_NAME").rstrip("/")) + r"(?:/(?:Tun|TunMulti))?$"),
-                        lazy_load(lambda: "^" + re.escape(self.get_config("XRAY_XHTTP_PATH").rstrip("/")) + r"(?:/|$)"),
-                    ),
+            server_name=self.get_config_later("XRAY_DOMAIN"),
+            template=self.get_source_path("nginx.conf"),
+            auth=False,
+            waf_bypass=(grpc_pattern, xhttp_pattern),
+            vars={
+                "websocket_path": lazy_load(lambda: self.get_route_path("XRAY_WEBSOCKET_PATH")),
+                "grpc_path": lazy_load(lambda: self.get_route_path("XRAY_GRPC_SERVICE_NAME")),
+                "grpc_pattern": grpc_pattern,
+                "xhttp_path": lazy_load(lambda: self.get_route_path("XRAY_XHTTP_PATH")),
+            },
         )}}
+
+    def get_route_path(self, key: str) -> str:
+        """Use one root-relative path in the proxy and application config."""
+        return "/" + self.get_config(key).strip("/")
 
     def on_starting(self):
         self.render_template(
             self.get_source_path("config.json"),
             self.get_app_path("config.json", create_parent=True),
         )
-

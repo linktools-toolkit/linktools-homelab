@@ -38,7 +38,7 @@ Every service folder contains at minimum a `container.py` that defines a `Contai
 
 - **`dependencies`** — other container names that must be deployed first (e.g. `["nginx", "coder"]`)
 - **`configs`** (cached_property) — a dict of config keys with defaults, using `ConfigField`, `LazyProvider`, and `PromptProvider` helpers from `linktools.core`
-- **`integrations`** (cached_property) — consumer-keyed declaration maps: `"nginx"` maps stable local IDs to `NginxSite` objects, and `"flare"` maps stable local IDs to `ExposeLink` objects. Annotate the property with the public `Integrations` type. Attach a root navigation link with `NginxSite(expose=self.expose_public(...))`, omitting the URL to inherit the resolved site URL lazily. Navigation links are created by `self.expose_public(...)`, `self.expose_private(...)`, `self.expose_container(...)`, or `self.expose_other(...)`; they do not register proxy sites. Keep link insertion order and use unique IDs within each consumer map
+- **`integrations`** (cached_property) — consumer-keyed declarations: `"nginx"` maps stable local IDs to `NginxSite` objects, and `"flare"` contains an ordered list of `ExposeLink` objects. Both declaration types inherit the public `Integration` marker; `Integrations` allows a named mapping or finite iterable per consumer, but nginx requires names. Annotate the property with the public `Integrations` type. Attach a root navigation link with `NginxSite(expose=ExposeLink.public(...))`, omitting the URL to inherit the resolved site URL lazily. Navigation links are created by `ExposeLink.public(...)`, `ExposeLink.private(...)`, `ExposeLink.container(...)`, or `ExposeLink.other(...)`; they do not register proxy sites. Keep link insertion order and use unique IDs within the nginx map
 - **Custom subcommands** — methods decorated with `@subcommand(...)` and `@subcommand_argument(...)` become CLI subcommands under `exec <container>`
 
 ### `compose.yml` as Jinja2 Templates
@@ -71,7 +71,7 @@ The `linktools-cntr` built-in containers (nginx, authelia, lldap, flare, portain
 
 Containers declare their public domain via `self.get_nginx_domain()` in configs and register sites under `integrations["nginx"]`. Each site has a stable local ID, such as `"web"`, and a `NginxSite` declaration. Keep config-backed values lazy with `self.get_config_later(...)` or `lazy_load(...)`, especially credentials and URLs.
 
-`self.load_nginx_url("web", *path, queries=...)` is a lazy reference to that container's resolved site URL. It does not register a site or accept proxy/auth options. The URL follows the site's enabled state, HTTP/HTTPS policy and configured port. Use the same helper in Compose templates (`container.load_nginx_url(...)`) instead of rebuilding public URLs manually.
+`load_nginx_url(self, "web", *path, queries=...)` from `linktools.cntr.urls` is a lazy reference to that container's resolved site URL. It does not register a site or accept proxy/auth options. The URL follows the site's enabled state, HTTP/HTTPS policy and configured port. Use the same helper in Compose templates (`urls.load_nginx_url(container, ...)`) instead of rebuilding public URLs manually.
 
 Common `NginxSite` fields:
 
@@ -106,7 +106,8 @@ Minimal template (copy and adapt):
 
 ```python
 from typing import Iterable
-from linktools.cntr import BaseContainer, Integrations, NginxSite
+from linktools.cntr import BaseContainer, ExposeLink, Integrations, NginxSite
+from linktools.cntr.urls import load_port_url
 from linktools.core import ConfigField, PromptProvider
 from linktools.decorator import cached_property
 
@@ -134,18 +135,18 @@ class Container(BaseContainer):
                     server_name=self.get_config_later("MY_DOMAIN"),
                     proxy="http://my-service:8080",
                     auth=None,
-                    expose=self.expose_public("My Service", "link", "服务描述"),
+                    expose=ExposeLink.public("My Service", "link", "服务描述"),
                 ),
             },
-            "flare": {
-                "direct": self.expose_container(
-                    "My Service", "link", "服务描述", self.load_port_url("MY_PORT", https=False),
+            "flare": [
+                ExposeLink.container(
+                    "My Service", "link", "服务描述", load_port_url(self, "MY_PORT", https=False),
                 ),
-            },
+            ],
         }
 ```
 
-The second argument to `expose_public`/`expose_container` is a [Material Design Icons](https://pictogrammers.com/library/mdi/) icon name in camelCase (e.g. `"link"`, `"microsoftVisualStudioCode"`).
+The second argument to `ExposeLink.public`/`ExposeLink.container` is a [Material Design Icons](https://pictogrammers.com/library/mdi/) icon name in camelCase (e.g. `"link"`, `"microsoftVisualStudioCode"`).
 
 Key config helpers:
 - `ConfigField(cast=int, default=0)` — typed field with a default value
@@ -175,7 +176,7 @@ networks:
   nginx:
 ```
 
-Available Jinja2 globals: all `configs` keys, `APP_PATH` (pathlib.Path), `SOURCE_PATH` (pathlib.Path), `DOCKER_UID`, `DOCKER_GID`, `DOCKER_USER`, `container` (the owning container), `containers["name"]`.
+Available Jinja2 globals: all `configs` keys, `APP_PATH` (pathlib.Path), `SOURCE_PATH` (pathlib.Path), `DOCKER_UID`, `DOCKER_GID`, `DOCKER_USER`, `container` (the owning container), `containers["name"]`, and `urls` (the module containing lazy URL functions).
 
 - `APP_PATH` — runtime data directory (writable, persisted)
 - `SOURCE_PATH` — container source directory (read-only; use for mounting scripts/configs baked into the repo)
@@ -194,6 +195,10 @@ Create a `nginx.conf` and reference it in the site declaration in `container.py`
     template=self.get_source_path("nginx.conf"),
 ),
 ```
+
+Custom nginx templates have exactly `site`, `container`, `nginx`, `config`, and `vars` in context. Import shared macros with `{% from "nginx/headers.j2" import proxy_headers with context %}` and emit `{{ proxy_headers() }}` in each proxy location. Use `grpc_headers` for gRPC and pass business-specific header overrides into the macro. Common streaming limits are available through `{% include "nginx/params.conf" %}`. Framework authentication is applied by the generated server; do not include removed native snippets or duplicate its headers.
+
+Use explicit `local/` or `nginx/` Jinja namespaces. Business templates render once, and literal data is not evaluated as another template. Docker upstreams must use a variable target so isolated validation does not require running services. When replacing a static URI suffix, preserve its prefix/capture/query behavior explicitly. Set backend variables and WebDAV Destination before a `rewrite ... break`, which stops subsequent rewrite directives. fnOS intentionally retains static `proxy_pass` URLs: its defaults are numeric LAN IPs, and native nginx must preserve configured URI prefixes, query strings, and percent encoding. Changing those targets to hostnames is subject to the same isolated DNS validation constraints; it does not enable networked validation.
 
 ### Step 5 (optional): Add a custom `Dockerfile`
 

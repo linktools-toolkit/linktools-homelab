@@ -6,7 +6,8 @@ import secrets
 from typing import Any, Iterable
 
 from linktools.cli import subcommand, subcommand_argument
-from linktools.cntr import BaseContainer, Integrations, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
+from linktools.cntr.urls import load_nginx_url, load_port_url
 from linktools.core import ConfigField, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
 
@@ -69,12 +70,12 @@ class Container(BaseContainer):
                     auth=False,
                 ),
             },
-            "flare": {
-                "public": self.expose_public("Push MCP", "bell", "多渠道消息推送 MCP（Bearer Token 认证）", self.load_nginx_url("web", "mcp")),
-                "direct": self.expose_container("Push MCP", "bell", "多渠道消息推送 MCP", self.load_port_url(
-                    "MCP_PUSH_PORT", "mcp", https=False,
+            "flare": [
+                ExposeLink.public("Push MCP", "bell", "多渠道消息推送 MCP（Bearer Token 认证）", load_nginx_url(self, "web", "mcp")),
+                ExposeLink.container("Push MCP", "bell", "多渠道消息推送 MCP", load_port_url(
+                    self, "MCP_PUSH_PORT", "mcp", https=False,
                 )),
-            },
+            ],
         }
 
     @subcommand("show", help="print MCP server JSON configuration, optionally with a channel example")
@@ -93,7 +94,7 @@ class Container(BaseContainer):
         config = {
             "mcpServers": {
                 "push": {
-                    "url": str(self.load_exist_nginx_url("MCP_PUSH_DOMAIN", "mcp")),
+                    "url": str(load_nginx_url(self, "web", "mcp")),
                     "headers": headers,
                 },
             },

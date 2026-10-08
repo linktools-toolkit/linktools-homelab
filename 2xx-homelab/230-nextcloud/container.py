@@ -33,7 +33,7 @@ from typing import Iterable
 from linktools.core import ConfigField, LazyProvider
 from linktools.cli import subcommand
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, Integrations, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
 
 
 class Container(BaseContainer):
@@ -65,13 +65,11 @@ class Container(BaseContainer):
         return {
             "nginx": {
                 "web": NginxSite(
-                    expose=self.expose_public("Nextcloud", "cloudDownloadOutline", "私人网盘"),
+                    expose=ExposeLink.public("Nextcloud", "cloudDownloadOutline", "私人网盘"),
                     server_name=self.get_config_later("NEXTCLOUD_DOMAIN"),
                     template=self.get_source_path("nginx.conf"),
                     auth=False,
                 ),
-            },
-            "flare": {
             },
         }
 
