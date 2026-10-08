@@ -27,9 +27,11 @@
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
 import uuid
+import re
+from linktools.runtime import lazy_load
 from typing import Iterable
 
-from linktools.cntr import BaseContainer
+from linktools.cntr import BaseContainer, NginxSite
 from linktools.core import ConfigField, AliasProvider, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
 
@@ -54,13 +56,21 @@ class Container(BaseContainer):
             XRAY_XHTTP_PATH=ConfigField(provider=PromptProvider(default="/i/am/xhttp", cached=True)),
         )
 
+    @cached_property
+    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
+        return {"nginx": {"web": NginxSite(
+                    server_name=self.get_config_later("XRAY_DOMAIN"),
+                    template=self.get_source_path("nginx.conf"),
+                    auth=False,
+                    waf_bypass=(
+                        lazy_load(lambda: "^" + re.escape(self.get_config("XRAY_GRPC_SERVICE_NAME").rstrip("/")) + r"(?:/(?:Tun|TunMulti))?$"),
+                        lazy_load(lambda: "^" + re.escape(self.get_config("XRAY_XHTTP_PATH").rstrip("/")) + r"(?:/|$)"),
+                    ),
+        )}}
+
     def on_starting(self):
         self.render_template(
             self.get_source_path("config.json"),
             self.get_app_path("config.json", create_parent=True),
         )
 
-        self.write_nginx_conf(
-            self.get_config("XRAY_DOMAIN"),
-            proxy_conf=self.get_source_path("nginx.conf"),
-        )
