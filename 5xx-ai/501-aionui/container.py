@@ -7,12 +7,12 @@ import hmac
 import json
 import secrets
 import time
-from typing import Any, Iterable
+from typing import Iterable
 
 from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
 from linktools.runtime import lazy_load
-from linktools.cntr import BaseContainer, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite
 
 
 class Container(BaseContainer):
@@ -32,10 +32,11 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def integrations(self) -> "dict[str, dict[str, Any]]":
+    def integrations(self) -> Integrations:
         return {
             "nginx": {
                 "web": NginxSite(
+                    expose=self.expose_public("AionUI", "robot", "AI 助手 Web UI"),
                     server_name=self.get_config_later("AIONUI_DOMAIN"),
                     proxy="http://aionui:3000",
                     template=self.get_source_path("nginx.conf"),
@@ -45,7 +46,6 @@ class Container(BaseContainer):
                 ),
             },
             "flare": {
-                "public": self.expose_public("AionUI", "robot", "AI 助手 Web UI", self.load_nginx_url("web")),
                 "direct": self.expose_container("AionUI", "robot", "AI 助手 Web UI", self.load_port_url(
                     "AIONUI_PORT",
                     https=False,

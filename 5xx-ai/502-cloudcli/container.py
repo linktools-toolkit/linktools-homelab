@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from typing import Any, Iterable
+from typing import Iterable
 
-from linktools.cntr import BaseContainer, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
@@ -23,17 +23,17 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def integrations(self) -> "dict[str, dict[str, Any]]":
+    def integrations(self) -> Integrations:
         return {
             "nginx": {
                 "web": NginxSite(
+                    expose=self.expose_public("CloudCLI", "messageOutline", "Cloud CLI"),
                     server_name=self.get_config_later("CLOUD_CLI_DOMAIN"),
                     proxy="http://cloudcli:3001",
                     auth_bypass=(r"\.(css|js)$",),
                 ),
             },
             "flare": {
-                "public": self.expose_public("CloudCLI", "messageOutline", "Cloud CLI", self.load_nginx_url("web")),
                 "direct": self.expose_container("CloudCLI", "messageOutline", "Cloud CLI", self.load_port_url(
                     "CLOUD_CLI_PORT",
                     https=False

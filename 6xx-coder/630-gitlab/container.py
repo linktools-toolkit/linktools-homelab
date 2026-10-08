@@ -28,11 +28,11 @@
 """
 import tempfile
 import uuid
-from typing import Any, Iterable
+from typing import Iterable
 
 from linktools import utils
 from linktools.cli import subcommand, subcommand_argument
-from linktools.cntr import BaseContainer, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite
 from linktools.core import ConfigField, PromptProvider
 from linktools.decorator import cached_property
 
@@ -63,10 +63,11 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def integrations(self) -> "dict[str, dict[str, Any]]":
+    def integrations(self) -> Integrations:
         return {
             "nginx": {
                 "web": NginxSite(
+                    expose=self.expose_public("Gitlab", "git", "代码仓库管理"),
                     server_name=self.get_config_later("GITLAB_DOMAIN"),
                     proxy="http://gitlab:8181",
                     auth=None,
@@ -74,7 +75,6 @@ class Container(BaseContainer):
                 ),
             },
             "flare": {
-                "public": self.expose_public("Gitlab", "git", "代码仓库管理", self.load_nginx_url("web")),
             },
         }
 

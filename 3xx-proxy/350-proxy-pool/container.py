@@ -26,9 +26,9 @@
   / ==ooooooooooooooo==.o.  ooo= //   ,``--{)B     ,"
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
-from typing import Any, Iterable
+from typing import Iterable
 
-from linktools.cntr import BaseContainer, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
@@ -48,17 +48,17 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def integrations(self) -> "dict[str, dict[str, Any]]":
+    def integrations(self) -> Integrations:
         return {
             "nginx": {
                 "web": NginxSite(
+                    expose=self.expose_public("Proxy Pool", "tools", "代理池"),
                     server_name=self.get_config_later("PROXY_POOL_DOMAIN"),
                     proxy="http://proxy-pool:5010",
                     auth=False,
                 ),
             },
             "flare": {
-                "public": self.expose_public("Proxy Pool", "tools", "代理池", self.load_nginx_url("web")),
                 "direct": self.expose_container("Proxy Pool", "tools", "代理池", self.load_port_url(
                     "PROXY_POOL_PORT",
                     https=False

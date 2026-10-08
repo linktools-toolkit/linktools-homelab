@@ -29,13 +29,13 @@
 import json
 import re
 import shutil
-from typing import Any, Iterable
+from typing import Iterable
 
 from linktools import utils
 from linktools.cli import subcommand
 from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite
 from linktools.rich import prompt
 from linktools.runtime import lazy_load
 
@@ -59,10 +59,11 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def integrations(self) -> "dict[str, dict[str, Any]]":
+    def integrations(self) -> Integrations:
         return {
             "nginx": {
                 "web": NginxSite(
+                    expose=self.expose_public("VS Code", "microsoftVisualStudioCode", "在线vscode"),
                     server_name=self.get_config_later("VSCODE_DOMAIN"),
                     proxy="http://code-server:8080",
                     auth=None,
@@ -89,7 +90,6 @@ class Container(BaseContainer):
                 ),
             },
             "flare": {
-                "public": self.expose_public("VS Code", "microsoftVisualStudioCode", "在线vscode", self.load_nginx_url("web")),
                 "direct": self.expose_container("VS Code", "microsoftVisualStudioCode", "在线vscode", self.load_port_url(
                     "VSCODE_PORT",
                     https=False

@@ -7,7 +7,7 @@ from typing import Any, Iterable
 
 from linktools.core import ConfigField, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite
 
 
 class Container(BaseContainer):
@@ -82,10 +82,11 @@ class Container(BaseContainer):
         return configs
 
     @cached_property
-    def integrations(self) -> "dict[str, dict[str, Any]]":
+    def integrations(self) -> Integrations:
         return {
             "nginx": {
                 "web": NginxSite(
+                    expose=self.expose_public("Multica", "robot", "AI Agent Team Platform"),
                     server_name=self.get_config_later("MULTICA_DOMAIN"),
                     template=self.get_source_path("nginx.conf"),
                     waf=False,
@@ -93,7 +94,6 @@ class Container(BaseContainer):
                 ),
             },
             "flare": {
-                "public": self.expose_public("Multica", "robot", "AI Agent Team Platform", self.load_nginx_url("web")),
                 "frontend_direct": self.expose_container("Multica", "robot", "AI Agent Team Platform", self.load_port_url(
                     "MULTICA_FRONTEND_PORT", https=False,
                 )),

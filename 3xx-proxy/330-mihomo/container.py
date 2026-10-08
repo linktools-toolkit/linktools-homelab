@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from typing import Any
-
 from linktools import utils
-from linktools.cntr import BaseContainer, EventContext, NginxSite
+from linktools.cntr import BaseContainer, EventContext, NginxSite, Integrations
 from linktools.core import ConfigField, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
 
@@ -29,7 +27,7 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def integrations(self) -> "dict[str, dict[str, Any]]":
+    def integrations(self) -> Integrations:
         return {
             "nginx": {
                 "web": NginxSite(

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from typing import Any, Iterable
+from typing import Iterable
 
 from linktools import utils
 from linktools.cli import subcommand, subcommand_argument
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite
 
 
 class Container(BaseContainer):
@@ -26,10 +26,11 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def integrations(self) -> "dict[str, dict[str, Any]]":
+    def integrations(self) -> Integrations:
         return {
             "nginx": {
                 "web": NginxSite(
+                    expose=self.expose_public("Hermes Agent", "robot", "AI Agent Dashboard"),
                     server_name=self.get_config_later("HERMES_AGENT_DOMAIN"),
                     proxy="http://hermes-dashboard:9120",
                     template=self.get_source_path("nginx.conf"),
@@ -38,7 +39,6 @@ class Container(BaseContainer):
                 ),
             },
             "flare": {
-                "public": self.expose_public("Hermes Agent", "robot", "AI Agent Dashboard", self.load_nginx_url("web")),
                 "api_direct": self.expose_container("Hermes API", "robot", "AI Agent Gateway API", self.load_port_url(
                     "HERMES_AGENT_PORT",
                     https=False,

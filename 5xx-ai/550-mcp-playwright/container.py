@@ -4,10 +4,10 @@
 import json
 import re
 import secrets
-from typing import Any, Iterable
+from typing import Iterable
 
 from linktools.cli import subcommand
-from linktools.cntr import BaseContainer, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite
 from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
 
@@ -40,10 +40,11 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def integrations(self) -> "dict[str, dict[str, Any]]":
+    def integrations(self) -> Integrations:
         return {
             "nginx": {
                 "web": NginxSite(
+                    expose=self.expose_public("Playwright Browser", "web", "通过 noVNC 操作 MCP 浏览器"),
                     server_name=self.get_config_later("MCP_PLAYWRIGHT_DOMAIN"),
                     template=self.get_source_path("nginx.conf"),
                     waf=False,
@@ -51,7 +52,6 @@ class Container(BaseContainer):
                 ),
             },
             "flare": {
-                "browser_public": self.expose_public("Playwright Browser", "web", "通过 noVNC 操作 MCP 浏览器", self.load_nginx_url("web")),
                 "mcp_public": self.expose_public("Playwright MCP", "robot", "MCP HTTP 服务（Bearer Token 认证）", self.load_nginx_url("web", "mcp")),
                 "browser_direct": self.expose_container("Playwright Browser", "web", "noVNC 浏览器", self.load_port_url(
                     "MCP_PLAYWRIGHT_NOVNC_PORT", https=False,

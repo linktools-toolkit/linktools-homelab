@@ -27,11 +27,9 @@
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
 
-from typing import Any
-
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite
 
 
 class Container(BaseContainer):
@@ -45,10 +43,11 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def integrations(self) -> "dict[str, dict[str, Any]]":
+    def integrations(self) -> Integrations:
         return {
             "nginx": {
                 "web": NginxSite(
+                    expose=self.expose_public("IT Tools", "tools", "it工具集"),
                     server_name=self.get_config_later("IT_TOOLS_DOMAIN"),
                     proxy="http://it-tools",
                     auth_bypass=(r"\.(css|js|webmanifest)$",),
@@ -62,6 +61,5 @@ class Container(BaseContainer):
                 "dns_lookup": self.expose_other("DNS查询", "dns", "", "https://tool.chinaz.com/dns/"),
                 "icons": self.expose_other("图标下载", "progressDownload", "", "https://materialdesignicons.com/"),
                 "direct": self.expose_container("IT Tools", "tools", "it工具集", self.load_port_url("IT_TOOLS_PORT", https=False)),
-                "public": self.expose_public("IT Tools", "tools", "it工具集", self.load_nginx_url("web")),
             },
         }

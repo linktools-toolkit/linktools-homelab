@@ -4,6 +4,7 @@
 import ast
 from collections import Counter
 from functools import lru_cache
+import json
 from pathlib import Path
 import runpy
 from types import SimpleNamespace
@@ -110,13 +111,26 @@ class NavigationIntegrationTests(unittest.TestCase):
     def test_all_links_are_unique_ordered_declarations_without_eager_secrets(self):
         manager = make_manager()
         entries = list(manager.iter_integrations("flare"))
-        self.assertEqual(len(entries), 65)
-        self.assertEqual(len({producer.name for producer, _, _ in entries}), 25)
+        attached = [(producer, key, site.expose)
+                    for producer, key, site in manager.iter_integrations("nginx")
+                    if site.expose is not None]
+        self.assertEqual(len(entries), 41)
+        self.assertEqual(len(attached), 24)
+        self.assertEqual(len({producer.name for producer, _, _ in entries + attached}), 25)
         self.assertEqual(len(manager.nginx_sites), 31)
-        self.assertEqual(len({(producer.name, key) for producer, key, _ in entries}), 65)
-        self.assertTrue(all(isinstance(link, ExposeLink) for _, _, link in entries))
+        self.assertEqual(len({(producer.name, key) for producer, key, _ in entries}), 41)
+        self.assertEqual(len({(producer.name, key) for producer, key, _ in attached}), 24)
+        self.assertTrue(all(isinstance(link, ExposeLink) for _, _, link in entries + attached))
         self.assertEqual(set(manager.env_config.reads), {"NGINX_AUTH_ENABLE"})
-        self.assertEqual(Counter(link.category.name for _, _, link in entries), {
+        self.assertEqual([producer.name for producer, _, link in entries
+                          if link.category.name == "public"], [
+            "mihomo", "litellm", "mcp-playwright", "mcp-push", "pypiserver",
+        ])
+        rendered = render_flare(manager)
+        apps = rendered["apps.yml"]["links"]
+        bookmarks = rendered["bookmarks.yml"]["links"]
+        self.assertEqual(len(apps) + len(bookmarks), 65)
+        self.assertEqual(Counter(["public"] * len(apps) + [link["category"] for link in bookmarks]), {
             "public": 29, "private": 9, "container": 22, "other": 5,
         })
         for path in declaration_paths():
@@ -126,14 +140,14 @@ class NavigationIntegrationTests(unittest.TestCase):
         manager = make_manager()
         links = manager.containers["it-tools"].integrations["flare"]
         self.assertEqual(list(links), [
-            "regex_tester", "regex_memo", "json_prettify", "dns_lookup", "icons", "direct", "public",
+            "regex_tester", "regex_memo", "json_prettify", "dns_lookup", "icons", "direct",
         ])
         self.assertEqual([link.url for link in links.values()], [
             "https://it-tools.example.test:8443/regex-tester",
             "https://it-tools.example.test:8443/regex-memo",
             "https://it-tools.example.test:8443/json-prettify",
             "https://tool.chinaz.com/dns/", "https://materialdesignicons.com/",
-            "http://host.example.test:9000", "https://it-tools.example.test:8443",
+            "http://host.example.test:9000",
         ])
 
     def test_direct_only_and_proxy_only_services_remain_independent(self):
@@ -145,22 +159,19 @@ class NavigationIntegrationTests(unittest.TestCase):
 
     def test_flare_renders_all_links_with_preserved_categories_and_order(self):
         manager = make_manager()
-        entries = sorted(manager.iter_integrations("flare"), key=lambda item: item[0].order)
-        expected_apps = []
-        expected_bookmarks = {}
-        for _, _, link in entries:
-            if link.category.name == "public":
-                expected_apps.append(dict(name=link.name, desc=link.desc, icon=link.icon, link=link.url))
-            else:
-                expected_bookmarks.setdefault(link.category.name, []).append(dict(
-                    category=link.category.name, name=link.name, icon=link.icon, link=link.url,
-                ))
-        rendered = render_flare(manager)
-        self.assertEqual(rendered["apps.yml"]["links"], expected_apps)
-        self.assertEqual(rendered["bookmarks.yml"]["links"], [
-            link for links in expected_bookmarks.values() for link in links
-        ])
-        self.assertEqual(len(expected_apps) + len(rendered["bookmarks.yml"]["links"]), 65)
+        # Frozen before moving the 24 root links onto their nginx sites. Compare
+        # complete generated files so names, URLs, metadata and order cannot drift.
+        expected = json.loads((ROOT / "tests/fixtures/navigation.json").read_text(encoding="utf-8"))
+        self.assertEqual(render_flare(manager), expected)
+
+    def test_attached_links_follow_http_and_disabled_site_policy(self):
+        manager = make_manager(NGINX_HTTPS_ENABLE=False, PVE_LOCAL_URL="", AIONUI_DOMAIN="")
+        apps = render_flare(manager)["apps.yml"]["links"]
+        self.assertEqual(len(apps), 27)
+        self.assertNotIn("Proxmox", [link["name"] for link in apps])
+        self.assertNotIn("AionUI", [link["name"] for link in apps])
+        self.assertEqual(next(link["link"] for link in apps if link["name"] == "IT Tools"),
+                         "http://it-tools.example.test:8080")
 
     def test_disabled_links_are_omitted_but_external_bookmarks_survive(self):
         manager = make_manager(IT_TOOLS_DOMAIN="", IT_TOOLS_PORT=0)

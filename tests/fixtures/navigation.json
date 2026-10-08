@@ -1,0 +1,414 @@
+{
+  "apps.yml": {
+    "links": [
+      {
+        "desc": "飞牛系统",
+        "icon": "nas",
+        "link": "https://fnos.example.test:8443",
+        "name": "fnOS"
+      },
+      {
+        "desc": "OMV系统",
+        "icon": "nas",
+        "link": "https://omv.example.test:8443",
+        "name": "OpenMediaVault"
+      },
+      {
+        "desc": "群晖系统",
+        "icon": "nas",
+        "link": "https://dsm.example.test:8443",
+        "name": "DSM"
+      },
+      {
+        "desc": "私人网盘",
+        "icon": "cloudDownloadOutline",
+        "link": "https://nextcloud.example.test:8443",
+        "name": "Nextcloud"
+      },
+      {
+        "desc": "Alist",
+        "icon": "folderSync",
+        "link": "https://alist.example.test:8443",
+        "name": "Alist"
+      },
+      {
+        "desc": "qBittorrent",
+        "icon": "tools",
+        "link": "https://qbittorrent.example.test:8443",
+        "name": "qBittorrent"
+      },
+      {
+        "desc": "it工具集",
+        "icon": "tools",
+        "link": "https://it-tools.example.test:8443",
+        "name": "IT Tools"
+      },
+      {
+        "desc": "Home Assistant",
+        "icon": "homeAssistant",
+        "link": "https://home-assistant.example.test:8443",
+        "name": "HomeAssistant"
+      },
+      {
+        "desc": "Mihomo监控",
+        "icon": "vpn",
+        "link": "https://mihomo.example.test:8443/ui/metacubexd/#/setup?hostname=mihomo.example.test&port=8443&secret=test-secret",
+        "name": "Mihomo"
+      },
+      {
+        "desc": "代理池",
+        "icon": "tools",
+        "link": "https://proxy-pool.example.test:8443",
+        "name": "Proxy Pool"
+      },
+      {
+        "desc": "代理订阅管理",
+        "icon": "link",
+        "link": "https://sublink.example.test:8443",
+        "name": "SublinkPro"
+      },
+      {
+        "desc": "在线vscode",
+        "icon": "microsoftVisualStudioCode",
+        "link": "https://vscode.example.test:8443",
+        "name": "VS Code"
+      },
+      {
+        "desc": "AI 助手 Web UI",
+        "icon": "robot",
+        "link": "https://aionui.example.test:8443",
+        "name": "AionUI"
+      },
+      {
+        "desc": "Cloud CLI",
+        "icon": "messageOutline",
+        "link": "https://cloud-cli.example.test:8443",
+        "name": "CloudCLI"
+      },
+      {
+        "desc": "AI Agent Dashboard",
+        "icon": "robot",
+        "link": "https://hermes-agent.example.test:8443",
+        "name": "Hermes Agent"
+      },
+      {
+        "desc": "AI Agent Team Platform",
+        "icon": "robot",
+        "link": "https://multica.example.test:8443",
+        "name": "Multica"
+      },
+      {
+        "desc": "LiteLLM Proxy & Web UI",
+        "icon": "api",
+        "link": "https://litellm.example.test:8443/ui",
+        "name": "LiteLLM"
+      },
+      {
+        "desc": "Free self-hosted AI gateway",
+        "icon": "transitConnectionVariant",
+        "link": "https://omniroute.example.test:8443",
+        "name": "OmniRoute"
+      },
+      {
+        "desc": "通过 noVNC 操作 MCP 浏览器",
+        "icon": "web",
+        "link": "https://mcp-playwright.example.test:8443",
+        "name": "Playwright Browser"
+      },
+      {
+        "desc": "MCP HTTP 服务（Bearer Token 认证）",
+        "icon": "robot",
+        "link": "https://mcp-playwright.example.test:8443/mcp",
+        "name": "Playwright MCP"
+      },
+      {
+        "desc": "多渠道消息推送 MCP（Bearer Token 认证）",
+        "icon": "bell",
+        "link": "https://mcp-push.example.test:8443/mcp",
+        "name": "Push MCP"
+      },
+      {
+        "desc": "代码仓库管理",
+        "icon": "git",
+        "link": "https://gitlab.example.test:8443",
+        "name": "Gitlab"
+      },
+      {
+        "desc": "pypiserver",
+        "icon": "languagePython",
+        "link": "https://pypiserver.example.test:8443/simple",
+        "name": "pypiserver"
+      },
+      {
+        "desc": "虚拟化环境",
+        "icon": "server",
+        "link": "https://pve.example.test:8443",
+        "name": "Proxmox"
+      },
+      {
+        "desc": "主路由管理",
+        "icon": "RouterNetwork",
+        "link": "https://primary-gateway.example.test:8443",
+        "name": "GW1"
+      },
+      {
+        "desc": "旁路由管理",
+        "icon": "RouterNetwork",
+        "link": "https://bypass-gateway.example.test:8443",
+        "name": "GW2"
+      },
+      {
+        "desc": "小雅Alist",
+        "icon": "folderSync",
+        "link": "https://xiaoya-alist.example.test:8443",
+        "name": "Xiaoya-Alist"
+      },
+      {
+        "desc": "Emby",
+        "icon": "movie",
+        "link": "https://emby.example.test:8443",
+        "name": "Emby"
+      },
+      {
+        "desc": "jellyfin",
+        "icon": "movie",
+        "link": "https://jellyfin.example.test:8443",
+        "name": "Jellyfin"
+      }
+    ]
+  },
+  "bookmarks.yml": {
+    "categories": [
+      {
+        "id": "private",
+        "title": "Private"
+      },
+      {
+        "id": "container",
+        "title": "Internal"
+      },
+      {
+        "id": "other",
+        "title": "Tools"
+      }
+    ],
+    "links": [
+      {
+        "category": "private",
+        "icon": "nas",
+        "link": "http://fnos.local.test",
+        "name": "fnOS"
+      },
+      {
+        "category": "private",
+        "icon": "nas",
+        "link": "http://omv.local.test",
+        "name": "OpenMediaVault"
+      },
+      {
+        "category": "private",
+        "icon": "nas",
+        "link": "http://host.example.test:9000",
+        "name": "DSM"
+      },
+      {
+        "category": "private",
+        "icon": "server",
+        "link": "http://pve.local.test",
+        "name": "Proxmox"
+      },
+      {
+        "category": "private",
+        "icon": "RouterNetwork",
+        "link": "http://primary-gateway.local.test",
+        "name": "GW1"
+      },
+      {
+        "category": "private",
+        "icon": "RouterNetwork",
+        "link": "http://bypass-gateway.local.test",
+        "name": "GW2"
+      },
+      {
+        "category": "private",
+        "icon": "folderSync",
+        "link": "http://xiaoya-alist.local.test",
+        "name": "Xiaoya-Alist"
+      },
+      {
+        "category": "private",
+        "icon": "movie",
+        "link": "http://emby.local.test",
+        "name": "Emby"
+      },
+      {
+        "category": "private",
+        "icon": "movie",
+        "link": "http://jellyfin.local.test",
+        "name": "Jellyfin"
+      },
+      {
+        "category": "container",
+        "icon": "folderSync",
+        "link": "http://host.example.test:9000",
+        "name": "Alist"
+      },
+      {
+        "category": "container",
+        "icon": "tools",
+        "link": "http://host.example.test:9000",
+        "name": "aria2"
+      },
+      {
+        "category": "container",
+        "icon": "tools",
+        "link": "http://host.example.test:9000",
+        "name": "qBittorrent"
+      },
+      {
+        "category": "container",
+        "icon": "tools",
+        "link": "http://host.example.test:9000",
+        "name": "IT Tools"
+      },
+      {
+        "category": "container",
+        "icon": "homeAssistant",
+        "link": "http://host.example.test:9000",
+        "name": "HomeAssistant"
+      },
+      {
+        "category": "container",
+        "icon": "vpn",
+        "link": "http://host.example.test:9000/ui/metacubexd/#/setup?hostname=host.example.test&port=9000&secret=test-secret",
+        "name": "Mihomo"
+      },
+      {
+        "category": "container",
+        "icon": "tools",
+        "link": "http://host.example.test:9000",
+        "name": "Proxy Pool"
+      },
+      {
+        "category": "container",
+        "icon": "link",
+        "link": "http://host.example.test:9000",
+        "name": "SublinkPro"
+      },
+      {
+        "category": "container",
+        "icon": "cellphone",
+        "link": "http://host.example.test:9000",
+        "name": "ws-scrcpy"
+      },
+      {
+        "category": "container",
+        "icon": "microsoftVisualStudioCode",
+        "link": "http://host.example.test:9000",
+        "name": "VS Code"
+      },
+      {
+        "category": "container",
+        "icon": "robot",
+        "link": "http://host.example.test:9000",
+        "name": "AionUI"
+      },
+      {
+        "category": "container",
+        "icon": "messageOutline",
+        "link": "http://host.example.test:9000",
+        "name": "CloudCLI"
+      },
+      {
+        "category": "container",
+        "icon": "robot",
+        "link": "http://host.example.test:9000",
+        "name": "Hermes API"
+      },
+      {
+        "category": "container",
+        "icon": "robot",
+        "link": "http://host.example.test:9000",
+        "name": "Hermes Dashboard"
+      },
+      {
+        "category": "container",
+        "icon": "robot",
+        "link": "http://host.example.test:9000",
+        "name": "Multica"
+      },
+      {
+        "category": "container",
+        "icon": "robot",
+        "link": "http://host.example.test:9000",
+        "name": "Multica API"
+      },
+      {
+        "category": "container",
+        "icon": "api",
+        "link": "http://host.example.test:9000/ui",
+        "name": "LiteLLM"
+      },
+      {
+        "category": "container",
+        "icon": "transitConnectionVariant",
+        "link": "http://host.example.test:9000",
+        "name": "OmniRoute"
+      },
+      {
+        "category": "container",
+        "icon": "web",
+        "link": "http://host.example.test:9000",
+        "name": "Playwright Browser"
+      },
+      {
+        "category": "container",
+        "icon": "robot",
+        "link": "http://host.example.test:9000/mcp",
+        "name": "Playwright MCP"
+      },
+      {
+        "category": "container",
+        "icon": "bell",
+        "link": "http://host.example.test:9000/mcp",
+        "name": "Push MCP"
+      },
+      {
+        "category": "container",
+        "icon": "languagePython",
+        "link": "http://host.example.test:9000",
+        "name": "pypiserver"
+      },
+      {
+        "category": "other",
+        "icon": "regex",
+        "link": "https://it-tools.example.test:8443/regex-tester",
+        "name": "正则表达式测试"
+      },
+      {
+        "category": "other",
+        "icon": "regex",
+        "link": "https://it-tools.example.test:8443/regex-memo",
+        "name": "正则表达式手册"
+      },
+      {
+        "category": "other",
+        "icon": "codeJson",
+        "link": "https://it-tools.example.test:8443/json-prettify",
+        "name": "在线json解析"
+      },
+      {
+        "category": "other",
+        "icon": "dns",
+        "link": "https://tool.chinaz.com/dns/",
+        "name": "DNS查询"
+      },
+      {
+        "category": "other",
+        "icon": "progressDownload",
+        "link": "https://materialdesignicons.com/",
+        "name": "图标下载"
+      }
+    ]
+  }
+}

@@ -31,7 +31,7 @@ import re
 from linktools.runtime import lazy_load
 from typing import Iterable
 
-from linktools.cntr import BaseContainer, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite
 from linktools.core import ConfigField, AliasProvider, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
 
@@ -57,7 +57,7 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
+    def integrations(self) -> Integrations:
         return {"nginx": {"web": NginxSite(
                     server_name=self.get_config_later("XRAY_DOMAIN"),
                     template=self.get_source_path("nginx.conf"),

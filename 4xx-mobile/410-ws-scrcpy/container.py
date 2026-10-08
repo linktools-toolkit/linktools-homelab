@@ -28,7 +28,7 @@
 """
 import yaml
 
-from linktools.cntr import SourceContainer, ExposeLink, EventContext
+from linktools.cntr import SourceContainer, EventContext, Integrations
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
@@ -44,7 +44,7 @@ class Container(SourceContainer):
         )
 
     @cached_property
-    def integrations(self) -> "dict[str, dict[str, ExposeLink]]":
+    def integrations(self) -> Integrations:
         return {
             "flare": {
                 "direct": self.expose_container(

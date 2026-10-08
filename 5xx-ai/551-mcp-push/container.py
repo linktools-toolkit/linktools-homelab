@@ -6,7 +6,7 @@ import secrets
 from typing import Any, Iterable
 
 from linktools.cli import subcommand, subcommand_argument
-from linktools.cntr import BaseContainer, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite
 from linktools.core import ConfigField, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
 
@@ -59,7 +59,7 @@ class Container(BaseContainer):
         }
 
     @cached_property
-    def integrations(self) -> "dict[str, dict[str, Any]]":
+    def integrations(self) -> Integrations:
         return {
             "nginx": {
                 "web": NginxSite(

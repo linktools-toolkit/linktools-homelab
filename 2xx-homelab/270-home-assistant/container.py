@@ -26,9 +26,9 @@
   / ==ooooooooooooooo==.o.  ooo= //   ,``--{)B     ,"
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
-from typing import Any, Iterable
+from typing import Iterable
 
-from linktools.cntr import BaseContainer, NginxSite
+from linktools.cntr import BaseContainer, Integrations, NginxSite
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
@@ -48,17 +48,17 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def integrations(self) -> "dict[str, dict[str, Any]]":
+    def integrations(self) -> Integrations:
         return {
             "nginx": {
                 "web": NginxSite(
+                    expose=self.expose_public("HomeAssistant", "homeAssistant", "Home Assistant"),
                     server_name=self.get_config_later("HOME_ASSISTANT_DOMAIN"),
                     proxy="http://home-assistant:8123",
                     auth=False,
                 ),
             },
             "flare": {
-                "public": self.expose_public("HomeAssistant", "homeAssistant", "Home Assistant", self.load_nginx_url("web")),
                 "direct": self.expose_container("HomeAssistant", "homeAssistant", "Home Assistant", self.load_port_url(
                     "HOME_ASSISTANT_PORT",
                     https=False,

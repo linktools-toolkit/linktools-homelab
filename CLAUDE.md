@@ -38,7 +38,7 @@ Every service folder contains at minimum a `container.py` that defines a `Contai
 
 - **`dependencies`** — other container names that must be deployed first (e.g. `["nginx", "coder"]`)
 - **`configs`** (cached_property) — a dict of config keys with defaults, using `ConfigField`, `LazyProvider`, and `PromptProvider` helpers from `linktools.core`
-- **`integrations`** (cached_property) — consumer-keyed declaration maps: `"nginx"` maps stable local IDs to `NginxSite` objects, and `"flare"` maps stable local IDs to `ExposeLink` objects. Navigation links are created by `self.expose_public(...)`, `self.expose_private(...)`, `self.expose_container(...)`, or `self.expose_other(...)`; they do not register proxy sites. Keep link insertion order and use unique IDs within each consumer map
+- **`integrations`** (cached_property) — consumer-keyed declaration maps: `"nginx"` maps stable local IDs to `NginxSite` objects, and `"flare"` maps stable local IDs to `ExposeLink` objects. Annotate the property with the public `Integrations` type. Attach a root navigation link with `NginxSite(expose=self.expose_public(...))`, omitting the URL to inherit the resolved site URL lazily. Navigation links are created by `self.expose_public(...)`, `self.expose_private(...)`, `self.expose_container(...)`, or `self.expose_other(...)`; they do not register proxy sites. Keep link insertion order and use unique IDs within each consumer map
 - **Custom subcommands** — methods decorated with `@subcommand(...)` and `@subcommand_argument(...)` become CLI subcommands under `exec <container>`
 
 ### `compose.yml` as Jinja2 Templates
@@ -86,8 +86,9 @@ Common `NginxSite` fields:
 | `auth_rule` | Optional Authelia access-control rule, such as `{"policy": "one_factor"}` |
 | `oidc_redirects` | Redirect paths relative to the resolved site URL, or absolute redirect URLs |
 | `url` | Explicit lazy public URL when `server_name` is nonliteral, such as a regex hostname |
+| `expose` | Optional `ExposeLink`; an omitted link URL inherits the resolved site URL lazily, while explicit `None` or an empty URL disables the link |
 
-Direct-port links and external bookmarks belong only in `integrations["flare"]`; a proxy-only service can declare an nginx site without a navigation link. Flare keeps the declared order within each container and omits links whose lazy URL is empty. Site and link declarations are independent: creating one never creates the other.
+Direct-port links, path/query links and external bookmarks belong in `integrations["flare"]`; a proxy-only service can declare an nginx site without an `expose` link. Flare renders attached site links first in site declaration order, then explicit links in their declaration order, within each container. Containers retain their stable order, categories group bookmarks, and links whose lazy URL is empty are omitted. Declaring a standalone link never creates a proxy site.
 
 ## Creating a New Container
 
@@ -104,8 +105,8 @@ Pick the appropriate category prefix and choose an unused number:
 Minimal template (copy and adapt):
 
 ```python
-from typing import Any, Iterable
-from linktools.cntr import BaseContainer, NginxSite
+from typing import Iterable
+from linktools.cntr import BaseContainer, Integrations, NginxSite
 from linktools.core import ConfigField, PromptProvider
 from linktools.decorator import cached_property
 
@@ -126,19 +127,17 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def integrations(self) -> "dict[str, dict[str, Any]]":
+    def integrations(self) -> Integrations:
         return {
             "nginx": {
                 "web": NginxSite(
                     server_name=self.get_config_later("MY_DOMAIN"),
                     proxy="http://my-service:8080",
                     auth=None,
+                    expose=self.expose_public("My Service", "link", "服务描述"),
                 ),
             },
             "flare": {
-                "public": self.expose_public(
-                    "My Service", "link", "服务描述", self.load_nginx_url("web"),
-                ),
                 "direct": self.expose_container(
                     "My Service", "link", "服务描述", self.load_port_url("MY_PORT", https=False),
                 ),
