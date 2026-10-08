@@ -57,7 +57,7 @@ class Container(BaseContainer):
                 "web": NginxSite(
                     server_name=self.get_config_later("SUBLINK_DOMAIN"),
                     template=self.get_source_path("nginx.conf"),
-                    auth=True,
+                    auth=None,
                 ),
             },
         }
