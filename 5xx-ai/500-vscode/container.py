@@ -35,8 +35,9 @@ from linktools import utils
 from linktools.cli import subcommand
 from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, ExposeLink
+from linktools.cntr import BaseContainer, ExposeLink, NginxSite
 from linktools.rich import prompt
+from linktools.runtime import lazy_load
 
 
 class Container(BaseContainer):
@@ -58,16 +59,41 @@ class Container(BaseContainer):
         )
 
     @cached_property
+    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
+        return {
+            "nginx": {
+                "web": NginxSite(
+                    server_name=self.get_config_later("VSCODE_DOMAIN"),
+                    proxy="http://code-server:8080",
+                    auth=None,
+                    auth_bypass=(r"\.(css|js)$",),
+                ),
+                "proxy": NginxSite(
+                    server_name=lazy_load(
+                        lambda: (
+                            r"~^(?<proxy_port>\d+)\." + re.escape(self.get_config("VSCODE_DOMAIN")) + "$"
+                            if self.get_config("NGINX_WILDCARD_DOMAIN") and self.get_config("VSCODE_DOMAIN")
+                            else ""
+                        )
+                    ),
+                    template=self.get_source_path("proxy.conf"),
+                    auth=None,
+                    url=lazy_load(
+                        lambda: utils.make_url(
+                            "https" if self.get_config("NGINX_HTTPS_ENABLE") else "http",
+                            "{{port}}." + self.get_config("VSCODE_DOMAIN"),
+                            self.get_config("NGINX_HTTPS_PORT" if self.get_config("NGINX_HTTPS_ENABLE") else "NGINX_HTTP_PORT"),
+                        )
+                    ),
+                    cert_domains=(lazy_load(lambda: "*." + self.get_config("VSCODE_DOMAIN")),),
+                ),
+            },
+        }
+
+    @cached_property
     def exposes(self) -> Iterable[ExposeLink]:
         return [
-            self.expose_public("VS Code", "microsoftVisualStudioCode", "在线vscode", self.load_nginx_url(
-                "VSCODE_DOMAIN",
-                proxy_url="http://code-server:8080",
-                auth_enable=True,
-                auth_extra={
-                    "acl_bypass": ["\\.(css|js)$"],
-                }
-            )),
+            self.expose_public("VS Code", "microsoftVisualStudioCode", "在线vscode", self.load_nginx_url("web")),
             self.expose_container("VS Code", "microsoftVisualStudioCode", "在线vscode", self.load_port_url(
                 "VSCODE_PORT",
                 https=False
@@ -76,32 +102,7 @@ class Container(BaseContainer):
 
     @cached_property
     def proxy_url(self):
-        nginx = self.manager.containers["nginx"]
-        if nginx.enable and self.get_config("NGINX_WILDCARD_DOMAIN"):
-            domain = self.get_config("VSCODE_DOMAIN")
-            if domain:
-                if self.get_config("NGINX_HTTPS_ENABLE"):
-                    scheme = "https"
-                    port = self.get_config("NGINX_HTTPS_PORT")
-                else:
-                    scheme = "http"
-                    port = self.get_config("NGINX_HTTP_PORT")
-                proxy_domain = domain.replace(".", "\\.")
-                self.start_hooks.append(lambda: self.write_nginx_conf(
-                    rf"~^(?<proxy_port>\d+).{proxy_domain}$",
-                    proxy_name="proxy",
-                    proxy_domain_name=f"{domain}_proxy",
-                    proxy_conf=self.get_source_path("proxy.conf"),
-                    auth_enable=True,
-                ))
-                return utils.make_url(scheme, f"{{{{port}}}}.{domain}", port)
-        return ""
-
-    def on_prepare(self):
-        if self.proxy_url:
-            nginx = self.manager.containers["nginx"]
-            domain = self.get_config("VSCODE_DOMAIN")
-            nginx.append_ssl_domains(f"*.{domain}")
+        return self.load_nginx_url("proxy")
 
     @subcommand("install", help="install modules into the running container")
     def on_exec_install(self):
