@@ -4,7 +4,7 @@
 from typing import Iterable
 
 from linktools import utils
-from linktools.cntr import BaseContainer, EventContext, ExposeLink
+from linktools.cntr import BaseContainer, EventContext, ExposeLink, NginxSite
 from linktools.core import ConfigField, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
 
@@ -29,18 +29,22 @@ class Container(BaseContainer):
         )
 
     @cached_property
+    def integrations(self) -> "dict[str, dict[str, NginxSite]]":
+        return {"nginx": {"web": NginxSite(
+                    server_name=self.get_config_later("MIHOMO_DOMAIN"),
+                    proxy="http://mihomo:9090",
+                    auth=None,
+        )}}
+
+    @cached_property
     def exposes(self) -> Iterable[ExposeLink]:
         return [
-            self.expose_public("Mihomo", "vpn", "Mihomo监控", self.load_nginx_url(
-                "MIHOMO_DOMAIN", "ui", "metacubexd", "#", "setup",
+            self.expose_public("Mihomo", "vpn", "Mihomo监控", self.load_nginx_url("web", "ui", "metacubexd", "#", "setup",
                 queries=dict(
                     hostname=self.get_config_later("MIHOMO_DOMAIN"),
                     port=self.get_config_later("NGINX_HTTPS_PORT"),
                     secret=self.get_config_later("MIHOMO_SECRET"),
                 ),
-                proxy_name="mihomo",
-                proxy_url="http://mihomo:9090",
-                auth_enable=True,
             )),
             self.expose_container("Mihomo", "vpn", "Mihomo监控", self.load_port_url(
                 "MIHOMO_PORT", "ui", "metacubexd", "#", "setup",
