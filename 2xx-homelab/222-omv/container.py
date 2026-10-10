@@ -30,8 +30,8 @@ from typing import Iterable
 
 from linktools import utils
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
-from linktools.cntr.urls import load_config_url
+from linktools.cntr import BaseContainer, Integrations
+from linktools.cntr.ext import Nginx, Flare, load_config_url
 
 
 class Container(BaseContainer):
@@ -49,18 +49,15 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return {
-            "nginx": {
-                "web": NginxSite(
-                    expose=ExposeLink.public("OpenMediaVault", "nas", "OMV系统"),
-                    server_name=self.get_config_later("OMV_DOMAIN"),
-                    proxy=self.get_config_later("OMV_LOCAL_URL"),
-                    auth=False,
-                ),
-            },
-            "flare": [
-                ExposeLink.private("OpenMediaVault", "nas", "OMV系统", load_config_url(
-                    self, "OMV_LOCAL_URL"
-                )),
-            ],
-        }
+        return (
+            Nginx.site(
+                local_id="web",
+                expose=Flare.public("OpenMediaVault", "nas", "OMV系统"),
+                server_name=self.get_config_later("OMV_DOMAIN"),
+                proxy=self.get_config_later("OMV_LOCAL_URL"),
+                auth=False,
+            ),
+            Flare.category("private")("OpenMediaVault", "nas", "OMV系统", load_config_url(
+                self, "OMV_LOCAL_URL"
+            )),
+        )

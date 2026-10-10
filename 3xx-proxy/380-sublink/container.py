@@ -28,8 +28,8 @@
 """
 from typing import Iterable
 
-from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
-from linktools.cntr.urls import load_port_url
+from linktools.cntr import BaseContainer, Integrations
+from linktools.cntr.ext import Nginx, Flare, load_port_url
 from linktools.core import ConfigField, AliasProvider
 from linktools.decorator import cached_property
 
@@ -44,7 +44,7 @@ class Container(BaseContainer):
     def configs(self):
         return dict(
             SUBLINK_TAG="latest",
-            SUBLINK_DOMAIN=self.get_nginx_domain(),
+            SUBLINK_DOMAIN=Nginx.domain(self),
             SUBLINK_PORT=ConfigField(cast=int, default=0),
             SUBLINK_API_KEY="",
             SUBLINK_ADMIN_PASSWORD="123456",
@@ -53,19 +53,16 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return {
-            "nginx": {
-                "web": NginxSite(
-                    expose=ExposeLink.public("SublinkPro", "link", "代理订阅管理"),
-                    server_name=self.get_config_later("SUBLINK_DOMAIN"),
-                    template=self.get_source_path("nginx.conf"),
-                    auth=None,
-                ),
-            },
-            "flare": [
-                ExposeLink.container("SublinkPro", "link", "代理订阅管理", load_port_url(
-                    self, "SUBLINK_PORT",
-                    https=False
-                )),
-            ],
-        }
+        return (
+            Nginx.site(
+                local_id="web",
+                expose=Flare.public("SublinkPro", "link", "代理订阅管理"),
+                server_name=self.get_config_later("SUBLINK_DOMAIN"),
+                template=self.get_source_path("nginx.conf"),
+                auth=None,
+            ),
+            Flare.category("container")("SublinkPro", "link", "代理订阅管理", load_port_url(
+                self, "SUBLINK_PORT",
+                https=False
+            )),
+        )

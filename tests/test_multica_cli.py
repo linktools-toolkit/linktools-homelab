@@ -1,15 +1,14 @@
 import argparse
-from pathlib import Path
-import runpy
 import unittest
 from unittest.mock import Mock, patch
 
 from linktools.cli._command import SubCommandMixin
 from linktools.cntr import ContainerError
+from test_navigation_integrations import ROOT, load_container
 
 
-SOURCE = Path(__file__).resolve().parents[1] / "5xx-ai/561-multica"
-Container = runpy.run_path(str(SOURCE / "container.py"))["Container"]
+SOURCE = ROOT / "5xx-ai/521-multica"
+Container = load_container(SOURCE / "container.py")
 
 
 class MulticaCliTests(unittest.TestCase):

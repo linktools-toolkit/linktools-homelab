@@ -15,11 +15,14 @@ from jinja2 import Environment
 import yaml
 
 import linktools.cntr
-from linktools.cntr import ContainerManager, ExposeLink, urls
-from linktools.cntr.generation import FlareGeneration
+from linktools.cntr import ContainerManager, Integration
+from linktools.cntr import ext as urls
+from linktools.cntr.repo.requirements import ensure_requirement
+from linktools.capabilities.cntr import __cap_cntr__
 
 
 ROOT = Path(__file__).resolve().parents[1]
+ensure_requirement(json.loads((ROOT / ".linktools.json").read_text()), "linktools-cntr", __cap_cntr__.version)
 
 
 @lru_cache(maxsize=None)
@@ -49,7 +52,7 @@ class FakeConfig:
 
     def get(self, key, **kwargs):
         self.reads.append(key)
-        if self.declaring and key != "NGINX_AUTH_ENABLE":
+        if self.declaring:
             raise AssertionError("Declaration eagerly read " + key)
         if key in self.values:
             return self.values[key]
@@ -67,7 +70,7 @@ def make_manager(**values):
     manager.__dict__["logger"] = Mock()
     manager.env_config = FakeConfig(**values)
     containers = {
-        name: SimpleNamespace(name=name, integrations={})
+        name: SimpleNamespace(name=name, integrations=(), enable=True)
         for name in ("nginx", "flare", "authelia", "safeline")
     }
     for path in declaration_paths():
@@ -77,8 +80,7 @@ def make_manager(**values):
     manager.__dict__["installed_state"] = SimpleNamespace(
         get=lambda resolve: tuple(containers.values()),
     )
-    # Collect declarations and site views while every config read except auth
-    # policy switches fails. URL resolution must happen only during rendering.
+    # Collect declarations and site views while every configuration read fails. URL resolution must happen only during rendering.
     manager.integration_snapshot
     manager.nginx_sites
     manager.env_config.declaring = False
@@ -88,7 +90,7 @@ def make_manager(**values):
 def render_flare(manager):
     path = Path(linktools.cntr.__file__).parent.parent / "assets/containers/120-flare/container.py"
     flare = load_container(path)(manager, path.parent, "flare")
-    return {name: yaml.safe_load(text) for name, text in FlareGeneration(flare).render("test").items()}
+    return {name: yaml.safe_load(text) for name, text in flare._navigation_files().items()}
 
 
 def render_compose(container, auth):
@@ -120,10 +122,10 @@ class NavigationIntegrationTests(unittest.TestCase):
         self.assertEqual(len(manager.nginx_sites), 31)
         self.assertTrue(all(key is None for _, key, _ in entries))
         self.assertEqual(len({(producer.name, key) for producer, key, _ in attached}), 24)
-        self.assertTrue(all(isinstance(link, ExposeLink) for _, _, link in entries + attached))
-        self.assertEqual(set(manager.env_config.reads), {"NGINX_AUTH_ENABLE"})
+        self.assertTrue(all(isinstance(link, Integration) for _, _, link in entries + attached))
+        self.assertEqual(manager.env_config.reads, [])
         self.assertEqual([producer.name for producer, _, link in entries
-                          if link.category.name == "public"], [
+                          if link.display_category.name == "public"], [
             "mihomo", "litellm", "mcp-playwright", "mcp-push", "pypiserver",
         ])
         rendered = render_flare(manager)
@@ -134,15 +136,13 @@ class NavigationIntegrationTests(unittest.TestCase):
             "public": 29, "private": 9, "container": 22, "other": 5,
         })
         for container in manager.containers.values():
-            if "flare" in container.integrations:
-                self.assertIsInstance(container.integrations["flare"], (list, tuple))
+            self.assertIsInstance(container.integrations, (list, tuple))
         for path in declaration_paths():
             self.assertNotIn("exposes", load_container(path).__dict__)
 
     def test_it_tools_preserves_all_links_and_bookmark_order(self):
         manager = make_manager()
-        links = manager.containers["it-tools"].integrations["flare"]
-        self.assertIsInstance(links, list)
+        links = [link for link in manager.containers["it-tools"].integrations if link.consumer == "flare"]
         self.assertEqual([link.name for link in links], [
             "正则表达式测试", "正则表达式手册", "在线json解析", "DNS查询", "图标下载", "IT Tools",
         ])
@@ -156,9 +156,9 @@ class NavigationIntegrationTests(unittest.TestCase):
 
     def test_direct_only_and_proxy_only_services_remain_independent(self):
         manager = make_manager()
-        self.assertEqual(list(manager.containers["ws-scrcpy"].integrations), ["flare"])
-        self.assertEqual(list(manager.containers["xray-server"].integrations), ["nginx"])
-        self.assertEqual(manager.containers["ws-scrcpy"].integrations["flare"][0].url,
+        self.assertEqual([item.consumer for item in manager.containers["ws-scrcpy"].integrations], ["flare"])
+        self.assertEqual([item.consumer for item in manager.containers["xray-server"].integrations], ["nginx"])
+        self.assertEqual(manager.containers["ws-scrcpy"].integrations[0].url,
                          "http://host.example.test:9000")
 
     def test_flare_renders_all_links_with_preserved_categories_and_order(self):
@@ -199,7 +199,7 @@ class NavigationIntegrationTests(unittest.TestCase):
 
     def test_no_removed_container_helpers_remain(self):
         removed = {"expose_public", "expose_private", "expose_container", "expose_other",
-                   "load_nginx_url", "load_port_url", "load_config_url", "load_exist_nginx_url"}
+                   "load_nginx_url", "load_port_url", "load_config_url", "load_exist_nginx_url", "get_nginx_domain", "on_prepare"}
         for path in ROOT.glob("*/*/container.py"):
             for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
                 if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):

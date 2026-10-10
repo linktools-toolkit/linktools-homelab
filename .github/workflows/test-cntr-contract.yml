@@ -1,0 +1,52 @@
+name: Test cntr contracts
+
+on:
+  pull_request:
+  push:
+    branches: [master, refactor/cntr-integrations]
+  workflow_dispatch:
+    inputs:
+      linktools_ref:
+        description: Matching linktools branch or commit
+        default: refactor/cntr-integrations
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  offline-contract:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.10', '3.12', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: homelab
+      - uses: actions/checkout@v4
+        with:
+          repository: linktools-toolkit/linktools
+          ref: ${{ inputs.linktools_ref || 'refactor/cntr-integrations' }}
+          path: linktools
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Record paired revisions
+        run: |
+          git -C homelab rev-parse HEAD
+          git -C linktools rev-parse HEAD
+      - name: Install matching source packages
+        working-directory: linktools
+        run: |
+          python -m pip install -r requirements.txt
+          python manage.py install 'linktools[cli,git]' linktools-cntr --editable --quiet
+          python -m pip install pytest
+      - name: Run offline contracts with isolated state
+        working-directory: homelab
+        env:
+          LINKTOOLS_PATH: ${{ runner.temp }}/homelab-contract-state
+          PYTHONPATH: ${{ github.workspace }}/linktools/linktools/src:${{ github.workspace }}/linktools/linktools-cntr/src
+        run: python -m pytest -q tests

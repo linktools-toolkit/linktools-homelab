@@ -28,8 +28,8 @@
 """
 from typing import Iterable
 
-from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
-from linktools.cntr.urls import load_port_url
+from linktools.cntr import BaseContainer, Integrations
+from linktools.cntr.ext import Nginx, Flare, load_port_url
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
@@ -44,25 +44,22 @@ class Container(BaseContainer):
     def configs(self):
         return dict(
             HOME_ASSISTANT_TAG="stable",
-            HOME_ASSISTANT_DOMAIN=self.get_nginx_domain("homeassistant"),
+            HOME_ASSISTANT_DOMAIN=Nginx.domain(self, "homeassistant"),
             HOME_ASSISTANT_PORT=ConfigField(cast=int, default=8123),
         )
 
     @cached_property
     def integrations(self) -> Integrations:
-        return {
-            "nginx": {
-                "web": NginxSite(
-                    expose=ExposeLink.public("HomeAssistant", "homeAssistant", "Home Assistant"),
-                    server_name=self.get_config_later("HOME_ASSISTANT_DOMAIN"),
-                    proxy="http://home-assistant:8123",
-                    auth=False,
-                ),
-            },
-            "flare": [
-                ExposeLink.container("HomeAssistant", "homeAssistant", "Home Assistant", load_port_url(
-                    self, "HOME_ASSISTANT_PORT",
-                    https=False,
-                )),
-            ],
-        }
+        return (
+            Nginx.site(
+                local_id="web",
+                expose=Flare.public("HomeAssistant", "homeAssistant", "Home Assistant"),
+                server_name=self.get_config_later("HOME_ASSISTANT_DOMAIN"),
+                proxy="http://home-assistant:8123",
+                auth=False,
+            ),
+            Flare.category("container")("HomeAssistant", "homeAssistant", "Home Assistant", load_port_url(
+                self, "HOME_ASSISTANT_PORT",
+                https=False,
+            )),
+        )

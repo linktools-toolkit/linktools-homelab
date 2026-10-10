@@ -29,8 +29,8 @@
 from typing import Iterable
 
 from linktools import utils
-from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
-from linktools.cntr.urls import load_port_url
+from linktools.cntr import BaseContainer, Integrations
+from linktools.cntr.ext import Nginx, Flare, load_port_url
 from linktools.core import ConfigField, AliasProvider, LazyProvider
 from linktools.decorator import cached_property
 
@@ -47,25 +47,22 @@ class Container(BaseContainer):
             ALIST_TAG="latest",
             ALIST_DATA_PATH=ConfigField(cast="path", provider=AliasProvider("DOCKER_USER_DATA_PATH")),
             ALIST_ADMIN_PASSWORD=ConfigField(provider=LazyProvider(lambda r: utils.make_uuid()[:12], cached=True)),
-            ALIST_DOMAIN=self.get_nginx_domain(),
+            ALIST_DOMAIN=Nginx.domain(self),
             ALIST_PORT=ConfigField(cast=int, default=0),
         )
 
     @cached_property
     def integrations(self) -> Integrations:
-        return {
-            "nginx": {
-                "web": NginxSite(
-                    expose=ExposeLink.public("Alist", "folderSync", ""),
-                    server_name=self.get_config_later("ALIST_DOMAIN"),
-                    proxy="http://alist:5244",
-                    auth=False,
-                ),
-            },
-            "flare": [
-                ExposeLink.container("Alist", "folderSync", "", load_port_url(
-                    self, "ALIST_PORT",
-                    https=False,
-                )),
-            ],
-        }
+        return (
+            Nginx.site(
+                local_id="web",
+                expose=Flare.public("Alist", "folderSync", ""),
+                server_name=self.get_config_later("ALIST_DOMAIN"),
+                proxy="http://alist:5244",
+                auth=False,
+            ),
+            Flare.category("container")("Alist", "folderSync", "", load_port_url(
+                self, "ALIST_PORT",
+                https=False,
+            )),
+        )

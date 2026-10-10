@@ -7,8 +7,8 @@ import secrets
 from typing import Iterable
 
 from linktools.cli import subcommand
-from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
-from linktools.cntr.urls import load_nginx_url, load_port_url
+from linktools.cntr import BaseContainer, Integrations
+from linktools.cntr.ext import Nginx, Flare, load_nginx_url, load_port_url
 from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
 
@@ -29,7 +29,7 @@ class Container(BaseContainer):
     def configs(self):
         return dict(
             MCP_PLAYWRIGHT_TAG="latest",
-            MCP_PLAYWRIGHT_DOMAIN=self.get_nginx_domain(),
+            MCP_PLAYWRIGHT_DOMAIN=Nginx.domain(self),
             MCP_PLAYWRIGHT_TOKEN=ConfigField(
                 cast=validate_token,
                 provider=LazyProvider(lambda r: secrets.token_hex(32), cached=True),
@@ -42,26 +42,23 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return {
-            "nginx": {
-                "web": NginxSite(
-                    expose=ExposeLink.public("Playwright Browser", "web", "通过 noVNC 操作 MCP 浏览器"),
-                    server_name=self.get_config_later("MCP_PLAYWRIGHT_DOMAIN"),
-                    template=self.get_source_path("nginx.conf"),
-                    waf=False,
-                    auth=None,
-                ),
-            },
-            "flare": [
-                ExposeLink.public("Playwright MCP", "robot", "MCP HTTP 服务（Bearer Token 认证）", load_nginx_url(self, "web", "mcp")),
-                ExposeLink.container("Playwright Browser", "web", "noVNC 浏览器", load_port_url(
-                    self, "MCP_PLAYWRIGHT_NOVNC_PORT", https=False,
-                )),
-                ExposeLink.container("Playwright MCP", "robot", "MCP HTTP 服务（路径 /mcp）", load_port_url(
-                    self, "MCP_PLAYWRIGHT_PORT", "mcp", https=False,
-                )),
-            ],
-        }
+        return (
+            Nginx.site(
+                local_id="web",
+                expose=Flare.public("Playwright Browser", "web", "通过 noVNC 操作 MCP 浏览器"),
+                server_name=self.get_config_later("MCP_PLAYWRIGHT_DOMAIN"),
+                template=self.get_source_path("nginx.conf"),
+                waf=False,
+                auth=None,
+            ),
+            Flare.public("Playwright MCP", "robot", "MCP HTTP 服务（Bearer Token 认证）", load_nginx_url(self, "web", "mcp")),
+            Flare.category("container")("Playwright Browser", "web", "noVNC 浏览器", load_port_url(
+                self, "MCP_PLAYWRIGHT_NOVNC_PORT", https=False,
+            )),
+            Flare.category("container")("Playwright MCP", "robot", "MCP HTTP 服务（路径 /mcp）", load_port_url(
+                self, "MCP_PLAYWRIGHT_PORT", "mcp", https=False,
+            )),
+        )
 
     @subcommand("show", help="print MCP server JSON configuration")
     def on_exec_show(self):

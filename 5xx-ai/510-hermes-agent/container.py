@@ -7,8 +7,8 @@ from linktools import utils
 from linktools.cli import subcommand, subcommand_argument
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
-from linktools.cntr.urls import load_port_url
+from linktools.cntr import BaseContainer, Integrations
+from linktools.cntr.ext import Nginx, Flare, load_port_url
 
 
 class Container(BaseContainer):
@@ -21,35 +21,32 @@ class Container(BaseContainer):
     def configs(self):
         return dict(
             HERMES_AGENT_TAG="latest",
-            HERMES_AGENT_DOMAIN=self.get_nginx_domain(),
+            HERMES_AGENT_DOMAIN=Nginx.domain(self),
             HERMES_AGENT_PORT=ConfigField(cast=int, default=0),
             HERMES_AGENT_DASHBOARD_PORT=ConfigField(cast=int, default=0),
         )
 
     @cached_property
     def integrations(self) -> Integrations:
-        return {
-            "nginx": {
-                "web": NginxSite(
-                    expose=ExposeLink.public("Hermes Agent", "robot", "AI Agent Dashboard"),
-                    server_name=self.get_config_later("HERMES_AGENT_DOMAIN"),
-                    proxy="http://hermes-dashboard:9120",
-                    template=self.get_source_path("nginx.conf"),
-                    waf=False,
-                    auth=None,
-                ),
-            },
-            "flare": [
-                ExposeLink.container("Hermes API", "robot", "AI Agent Gateway API", load_port_url(
-                    self, "HERMES_AGENT_PORT",
-                    https=False,
-                )),
-                ExposeLink.container("Hermes Dashboard", "robot", "AI Agent Dashboard", load_port_url(
-                    self, "HERMES_AGENT_DASHBOARD_PORT",
-                    https=False,
-                )),
-            ],
-        }
+        return (
+            Nginx.site(
+                local_id="web",
+                expose=Flare.public("Hermes Agent", "robot", "AI Agent Dashboard"),
+                server_name=self.get_config_later("HERMES_AGENT_DOMAIN"),
+                proxy="http://hermes-dashboard:9120",
+                template=self.get_source_path("nginx.conf"),
+                waf=False,
+                auth=None,
+            ),
+            Flare.category("container")("Hermes API", "robot", "AI Agent Gateway API", load_port_url(
+                self, "HERMES_AGENT_PORT",
+                https=False,
+            )),
+            Flare.category("container")("Hermes Dashboard", "robot", "AI Agent Dashboard", load_port_url(
+                self, "HERMES_AGENT_DASHBOARD_PORT",
+                https=False,
+            )),
+        )
 
     @subcommand("cli", help="run hermes CLI command", prefix_chars=chr(1))
     @subcommand_argument("args", nargs="...", metavar="ARGS", help="hermes args")

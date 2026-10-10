@@ -9,7 +9,6 @@ import unittest
 from jinja2 import Environment
 
 import linktools.cntr
-from linktools.cntr.generation import NginxGeneration
 from test_navigation_integrations import ROOT, load_container, make_manager
 
 
@@ -31,8 +30,11 @@ def render_nginx(**values):
     manager = make_manager(**config)
     path = Path(linktools.cntr.__file__).parent.parent / "assets/containers/100-nginx/container.py"
     nginx = load_container(path)(manager, path.parent, "nginx")
-    files = NginxGeneration(nginx).render("fixture")
-    bodies = {key: files["sites/" + site.file_id + "/business.conf"]
+    # Rendering needs a certificate path identity, never real ACME credentials.
+    nginx.__dict__["cert_image_revision"] = "fixture"
+    files, _ = nginx._rendered_site_files
+    # Business directives are now embedded in each self-contained site file.
+    bodies = {key: files["sites/" + site.file_id + ".conf"]
               for key, site in manager.nginx_sites.items() if site.enabled and site.template}
     return manager, files, bodies
 
@@ -49,8 +51,8 @@ class NativeTemplateTests(unittest.TestCase):
                         # fnOS's numeric local targets retain native URI semantics.
                         if key != ("fnos", "web"):
                             self.assertNotRegex(body, r"(?:proxy|grpc)_pass\s+(?:https?|grpc)://")
-                        self.assertIn('"X-Forwarded-Proto" "$cntr_scheme"', body, key)
-                        self.assertIn('"X-Forwarded-For" "$cntr_client_ip"', body, key)
+                        self.assertIn('"X-Forwarded-Proto" "$original_scheme"', body, key)
+                        self.assertIn('"X-Forwarded-For" "$original_client_ip"', body, key)
                     self.assertFalse(any("snippet" in name for name in files))
                     servers = [body for name, body in files.items()
                                if name.startswith("sites/") and name.count("/") == 1]
@@ -63,8 +65,8 @@ class NativeTemplateTests(unittest.TestCase):
         self.assertIn("rewrite ^/onlyoffice/(.*)$ /$1 break;", nextcloud)
         self.assertLess(nextcloud.index("set $onlyoffice_backend"), nextcloud.index("rewrite ^/onlyoffice/"))
         self.assertIn("proxy_pass $onlyoffice_backend;", nextcloud)
-        self.assertIn('"X-Forwarded-Host" "$cntr_host/onlyoffice"', nextcloud)
-        self.assertIn("return 301 $cntr_scheme://$cntr_host/remote.php/dav/", nextcloud)
+        self.assertIn('"X-Forwarded-Host" "$original_host/onlyoffice"', nextcloud)
+        self.assertIn("return 301 $original_scheme://$original_host/remote.php/dav/", nextcloud)
         pypi = bodies[("pypiserver", "web")]
         self.assertIn("rewrite ^/pypi(.*)$ /$1 break;", pypi)
         self.assertLess(pypi.index("set $pypi_backend"), pypi.index("rewrite ^/pypi"))
@@ -98,7 +100,7 @@ class NativeTemplateTests(unittest.TestCase):
                 self.assertIn("proxy_pass " + dav + ";", body)
                 self.assertNotIn("rewrite ^/(.*)$", body)
                 self.assertIn("rewrite ^/dav/(.*)$ /$1 break;", body)
-                self.assertNotIn("$request_uri", body)
+                self.assertNotRegex(body, r"proxy_pass[^;]*\$request_uri")
 
     def test_xray_paths_feed_routes_application_and_bypass_from_one_definition(self):
         manager, _, bodies = render_nginx(
@@ -113,7 +115,7 @@ class NativeTemplateTests(unittest.TestCase):
         self.assertIn('location ^~ "/stream"', body)
         self.assertEqual(str(site.vars["grpc_pattern"]), site.waf_bypass[0])
         self.assertIn('location ~ "^/custom\\\\.grpc(?:/(?:Tun|TunMulti))?$"', body)
-        self.assertNotIn("${cntr_dollar}", body)
+        self.assertNotIn("${literal_dollar}", body)
         self.assertIn('grpc_set_header "Connection" "";', body)
         self.assertIn('grpc_set_header "Upgrade" "";', body)
         for request in ("/custom.grpc", "/custom.grpc/Tun", "/custom.grpc/TunMulti"):
@@ -125,7 +127,26 @@ class NativeTemplateTests(unittest.TestCase):
         self.assertEqual(settings[0]["wsSettings"]["path"], "/socket")
         self.assertEqual(settings[1]["grpcSettings"]["serviceName"], "/custom.grpc")
         self.assertEqual(settings[2]["xhttpSettings"]["path"], "/stream")
-        self.assertEqual(body.count('grpc_set_header "X-Forwarded-Proto" "$cntr_scheme"'), 3)
+        self.assertEqual(body.count('grpc_set_header "X-Forwarded-Proto" "$original_scheme"'), 6)
+
+    def test_custom_routes_select_their_own_auth_policy_on_shared_hostnames(self):
+        manager = make_manager(**dict(VALUES, NGINX_AUTH_ENABLE=True))
+        source = Path(linktools.cntr.__file__).parent.parent / "assets/containers/100-nginx/container.py"
+        nginx = load_container(source)(manager, source.parent, "nginx")
+        for key, site in manager.nginx_sites.items():
+            if not site.enabled or not site.template:
+                continue
+            with self.subTest(site=key):
+                site.resolve()
+                body = nginx._render_site_template(site.producer, site.template, site, route_auth=True)
+                if site.auth:
+                    self.assertIn("auth_request /_internal/auth/" + site.var_name + ";", body)
+                else:
+                    self.assertIn("auth_request off;", body)
+                if key == ("xray-server", "web"):
+                    # All websocket/gRPC/xhttp routes must override the shared
+                    # server's deny-by-default policy, even after an early guard.
+                    self.assertEqual(body.count("auth_request off;"), 4)
 
     def test_business_data_is_not_rendered_a_second_time(self):
         token = "literal-{{ not_a_second_template }}"

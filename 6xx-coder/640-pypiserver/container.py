@@ -28,8 +28,8 @@
 """
 from typing import Iterable
 
-from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
-from linktools.cntr.urls import load_nginx_url, load_port_url
+from linktools.cntr import OperationContext, BaseContainer, Integrations
+from linktools.cntr.ext import Nginx, Flare, load_nginx_url, load_port_url
 from linktools.core import ConfigField, PromptProvider
 from linktools.decorator import cached_property
 
@@ -44,7 +44,7 @@ class Container(BaseContainer):
     def configs(self):
         return dict(
             PYPISERVER_TAG="latest",
-            PYPISERVER_DOMAIN=self.get_nginx_domain("pypi"),
+            PYPISERVER_DOMAIN=Nginx.domain(self, "pypi"),
             PYPISERVER_PORT=ConfigField(cast=int, default=0),
             PYPISERVER_USERNAME=ConfigField(provider=PromptProvider(cached=True)),
             PYPISERVER_PASSWORD=ConfigField(provider=PromptProvider(cached=True)),
@@ -53,24 +53,21 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return {
-            "nginx": {
-                "web": NginxSite(
-                    server_name=self.get_config_later("PYPISERVER_DOMAIN"),
-                    template=self.get_source_path("nginx.conf"),
-                    auth=False,
-                ),
-            },
-            "flare": [
-                ExposeLink.public("pypiserver", "languagePython", "pypiserver", load_nginx_url(self, "web", "simple")),
-                ExposeLink.container("pypiserver", "languagePython", "pypiserver", load_port_url(
-                    self, "PYPISERVER_PORT",
-                    https=False
-                )),
-            ],
-        }
+        return (
+            Nginx.site(
+                local_id="web",
+                server_name=self.get_config_later("PYPISERVER_DOMAIN"),
+                template=self.get_source_path("nginx.conf"),
+                auth=False,
+            ),
+            Flare.public("pypiserver", "languagePython", "pypiserver", load_nginx_url(self, "web", "simple")),
+            Flare.category("container")("pypiserver", "languagePython", "pypiserver", load_port_url(
+                self, "PYPISERVER_PORT",
+                https=False
+            )),
+        )
 
-    def on_starting(self):
+    def on_starting(self, context: OperationContext):
         path = self.get_app_data_path("auth", ".htpasswd", create_parent=True)
         with open(path, "wt") as fd:
             username = self.get_config('PYPISERVER_USERNAME')

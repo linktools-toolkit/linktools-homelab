@@ -26,8 +26,8 @@
   / ==ooooooooooooooo==.o.  ooo= //   ,``--{)B     ,"
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
-from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
-from linktools.cntr.urls import load_port_url
+from linktools.cntr import BaseContainer, Integrations
+from linktools.cntr.ext import Nginx, Flare, load_port_url
 from linktools.core import ConfigField, PromptProvider
 from linktools.decorator import cached_property
 
@@ -38,22 +38,19 @@ class Container(BaseContainer):
     def configs(self):
         return dict(
             ARIA2_TAG="latest",
-            ARIA2_DOMAIN=self.get_nginx_domain(),
+            ARIA2_DOMAIN=Nginx.domain(self),
             ARIA2_PORT=ConfigField(cast=int, default=0),
             ARIA2_RPC_SECRET=ConfigField(provider=PromptProvider(default="159753", cached=True)),
         )
 
     @cached_property
     def integrations(self) -> Integrations:
-        return {
-            "nginx": {
-                "web": NginxSite(
-                    server_name=self.get_config_later("ARIA2_DOMAIN"),
-                    proxy="http://aria2-pro:6800",
-                    auth=False,
-                ),
-            },
-            "flare": [
-                ExposeLink.container("aria2", "tools", "", load_port_url(self, "ARIA2_PORT", https=False)),
-            ],
-        }
+        return (
+            Nginx.site(
+                local_id="web",
+                server_name=self.get_config_later("ARIA2_DOMAIN"),
+                proxy="http://aria2-pro:6800",
+                auth=False,
+            ),
+            Flare.category("container")("aria2", "tools", "", load_port_url(self, "ARIA2_PORT", https=False)),
+        )

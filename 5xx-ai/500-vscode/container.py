@@ -35,13 +35,29 @@ from linktools import utils
 from linktools.cli import subcommand
 from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
-from linktools.cntr.urls import load_nginx_url, load_port_url
+from linktools.cntr import BaseContainer, Integrations
+from linktools.cntr.lifecycle import HookPhase
+from linktools.cntr.ext import Nginx, Flare, load_nginx_url, load_port_url
 from linktools.rich import prompt
 from linktools.runtime import lazy_load
 
 
 class Container(BaseContainer):
+
+    def on_init(self):
+        # Register only the callback during discovery. Installed state and config
+        # are read after all containers are loaded, when Compose is rendered.
+        self.hooks.register(
+            HookPhase.AFTER_COMPOSE_RENDER,
+            self._configure_multica,
+            key=("multica", "inject_vscode"),
+            name="inject Multica into VSCode Compose",
+        )
+
+    def _configure_multica(self, compose):
+        multica = self.containers.get("multica")
+        if multica is not None and multica.enable:
+            multica.configure_vscode(compose)
 
     @property
     def dependencies(self) -> Iterable[str]:
@@ -51,7 +67,7 @@ class Container(BaseContainer):
     def configs(self):
         return dict(
             VSCODE_TAG="latest",
-            VSCODE_DOMAIN=self.get_nginx_domain(),
+            VSCODE_DOMAIN=Nginx.domain(self),
             VSCODE_PORT=ConfigField(cast=int, default=0),
             VSCODE_PASSWORD=ConfigField(provider=LazyProvider(
                 lambda r: prompt("VSCODE_PASSWORD") if not r.get("NGINX_AUTH_ENABLE") else "",
@@ -61,42 +77,40 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return {
-            "nginx": {
-                "web": NginxSite(
-                    expose=ExposeLink.public("VS Code", "microsoftVisualStudioCode", "在线vscode"),
-                    server_name=self.get_config_later("VSCODE_DOMAIN"),
-                    proxy="http://code-server:8080",
-                    auth=None,
-                    auth_bypass=(r"\.(css|js)$",),
+        return (
+            Nginx.site(
+                local_id="web",
+                expose=Flare.public("VS Code", "microsoftVisualStudioCode", "在线vscode"),
+                server_name=self.get_config_later("VSCODE_DOMAIN"),
+                proxy="http://code-server:8080",
+                auth=None,
+                auth_bypass=(r"\.(css|js)$",),
+            ),
+            Nginx.site(
+                local_id="proxy",
+                server_name=lazy_load(
+                    lambda: (
+                        r"~^(?<proxy_port>\d+)\." + re.escape(self.get_config("VSCODE_DOMAIN")) + "$"
+                        if self.get_config("NGINX_WILDCARD_DOMAIN") and self.get_config("VSCODE_DOMAIN")
+                        else ""
+                    )
                 ),
-                "proxy": NginxSite(
-                    server_name=lazy_load(
-                        lambda: (
-                            r"~^(?<proxy_port>\d+)\." + re.escape(self.get_config("VSCODE_DOMAIN")) + "$"
-                            if self.get_config("NGINX_WILDCARD_DOMAIN") and self.get_config("VSCODE_DOMAIN")
-                            else ""
-                        )
-                    ),
-                    template=self.get_source_path("proxy.conf"),
-                    auth=None,
-                    url=lazy_load(
-                        lambda: utils.make_url(
-                            "https" if self.get_config("NGINX_HTTPS_ENABLE") else "http",
-                            "{{port}}." + self.get_config("VSCODE_DOMAIN"),
-                            self.get_config("NGINX_HTTPS_PORT" if self.get_config("NGINX_HTTPS_ENABLE") else "NGINX_HTTP_PORT"),
-                        )
-                    ),
-                    cert_domains=(lazy_load(lambda: "*." + self.get_config("VSCODE_DOMAIN")),),
+                template=self.get_source_path("proxy.conf"),
+                auth=None,
+                url=lazy_load(
+                    lambda: utils.make_url(
+                        "https" if self.get_config("NGINX_HTTPS_ENABLE") else "http",
+                        "{{port}}." + self.get_config("VSCODE_DOMAIN"),
+                        self.get_config("NGINX_HTTPS_PORT" if self.get_config("NGINX_HTTPS_ENABLE") else "NGINX_HTTP_PORT"),
+                    )
                 ),
-            },
-            "flare": [
-                ExposeLink.container("VS Code", "microsoftVisualStudioCode", "在线vscode", load_port_url(
-                    self, "VSCODE_PORT",
-                    https=False
-                )),
-            ],
-        }
+                cert_domains=(lazy_load(lambda: "*." + self.get_config("VSCODE_DOMAIN")),),
+            ),
+            Flare.category("container")("VS Code", "microsoftVisualStudioCode", "在线vscode", load_port_url(
+                self, "VSCODE_PORT",
+                https=False
+            )),
+        )
 
     @cached_property
     def proxy_url(self):

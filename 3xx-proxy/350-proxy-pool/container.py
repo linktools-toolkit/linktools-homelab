@@ -28,8 +28,8 @@
 """
 from typing import Iterable
 
-from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
-from linktools.cntr.urls import load_port_url
+from linktools.cntr import BaseContainer, Integrations
+from linktools.cntr.ext import Nginx, Flare, load_port_url
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
@@ -44,25 +44,22 @@ class Container(BaseContainer):
     def configs(self):
         return dict(
             PROXY_POOL_TAG="latest",
-            PROXY_POOL_DOMAIN=self.get_nginx_domain(),
+            PROXY_POOL_DOMAIN=Nginx.domain(self),
             PROXY_POOL_PORT=ConfigField(cast=int, default=0),
         )
 
     @cached_property
     def integrations(self) -> Integrations:
-        return {
-            "nginx": {
-                "web": NginxSite(
-                    expose=ExposeLink.public("Proxy Pool", "tools", "代理池"),
-                    server_name=self.get_config_later("PROXY_POOL_DOMAIN"),
-                    proxy="http://proxy-pool:5010",
-                    auth=False,
-                ),
-            },
-            "flare": [
-                ExposeLink.container("Proxy Pool", "tools", "代理池", load_port_url(
-                    self, "PROXY_POOL_PORT",
-                    https=False
-                )),
-            ],
-        }
+        return (
+            Nginx.site(
+                local_id="web",
+                expose=Flare.public("Proxy Pool", "tools", "代理池"),
+                server_name=self.get_config_later("PROXY_POOL_DOMAIN"),
+                proxy="http://proxy-pool:5010",
+                auth=False,
+            ),
+            Flare.category("container")("Proxy Pool", "tools", "代理池", load_port_url(
+                self, "PROXY_POOL_PORT",
+                https=False
+            )),
+        )

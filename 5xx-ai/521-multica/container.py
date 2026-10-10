@@ -12,7 +12,7 @@ from linktools.cli import subcommand, subcommand_argument
 from linktools.core import ConfigField, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, ContainerError
-from linktools.cntr.lifecycle import HookPhase
+from linktools.cntr.ext import load_nginx_url
 from linktools.rich import choose, confirm, prompt
 
 
@@ -28,11 +28,7 @@ class Container(BaseContainer):
     def _prompt_url(self, config, name):
         server = self.manager.containers.get("multica-server")
         if server is not None and server.enable:
-            default = utils.make_url(
-                config.get("NGINX_DEFAULT_SCHEME"),
-                config.get("MULTICA_DOMAIN"),
-                config.get("NGINX_DEFAULT_PORT"),
-            )
+            default = str(load_nginx_url(server, "web"))
             return prompt(name, default=default)
         return prompt(name)
 
@@ -49,18 +45,19 @@ class Container(BaseContainer):
             MULTICA_PAT=ConfigField(provider=PromptProvider(password=True, cached=True), required=True, secret=True),
         )
 
-    def on_prepare(self):
+    def configure_vscode(self, compose):
+        """Extend the rendered service without writing runtime files."""
         try:
             script = self.get_source_path("scripts/10-multica.sh")
             if not script.is_file() or not os.access(script, os.X_OK):
                 self.logger.warning(f"Skip Multica startup integration: script is unavailable: {script}")
                 return
             pat = self._prepare_pat()
-            self._inject_vscode(script, pat)
+            self._inject_vscode(compose, script, pat)
         except Exception as exc:
             self.logger.warning(f"Skip Multica startup integration: {type(exc).__name__}: {exc}")
 
-    def _inject_vscode(self, script, pat):
+    def _inject_vscode(self, compose, script, pat):
         vscode = self.manager.containers["vscode"]
         secret_dir = self.get_app_path("secrets")
         environment = ["MULTICA_WORKSPACES_ROOT=/workspace/.multica/workspaces"]
@@ -73,17 +70,10 @@ class Container(BaseContainer):
             f'{self.get_app_path("home/.multica")}:/workspace/.multica',
         ]
 
-        def inject(compose):
-            service = compose["services"]["code-server"]
-            service["environment"].extend(environment)
-            service["volumes"].extend(volumes)
+        service = compose["services"]["code-server"]
+        service["environment"].extend(environment)
+        service["volumes"].extend(volumes)
 
-        vscode.hooks.register(
-            HookPhase.AFTER_COMPOSE_RENDER,
-            inject,
-            key=("multica", "inject_vscode"),
-            name="inject Multica into VSCode Compose",
-        )
         # A targeted VSCode start only runs VSCode's start hooks.
         vscode.add_start_hook(
             ("multica", "prepare_files"),

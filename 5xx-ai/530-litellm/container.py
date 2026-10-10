@@ -7,8 +7,8 @@ from typing import Iterable
 from linktools.cli import subcommand
 from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
-from linktools.cntr.urls import load_nginx_url, load_port_url
+from linktools.cntr import BaseContainer, Integrations
+from linktools.cntr.ext import Authelia, Nginx, Flare, load_nginx_url, load_port_url
 
 
 class Container(BaseContainer):
@@ -21,7 +21,7 @@ class Container(BaseContainer):
     def configs(self):
         return dict(
             LITELLM_TAG="main-latest",
-            LITELLM_DOMAIN=self.get_nginx_domain(),
+            LITELLM_DOMAIN=Nginx.domain(self),
             LITELLM_PORT=ConfigField(cast=int, default=0),
             LITELLM_MASTER_KEY=ConfigField(provider=LazyProvider(
                 lambda r: f"sk-{secrets.token_hex(24)}", cached=True,
@@ -36,24 +36,24 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return {
-            "nginx": {
-                "web": NginxSite(
-                    server_name=self.get_config_later("LITELLM_DOMAIN"),
-                    proxy="http://litellm:4000",
-                    auth=None,
-                    auth_bypass=("^/v1/", "^/chat/completions", "^/completions", "^/embeddings", "^/health",),
-                    oidc_redirects=("/sso/callback",) if self.get_config("NGINX_AUTH_ENABLE") else (),
-                ),
-            },
-            "flare": [
-                ExposeLink.public("LiteLLM", "api", "LiteLLM Proxy & Web UI", load_nginx_url(self, "web", "ui")),
-                ExposeLink.container("LiteLLM", "api", "LiteLLM Proxy & Web UI", load_port_url(
-                    self, "LITELLM_PORT", "ui",
-                    https=False,
-                )),
-            ],
-        }
+        return (
+            Nginx.site(
+                local_id="web",
+                server_name=self.get_config_later("LITELLM_DOMAIN"),
+                proxy="http://litellm:4000",
+                auth=None,
+                auth_bypass=("^/v1/", "^/chat/completions", "^/completions", "^/embeddings", "^/health",),
+            ),
+            Flare.public("LiteLLM", "api", "LiteLLM Proxy & Web UI", load_nginx_url(self, "web", "ui")),
+            Flare.category("container")("LiteLLM", "api", "LiteLLM Proxy & Web UI", load_port_url(
+                self, "LITELLM_PORT", "ui",
+                https=False,
+            )),
+            Authelia.oidc(
+                redirect_uris=(load_nginx_url(self, "web", "sso/callback"),),
+                enabled=self.get_config_later("NGINX_AUTH_ENABLE"),
+            ),
+        )
 
     @subcommand("key", help="print the master key for Web UI login")
     def on_exec_key(self):

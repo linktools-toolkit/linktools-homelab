@@ -28,8 +28,8 @@
 """
 from typing import Iterable
 
-from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
-from linktools.cntr.urls import load_port_url
+from linktools.cntr import BaseContainer, Integrations
+from linktools.cntr.ext import Nginx, Flare, load_port_url
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
@@ -52,19 +52,16 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return {
-            "nginx": {
-                "web": NginxSite(
-                    expose=ExposeLink.public("DSM", "nas", "群晖系统"),
-                    server_name=self.get_config_later("DSM_DOMAIN"),
-                    proxy="http://dsm:5000",
-                    auth=False,
-                ),
-            },
-            "flare": [
-                ExposeLink.private("DSM", "nas", "群晖系统", load_port_url(
-                    self, "DSM_PORT",
-                    https=False,
-                )),
-            ],
-        }
+        return (
+            Nginx.site(
+                local_id="web",
+                expose=Flare.public("DSM", "nas", "群晖系统"),
+                server_name=self.get_config_later("DSM_DOMAIN"),
+                proxy="http://dsm:5000",
+                auth=False,
+            ),
+            Flare.category("private")("DSM", "nas", "群晖系统", load_port_url(
+                self, "DSM_PORT",
+                https=False,
+            )),
+        )

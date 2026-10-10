@@ -6,8 +6,8 @@ import secrets
 from typing import Any, Iterable
 
 from linktools.cli import subcommand, subcommand_argument
-from linktools.cntr import BaseContainer, Integrations, NginxSite, ExposeLink
-from linktools.cntr.urls import load_nginx_url, load_port_url
+from linktools.cntr import BaseContainer, Integrations
+from linktools.cntr.ext import Nginx, Flare, load_nginx_url, load_port_url
 from linktools.core import ConfigField, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
 
@@ -41,7 +41,7 @@ class Container(BaseContainer):
     def configs(self):
         return dict(
             MCP_PUSH_TAG="latest",
-            MCP_PUSH_DOMAIN=self.get_nginx_domain(),
+            MCP_PUSH_DOMAIN=Nginx.domain(self),
             MCP_PUSH_PORT=ConfigField(cast=int, default=0),
             MCP_PUSH_TOKEN=ConfigField(secret=True, provider=LazyProvider(
                 lambda r: secrets.token_hex(32), cached=True,
@@ -61,22 +61,19 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return {
-            "nginx": {
-                "web": NginxSite(
-                    server_name=self.get_config_later("MCP_PUSH_DOMAIN"),
-                    template=self.get_source_path("nginx.conf"),
-                    waf=False,
-                    auth=False,
-                ),
-            },
-            "flare": [
-                ExposeLink.public("Push MCP", "bell", "多渠道消息推送 MCP（Bearer Token 认证）", load_nginx_url(self, "web", "mcp")),
-                ExposeLink.container("Push MCP", "bell", "多渠道消息推送 MCP", load_port_url(
-                    self, "MCP_PUSH_PORT", "mcp", https=False,
-                )),
-            ],
-        }
+        return (
+            Nginx.site(
+                local_id="web",
+                server_name=self.get_config_later("MCP_PUSH_DOMAIN"),
+                template=self.get_source_path("nginx.conf"),
+                waf=False,
+                auth=False,
+            ),
+            Flare.public("Push MCP", "bell", "多渠道消息推送 MCP（Bearer Token 认证）", load_nginx_url(self, "web", "mcp")),
+            Flare.category("container")("Push MCP", "bell", "多渠道消息推送 MCP", load_port_url(
+                self, "MCP_PUSH_PORT", "mcp", https=False,
+            )),
+        )
 
     @subcommand("show", help="print MCP server JSON configuration, optionally with a channel example")
     @subcommand_argument("channel", nargs="?", choices=tuple(PUSH_CHANNEL_HEADERS),
