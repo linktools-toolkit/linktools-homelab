@@ -272,12 +272,20 @@ This keeps script logic in the repo (version-controlled, hot-swappable without r
 | `8xx-base` | Shared infrastructure volumes and config |
 
 
-## Offline Contract Verification
+## Source Verification
 
 This branch follows the matching `linktools` `refactor/cntr-integrations` branch.
 The declared minimum is still the in-development `linktools-cntr` 0.10.0; use a
 matching source checkout rather than an older installation with the same version.
-See `tests/README.md` for isolated offline verification. Tests import the actual
-cntr implementation, use only synthetic configuration, and never deploy Docker,
-contact a provider/CA, or read home configuration. Native service validation and
-live deployment are separate from these checks.
+
+The `Check source syntax` workflow compiles the Python definitions on Python
+3.10, 3.12, and 3.14 and parses `.linktools.json` using only the standard library:
+
+```sh
+python -m compileall -q [0-9]xx-*
+python -m json.tool .linktools.json > /dev/null
+```
+
+These checks do not import the definitions or validate framework compatibility,
+rendered templates, navigation, OIDC callbacks, lifecycle behavior, or CLI output.
+Native service validation and live deployment require separate verification.
