@@ -29,7 +29,7 @@
 from typing import Iterable
 
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, Flare, load_port_url
+from linktools.cntr.ext import Nginx, Flare, load_port_url, load_nginx_url
 from linktools.core import ConfigField, AliasProvider
 from linktools.decorator import cached_property
 
@@ -54,13 +54,13 @@ class Container(BaseContainer):
     @cached_property
     def integrations(self) -> Integrations:
         return (
-            Nginx.site(
-                link=Flare.public("SublinkPro", "link", "代理订阅管理"),
+            {"web": Nginx.site(
                 server_name=self.get_config_later("SUBLINK_DOMAIN"),
                 template=self.get_source_path("nginx.conf"),
                 auth=None,
                 waf_bypass=(r"^/api/v1/script/",),
-            ),
+            )},
+            Flare.public("SublinkPro", "link", "代理订阅管理", load_nginx_url(self, "web")),
             Flare.container("SublinkPro", "link", load_port_url(
                 self, "SUBLINK_PORT",
                 https=False

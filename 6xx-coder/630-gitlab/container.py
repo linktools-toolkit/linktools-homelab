@@ -33,7 +33,7 @@ from typing import Iterable
 from linktools import utils
 from linktools.cli import subcommand, subcommand_argument
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Authelia, load_nginx_url, Nginx, Flare
+from linktools.cntr.ext import Nginx, endpoint
 from linktools.core import ConfigField, PromptProvider
 from linktools.decorator import cached_property
 
@@ -65,17 +65,14 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return (
-            Nginx.site(
-                link=Flare.public("Gitlab", "git", "代码仓库管理"),
-                server_name=self.get_config_later("GITLAB_DOMAIN"),
-                proxy="http://gitlab:8181",
-                auth=None,
-            ),
-            Authelia.oidc(
-                redirect_uris=(load_nginx_url(self, "web", "users/auth/openid_connect/callback"),),
-                enabled=self.get_config_later("NGINX_AUTH_ENABLE"),
-            ),
+        return endpoint(
+            self, "web",
+            name="Gitlab", icon="git", desc="代码仓库管理",
+            domain=self.get_config_later("GITLAB_DOMAIN"),
+            proxy="http://gitlab:8181",
+            auth=None,
+            oidc_paths=("users/auth/openid_connect/callback",),
+            oidc_enabled=self.get_config_later("NGINX_AUTH_ENABLE"),
         )
 
     @subcommand("fix", help="fix permissions")

@@ -43,13 +43,13 @@ class Container(BaseContainer):
     @cached_property
     def integrations(self) -> Integrations:
         return (
-            Nginx.site(
-                link=Flare.public("Playwright Browser", "web", "通过 noVNC 操作 MCP 浏览器"),
+            {"web": Nginx.site(
                 server_name=self.get_config_later("MCP_PLAYWRIGHT_DOMAIN"),
                 template=self.get_source_path("nginx.conf"),
                 waf=False,
                 auth=None,
-            ),
+            )},
+            Flare.public("Playwright Browser", "web", "通过 noVNC 操作 MCP 浏览器", load_nginx_url(self, "web")),
             Flare.container("Playwright Browser", "web", load_port_url(
                 self, "MCP_PLAYWRIGHT_NOVNC_PORT", https=False,
             ), desc="noVNC 浏览器"),

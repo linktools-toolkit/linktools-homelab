@@ -29,7 +29,7 @@
 from typing import Iterable
 
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, Flare, load_port_url
+from linktools.cntr.ext import Nginx, endpoint
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
@@ -50,15 +50,11 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return (
-            Nginx.site(
-                link=Flare.public("HomeAssistant", "homeAssistant", "Home Assistant"),
-                server_name=self.get_config_later("HOME_ASSISTANT_DOMAIN"),
-                proxy="http://home-assistant:8123",
-                auth=False,
-            ),
-            Flare.container("HomeAssistant", "homeAssistant", load_port_url(
-                self, "HOME_ASSISTANT_PORT",
-                https=False,
-            ), desc="Home Assistant"),
+        return endpoint(
+            self, "web",
+            name="HomeAssistant", icon="homeAssistant", desc="Home Assistant",
+            domain=self.get_config_later("HOME_ASSISTANT_DOMAIN"),
+            proxy="http://home-assistant:8123",
+            auth=False,
+            direct_port="HOME_ASSISTANT_PORT",
         )

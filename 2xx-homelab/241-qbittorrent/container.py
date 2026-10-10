@@ -27,7 +27,7 @@
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, Flare, load_port_url
+from linktools.cntr.ext import Nginx, Flare, load_port_url, load_nginx_url
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
@@ -46,12 +46,12 @@ class Container(BaseContainer):
     @cached_property
     def integrations(self) -> Integrations:
         return (
-            Nginx.site(
-                link=Flare.public("qBittorrent", "tools", ""),
+            {"web": Nginx.site(
                 server_name=self.get_config_later("QBITTORRENT_DOMAIN"),
                 template=self.get_source_path("nginx.conf"),
                 auth=False,
-            ),
+            )},
+            Flare.public("qBittorrent", "tools", "", load_nginx_url(self, "web")),
             Flare.container("qBittorrent", "tools", load_port_url(
                 self, "QBITTORRENT_PORT",
                 https=False

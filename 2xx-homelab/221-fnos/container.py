@@ -29,7 +29,7 @@
 from typing import Iterable
 
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, Flare, load_config_url
+from linktools.cntr.ext import Nginx, Flare, load_config_url, load_nginx_url
 from linktools.decorator import cached_property
 
 
@@ -50,12 +50,12 @@ class Container(BaseContainer):
     @cached_property
     def integrations(self) -> Integrations:
         return (
-            Nginx.site(
-                link=Flare.public("fnOS", "nas", "飞牛系统"),
+            {"web": Nginx.site(
                 server_name=self.get_config_later("FNOS_DOMAIN"),
                 template=self.get_source_path("nginx.conf"),
                 auth=False,
-            ),
+            )},
+            Flare.public("fnOS", "nas", "飞牛系统", load_nginx_url(self, "web")),
             Flare.category("private")("fnOS", "nas", "飞牛系统", load_config_url(
                 self, "FNOS_LOCAL_URL",
             )),

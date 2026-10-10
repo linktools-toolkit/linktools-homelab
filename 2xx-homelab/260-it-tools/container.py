@@ -46,13 +46,13 @@ class Container(BaseContainer):
     @cached_property
     def integrations(self) -> Integrations:
         return (
-            Nginx.site(
-                link=Flare.public("IT Tools", "tools", "it工具集"),
+            {"web": Nginx.site(
                 server_name=self.get_config_later("IT_TOOLS_DOMAIN"),
                 proxy="http://it-tools",
                 auth_bypass=(r"\.(css|js|webmanifest)$",),
                 auth_rule={"policy": "one_factor"},
-            ),
+            )},
+            Flare.public("IT Tools", "tools", "it工具集", load_nginx_url(self, "web")),
             Flare.category("other")("正则表达式测试", "regex", "", load_nginx_url(self, "web", "regex-tester")),
             Flare.category("other")("正则表达式手册", "regex", "", load_nginx_url(self, "web", "regex-memo")),
             Flare.category("other")("在线json解析", "codeJson", "", load_nginx_url(self, "web", "json-prettify")),

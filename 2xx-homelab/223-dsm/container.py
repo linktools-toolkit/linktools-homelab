@@ -29,7 +29,7 @@
 from typing import Iterable
 
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, Flare, load_port_url
+from linktools.cntr.ext import Flare, load_port_url, endpoint
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
@@ -53,9 +53,10 @@ class Container(BaseContainer):
     @cached_property
     def integrations(self) -> Integrations:
         return (
-            Nginx.site(
-                link=Flare.public("DSM", "nas", "群晖系统"),
-                server_name=self.get_config_later("DSM_DOMAIN"),
+            *endpoint(
+                self, "web",
+                name="DSM", icon="nas", desc="群晖系统",
+                domain=self.get_config_later("DSM_DOMAIN"),
                 proxy="http://dsm:5000",
                 auth=False,
             ),

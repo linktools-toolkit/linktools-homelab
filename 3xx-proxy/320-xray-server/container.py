@@ -66,7 +66,7 @@ class Container(BaseContainer):
         xhttp_pattern = lazy_load(lambda: "^" + re.escape(
             self.get_route_path("XRAY_XHTTP_PATH")) + r"(?:/|$)")
         return (
-            Nginx.site(
+            {"web": Nginx.site(
                 server_name=self.get_config_later("XRAY_DOMAIN"),
                 template=self.get_source_path("nginx.conf"),
                 auth=False,
@@ -77,7 +77,7 @@ class Container(BaseContainer):
                     "grpc_pattern": grpc_pattern,
                     "xhttp_path": lazy_load(lambda: self.get_route_path("XRAY_XHTTP_PATH")),
                 },
-            ),
+            )},
         )
 
     def get_route_path(self, key: str) -> str:

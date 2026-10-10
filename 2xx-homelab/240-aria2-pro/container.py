@@ -46,10 +46,10 @@ class Container(BaseContainer):
     @cached_property
     def integrations(self) -> Integrations:
         return (
-            Nginx.site(
+            {"web": Nginx.site(
                 server_name=self.get_config_later("ARIA2_DOMAIN"),
                 proxy="http://aria2-pro:6800",
                 auth=False,
-            ),
+            )},
             Flare.container("aria2", "tools", load_port_url(self, "ARIA2_PORT", https=False), desc=""),
         )

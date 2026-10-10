@@ -7,7 +7,7 @@ from typing import Iterable
 from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, Flare, load_port_url
+from linktools.cntr.ext import Nginx, endpoint
 
 
 class Container(BaseContainer):
@@ -29,15 +29,12 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return (
-            Nginx.site(
-                link=Flare.public("OmniRoute", "transitConnectionVariant", "Free self-hosted AI gateway"),
-                server_name=self.get_config_later("OMNIROUTE_DOMAIN"),
-                proxy="http://omniroute:20128",
-                waf_bypass=(r"^/(v1|vscode|api/mcp)(/|$)",),
-                auth_bypass=(r"^/(v1|vscode|api/mcp)(/|$)", r"\.(css|js|webmanifest)$"),
-            ),
-            Flare.container("OmniRoute", "transitConnectionVariant", load_port_url(
-                self, "OMNIROUTE_PORT", https=False,
-            ), desc="Free self-hosted AI gateway"),
+        return endpoint(
+            self, "web",
+            name="OmniRoute", icon="transitConnectionVariant", desc="Free self-hosted AI gateway",
+            domain=self.get_config_later("OMNIROUTE_DOMAIN"),
+            proxy="http://omniroute:20128",
+            auth_bypass=(r"^/(v1|vscode|api/mcp)(/|$)", r"\.(css|js|webmanifest)$"),
+            waf_bypass=(r"^/(v1|vscode|api/mcp)(/|$)",),
+            direct_port="OMNIROUTE_PORT",
         )

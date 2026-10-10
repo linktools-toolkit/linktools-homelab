@@ -34,7 +34,7 @@ from linktools.core import ConfigField, LazyProvider
 from linktools.cli import subcommand
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, Flare
+from linktools.cntr.ext import Nginx, Flare, load_nginx_url
 
 
 class Container(BaseContainer):
@@ -64,12 +64,12 @@ class Container(BaseContainer):
     @cached_property
     def integrations(self) -> Integrations:
         return (
-            Nginx.site(
-                link=Flare.public("Nextcloud", "cloudDownloadOutline", "私人网盘"),
+            {"web": Nginx.site(
                 server_name=self.get_config_later("NEXTCLOUD_DOMAIN"),
                 template=self.get_source_path("nginx.conf"),
                 auth=False,
-            ),
+            )},
+            Flare.public("Nextcloud", "cloudDownloadOutline", "私人网盘", load_nginx_url(self, "web")),
         )
 
     @subcommand("scan", help="scan all files")

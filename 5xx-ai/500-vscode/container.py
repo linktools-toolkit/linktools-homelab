@@ -37,7 +37,7 @@ from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, Integrations
 from linktools.cntr.lifecycle import HookPhase
-from linktools.cntr.ext import Nginx, Flare, load_nginx_url, load_port_url
+from linktools.cntr.ext import Nginx, load_nginx_url, endpoint
 from linktools.rich import prompt
 from linktools.runtime import lazy_load
 
@@ -78,15 +78,16 @@ class Container(BaseContainer):
     @cached_property
     def integrations(self) -> Integrations:
         return (
-            Nginx.site(
-                link=Flare.public("VS Code", "microsoftVisualStudioCode", "在线vscode"),
-                server_name=self.get_config_later("VSCODE_DOMAIN"),
+            *endpoint(
+                self, "web",
+                name="VS Code", icon="microsoftVisualStudioCode", desc="在线vscode",
+                domain=self.get_config_later("VSCODE_DOMAIN"),
                 proxy="http://code-server:8080",
                 auth=None,
                 auth_bypass=(r"\.(css|js)$",),
+                direct_port="VSCODE_PORT",
             ),
-            Nginx.site(
-                local_id="proxy",
+            {"proxy": Nginx.site(
                 server_name=lazy_load(
                     lambda: (
                         r"~^(?<proxy_port>\d+)\." + re.escape(self.get_config("VSCODE_DOMAIN")) + "$"
@@ -104,11 +105,7 @@ class Container(BaseContainer):
                     )
                 ),
                 cert_domains=(lazy_load(lambda: "*." + self.get_config("VSCODE_DOMAIN")),),
-            ),
-            Flare.container("VS Code", "microsoftVisualStudioCode", load_port_url(
-                self, "VSCODE_PORT",
-                https=False
-            ), desc="在线vscode"),
+            )},
         )
 
     @cached_property

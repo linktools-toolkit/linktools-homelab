@@ -8,7 +8,7 @@ from typing import Any, Iterable
 from linktools.core import ConfigField, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, Flare, load_port_url
+from linktools.cntr.ext import Nginx, Flare, load_port_url, load_nginx_url
 
 
 class Container(BaseContainer):
@@ -85,13 +85,13 @@ class Container(BaseContainer):
     @cached_property
     def integrations(self) -> Integrations:
         return (
-            Nginx.site(
-                link=Flare.public("Multica", "robot", "AI Agent Team Platform"),
+            {"web": Nginx.site(
                 server_name=self.get_config_later("MULTICA_DOMAIN"),
                 template=self.get_source_path("nginx.conf"),
                 waf=False,
                 auth=None,
-            ),
+            )},
+            Flare.public("Multica", "robot", "AI Agent Team Platform", load_nginx_url(self, "web")),
             Flare.container("Multica", "robot", load_port_url(
                 self, "MULTICA_FRONTEND_PORT", https=False,
             ), desc="AI Agent Team Platform"),

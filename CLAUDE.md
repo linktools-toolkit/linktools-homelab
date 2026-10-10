@@ -38,7 +38,7 @@ Every service folder contains at minimum a `container.py` that defines a `Contai
 
 - **`dependencies`** — other container names that must be deployed first (e.g. `["nginx", "coder"]`)
 - **`configs`** (cached_property) — a dict of config keys with defaults, using `ConfigField`, `LazyProvider`, and `PromptProvider` helpers from `linktools.core`
-- **`integrations`** (cached_property) — a reusable flat tuple/list annotated `Integrations`. Import `Nginx`, `Flare`, `Authelia`, and URL helpers from `linktools.cntr.ext`; root `linktools.cntr` supplies `BaseContainer`, `SourceContainer`, `Integrations`, and `OperationContext`. Each declaration identifies its consumer. Sites use `Nginx.site(...)`, adding `local_id` only to distinguish additional sites; links use `Flare.public(...)`, `Flare.bookmark(...)`, or callable `Flare.category(...)` groups. Keep values lazy and preserve declaration order; no consumer-keyed mappings or directly imported declaration implementation types
+- **`integrations`** (cached_property) — a reusable tuple/list annotated `Integrations`, containing named site dictionaries and anonymous `Flare`/`Authelia` declarations. Import `Nginx`, `Flare`, `Authelia`, `endpoint`, and URL helpers from `linktools.cntr.ext`; root `linktools.cntr` supplies `BaseContainer`, `SourceContainer`, `Integrations`, and `OperationContext`. Each declaration identifies its consumer. Sites use `{"web": Nginx.site(...)}`: the dictionary key is their only author-supplied identity. Common public endpoints use `endpoint(self, "web", ...)`, expanded with `*` when mixed with other declarations. Keep values lazy and preserve declaration order; no consumer-keyed mappings or directly imported declaration implementation types
 - **Custom subcommands** — methods decorated with `@subcommand(...)` and `@subcommand_argument(...)` become CLI subcommands under `exec <container>`
 
 ### `compose.yml` as Jinja2 Templates
@@ -49,7 +49,7 @@ The `compose.yml` in each folder is a **Jinja2 template**, not plain Docker Comp
 
 A targeted `ct-cntr up <container-name>` compares the selected services with their last successfully applied configuration. It includes required providers and running declared integration consumers; real Compose restart and namespace dependencies can also require actions outside the requested containers. These collateral changes are warned about before execution. Unrelated services are not applied merely because their current configuration differs.
 
-Ordinary container authors declare `configs`, `dependencies`, and `integrations`; the framework handles configuration comparison and ordered application. Keep runtime dependencies explicit, including dependencies implied by cross-container template values, and declare each nginx site or Flare link under its consumer. Native Compose profiles determine active full-project services; disabled running services retain their existing configuration unless a real dependency requires rebinding.
+Ordinary container authors declare `configs`, `dependencies`, and `integrations`; the framework handles configuration comparison and ordered application. Keep runtime dependencies explicit, including dependencies implied by cross-container template values, and declare named nginx sites and independent Flare links in `integrations`. Native Compose profiles determine active full-project services; disabled running services retain their existing configuration unless a real dependency requires rebinding.
 
 ### `Dockerfile` as Jinja2 Templates
 
@@ -70,9 +70,11 @@ The `linktools-cntr` built-in containers (nginx, authelia, lldap, flare, portain
 ### Nginx and Authelia Integration
 
 Declare domain defaults with `Nginx.domain(self, name=None)` and proxy sites with
-`Nginx.site(server_name=..., ...)`. The default site ID is `"web"`; additional
-sites use explicit `local_id` values unique within each producer. IDs remain
-stable across commands. `load_nginx_url(self, "web", *path,
+`{"web": Nginx.site(server_name=..., ...)}`. Every site has an explicit
+dictionary key, unique within its producer. Use `"web"` for the ordinary site;
+use descriptive keys such as `"proxy"` or `"pve"` for additional sites. Keys
+remain stable across commands and determine the generated site filenames.
+`Nginx.site` has no identity or navigation fields. `load_nginx_url(self, "web", *path,
 queries=...)` lazily reads that resolved site; it never registers a proxy or changes
 ACL/OIDC state. In general templates, use `urls.load_nginx_url(container, ...)`.
 
@@ -90,7 +92,6 @@ Common site fields:
 | `auth_rule` | Optional native Authelia access-control rule |
 | `public_url` | Explicit public URL for a regex/nonliteral hostname |
 | `default_server` | Explicit default-server policy; `server_name="_"` alone is insufficient |
-| `link` | Attached `Flare.public(...)` link; omitted URL inherits the site URL |
 
 Declare callbacks separately with `Authelia.oidc(redirect_uris=(lazy_absolute_url,...),
 enabled=lazy_switch)`. This contributes only callbacks to the existing shared
@@ -99,13 +100,31 @@ are omitted, disabled declarations do not resolve their URLs, and nonempty URLs
 retain their exact trailing slash/query. GitLab and LiteLLM use `load_nginx_url`;
 Proxmox keeps its exact public and configured local callback URLs.
 
+For the common public-site pattern, use the pure `endpoint` function. It returns
+ordinary declarations: one `{key: Nginx.site(...)}` entry, one public Flare link,
+an optional HTTP direct-port bookmark, and optional OIDC callbacks. It does not
+register services, evaluate configuration, create clients, or add lifecycle work.
+`path` applies to both navigation URLs; `oidc_paths` are independent callback
+paths relative to the site root. `oidc_enabled` controls only the callbacks.
+The independent Authelia issuer always remains the Authelia site's URL.
+
+Use raw declarations for custom nginx templates, headers, access-control rules,
+wildcard/regex sites, independently customized links, or other advanced policy.
+`endpoint` intentionally accepts only `name`, `icon`, `desc`, `domain`, `proxy`,
+`auth`, `auth_bypass`, `waf_bypass`, `path`, `direct_port`, `oidc_paths`, and
+`oidc_enabled`; do not expand it into an options bag. This repository uses it
+for 14 beneficial main sites; custom private links and Proxmox's exact public
+and local callbacks remain explicit.
+
 Direct-port links and external bookmarks are standalone Flare declarations.
 `Flare.bookmark(name, icon, url, category="private"/"container"/"other")` uses a
 standard group; `Flare.category(name, desc, order=...)` declares a custom group.
 A category is callable as `(name, icon, desc, url)`, preserving existing link
-metadata. An explicit empty/None link URL disables that link. Flare consumes
-attached site links first, then standalone links, preserving container/declaration
-order within each category. Navigation never creates a runtime dependency.
+metadata. Every public link supplies its URL explicitly, usually
+`load_nginx_url(self, "web")`; an empty/None URL disables that link. Flare
+consumes links in producer/declaration order within each category. When migrating
+legacy attached links, declare them before that producer's former standalone
+links to preserve navigation order. Navigation never creates a runtime dependency.
 
 ### Lifecycle and Source Inputs
 
@@ -151,7 +170,7 @@ Minimal template (copy and adapt):
 ```python
 from typing import Iterable
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, Flare, load_port_url
+from linktools.cntr.ext import Nginx, endpoint
 from linktools.core import ConfigField, PromptProvider
 from linktools.decorator import cached_property
 
@@ -173,17 +192,13 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return (
-            Nginx.site(
-                server_name=self.get_config_later("MY_DOMAIN"),
-                proxy="http://my-service:8080",
-                auth=None,
-                link=Flare.public("My Service", "link", "服务描述"),
-            ),
-            Flare.bookmark(
-                "My Service", "link", load_port_url(self, "MY_PORT", https=False),
-                category="container",
-            ),
+        return endpoint(
+            self, "web",
+            name="My Service", icon="link", desc="服务描述",
+            domain=self.get_config_later("MY_DOMAIN"),
+            proxy="http://my-service:8080",
+            auth=None,
+            direct_port="MY_PORT",
         )
 ```
 
@@ -228,13 +243,17 @@ Use `$$` in compose templates to produce a literal `$` in the rendered output (n
 
 ### Step 4 (optional): Add a custom nginx config
 
-Create a `nginx.conf` and reference it in the site declaration in `container.py`:
+Create a `nginx.conf` and reference it in the site declaration in `container.py`.
+Import `Flare` and `load_nginx_url` from `linktools.cntr.ext` for its separate link:
 
 ```python
-Nginx.site(
-    server_name=self.get_config_later("MY_DOMAIN"),
-    template=self.get_source_path("nginx.conf"),
-),
+{
+    "web": Nginx.site(
+        server_name=self.get_config_later("MY_DOMAIN"),
+        template=self.get_source_path("nginx.conf"),
+    ),
+},
+Flare.public("My Service", "link", "服务描述", load_nginx_url(self, "web")),
 ```
 
 Custom nginx templates receive `site`, `container`, `nginx`, `config`, and `template_vars`, plus `route_auth` when the framework groups a shared hostname. Import shared macros with `{% from "nginx/headers.j2" import proxy_headers with context %}` and emit `{{ proxy_headers() }}` in each proxy location. Also import/call `route_authorization()` in protected proxy locations so a shared hostname uses each route's policy; retain explicit `auth_request off` in intentional bypass locations. Use `grpc_headers` for gRPC and pass business-specific header overrides into the macro. Common streaming limits are available through `{% include "nginx/params.conf" %}`. Framework authentication is applied by the generated server; do not include removed native snippets or duplicate its headers.

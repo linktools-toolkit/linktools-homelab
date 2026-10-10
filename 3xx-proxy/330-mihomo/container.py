@@ -30,11 +30,11 @@ class Container(BaseContainer):
     @cached_property
     def integrations(self) -> Integrations:
         return (
-            Nginx.site(
+            {"web": Nginx.site(
                 server_name=self.get_config_later("MIHOMO_DOMAIN"),
                 proxy="http://mihomo:9090",
                 auth=None,
-            ),
+            )},
             Flare.public("Mihomo", "vpn", "Mihomo监控", load_nginx_url(self, "web", "ui", "metacubexd", "#", "setup",
                 queries=dict(
                     hostname=self.get_config_later("MIHOMO_DOMAIN"),

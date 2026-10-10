@@ -54,11 +54,11 @@ class Container(BaseContainer):
     @cached_property
     def integrations(self) -> Integrations:
         return (
-            Nginx.site(
+            {"web": Nginx.site(
                 server_name=self.get_config_later("PYPISERVER_DOMAIN"),
                 template=self.get_source_path("nginx.conf"),
                 auth=False,
-            ),
+            )},
             Flare.public("pypiserver", "languagePython", "pypiserver", load_nginx_url(self, "web", "simple")),
             Flare.container("pypiserver", "languagePython", load_port_url(
                 self, "PYPISERVER_PORT",

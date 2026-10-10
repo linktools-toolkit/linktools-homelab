@@ -29,7 +29,7 @@
 from typing import Iterable
 
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Authelia, load_nginx_url, Nginx, Flare, load_config_url
+from linktools.cntr.ext import Authelia, load_nginx_url, Nginx, Flare, load_config_url, endpoint
 from linktools.decorator import cached_property
 from linktools.runtime import lazy_load
 
@@ -67,48 +67,46 @@ class Container(BaseContainer):
     @cached_property
     def integrations(self) -> Integrations:
         return (
-            Nginx.site(
-                local_id="pve",
-                link=Flare.public("Proxmox", "server", "虚拟化环境"),
-                server_name=lazy_load(lambda: self.get_config("PVE_DOMAIN") if self.get_config("PVE_LOCAL_URL") else ""),
+            *endpoint(
+                self, "pve",
+                name="Proxmox", icon="server", desc="虚拟化环境",
+                domain=lazy_load(lambda: self.get_config("PVE_DOMAIN") if self.get_config("PVE_LOCAL_URL") else ""),
                 proxy=self.get_config_later("PVE_LOCAL_URL"),
                 auth=None,
             ),
-            Nginx.site(
-                local_id="primary_gateway",
-                link=Flare.public("GW1", "RouterNetwork", "主路由管理"),
+            {"primary_gateway": Nginx.site(
                 server_name=lazy_load(lambda: self.get_config("PRIMARY_GATEWAY_DOMAIN") if self.get_config("PRIMARY_GATEWAY_LOCAL_URL") else ""),
                 proxy=self.get_config_later("PRIMARY_GATEWAY_LOCAL_URL"),
                 auth=None,
                 auth_headers={"Authorization": self.get_config_later("PRIMARY_GATEWAY_AUTHORIZATION")},
-            ),
-            Nginx.site(
-                local_id="bypass_gateway",
-                link=Flare.public("GW2", "RouterNetwork", "旁路由管理"),
+            )},
+            Flare.public("GW1", "RouterNetwork", "主路由管理", load_nginx_url(self, "primary_gateway")),
+            {"bypass_gateway": Nginx.site(
                 server_name=lazy_load(lambda: self.get_config("BYPASS_GATEWAY_DOMAIN") if self.get_config("BYPASS_GATEWAY_LOCAL_URL") else ""),
                 proxy=self.get_config_later("BYPASS_GATEWAY_LOCAL_URL"),
                 auth=None,
                 auth_headers={"Authorization": self.get_config_later("BYPASS_GATEWAY_AUTHORIZATION")},
-            ),
-            Nginx.site(
-                local_id="xiaoya_alist",
-                link=Flare.public("Xiaoya-Alist", "folderSync", "小雅Alist"),
-                server_name=lazy_load(lambda: self.get_config("XIAOYA_ALIST_DOMAIN") if self.get_config("XIAOYA_ALIST_LOCAL_URL") else ""),
+            )},
+            Flare.public("GW2", "RouterNetwork", "旁路由管理", load_nginx_url(self, "bypass_gateway")),
+            *endpoint(
+                self, "xiaoya_alist",
+                name="Xiaoya-Alist", icon="folderSync", desc="小雅Alist",
+                domain=lazy_load(lambda: self.get_config("XIAOYA_ALIST_DOMAIN") if self.get_config("XIAOYA_ALIST_LOCAL_URL") else ""),
                 proxy=self.get_config_later("XIAOYA_ALIST_LOCAL_URL"),
                 auth=False,
                 waf_bypass=(r"^/soutv",),
             ),
-            Nginx.site(
-                local_id="emby",
-                link=Flare.public("Emby", "movie", "Emby"),
-                server_name=lazy_load(lambda: self.get_config("EMBY_DOMAIN") if self.get_config("EMBY_LOCAL_URL") else ""),
+            *endpoint(
+                self, "emby",
+                name="Emby", icon="movie", desc="Emby",
+                domain=lazy_load(lambda: self.get_config("EMBY_DOMAIN") if self.get_config("EMBY_LOCAL_URL") else ""),
                 proxy=self.get_config_later("EMBY_LOCAL_URL"),
                 auth=False,
             ),
-            Nginx.site(
-                local_id="jellyfin",
-                link=Flare.public("Jellyfin", "movie", "jellyfin"),
-                server_name=lazy_load(lambda: self.get_config("JELLYFIN_DOMAIN") if self.get_config("JELLYFIN_LOCAL_URL") else ""),
+            *endpoint(
+                self, "jellyfin",
+                name="Jellyfin", icon="movie", desc="jellyfin",
+                domain=lazy_load(lambda: self.get_config("JELLYFIN_DOMAIN") if self.get_config("JELLYFIN_LOCAL_URL") else ""),
                 proxy=self.get_config_later("JELLYFIN_LOCAL_URL"),
                 auth=False,
             ),
