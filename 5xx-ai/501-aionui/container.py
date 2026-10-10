@@ -11,7 +11,9 @@ from typing import Iterable
 
 from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, EventContext, ExposeLink
+from linktools.runtime import lazy_load
+from linktools.cntr import BaseContainer, Integrations
+from linktools.cntr.ext import Nginx, Flare, load_port_url, load_nginx_url
 
 
 class Container(BaseContainer):
@@ -24,38 +26,28 @@ class Container(BaseContainer):
     def configs(self):
         return dict(
             AIONUI_TAG="latest",
-            AIONUI_DOMAIN=self.get_nginx_domain(),
+            AIONUI_DOMAIN=Nginx.domain(self),
             AIONUI_PORT=ConfigField(cast=int, default=0),
             AIONUI_JWT_SECRET=ConfigField(provider=LazyProvider(lambda r: secrets.token_hex(24), cached=True)),
             AIONUI_TOKEN=ConfigField(provider=LazyProvider(lambda r: self._make_jwt(r.get("AIONUI_JWT_SECRET")))),
         )
 
     @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_public("AionUI", "robot", "AI 助手 Web UI", self.load_nginx_url(
-                "AIONUI_DOMAIN",
-                proxy_url="http://aionui:3000",
-                auth_enable=True,
-                auth_extra={
-                    "auth_headers": {
-                        "Authorization": f"Bearer {self.get_config('AIONUI_TOKEN')}"
-                    },
-                    "acl_bypass": ["\\.(css|js|webmanifest)$"],
-                },
-            )),
-            self.expose_container("AionUI", "robot", "AI 助手 Web UI", self.load_port_url(
-                "AIONUI_PORT",
+    def integrations(self) -> Integrations:
+        return (
+            {"web": Nginx.site(
+                server_name=self.get_config_later("AIONUI_DOMAIN"),
+                proxy="http://aionui:3000",
+                template=self.get_source_path("nginx.conf"),
+                auth=None,
+                auth_headers={"Authorization": lazy_load(lambda: "Bearer " + self.get_config("AIONUI_TOKEN"))},
+                auth_bypass=(r"\.(css|js|webmanifest)$",),
+            )},
+            Flare.public("AionUI", "robot", "AI 助手 Web UI", load_nginx_url(self, "web")),
+            Flare.container("AionUI", "robot", load_port_url(
+                self, "AIONUI_PORT",
                 https=False,
-            )),
-        ]
-
-    def on_starting(self, context: "EventContext"):
-        self.write_nginx_conf(
-            self.get_config("AIONUI_DOMAIN"),
-            proxy_name="logout",
-            proxy_conf=self.get_source_path("nginx.conf"),
-            auth_enable=True
+            ), desc="AI 助手 Web UI"),
         )
 
     @classmethod

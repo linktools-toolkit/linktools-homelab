@@ -1,0 +1,27 @@
+name: Check source syntax
+
+on:
+  pull_request:
+  push:
+    branches: [master, refactor/cntr-integrations]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-syntax:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.10', '3.12', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Check Python syntax
+        run: python -m compileall -q [0-9]xx-*
+      - name: Check repository metadata JSON syntax
+        run: python -m json.tool .linktools.json > /dev/null

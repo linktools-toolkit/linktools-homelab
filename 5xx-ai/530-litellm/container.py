@@ -7,7 +7,8 @@ from typing import Iterable
 from linktools.cli import subcommand
 from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, ExposeLink
+from linktools.cntr import BaseContainer, Integrations
+from linktools.cntr.ext import Nginx, endpoint
 
 
 class Container(BaseContainer):
@@ -20,7 +21,7 @@ class Container(BaseContainer):
     def configs(self):
         return dict(
             LITELLM_TAG="main-latest",
-            LITELLM_DOMAIN=self.get_nginx_domain(),
+            LITELLM_DOMAIN=Nginx.domain(self),
             LITELLM_PORT=ConfigField(cast=int, default=0),
             LITELLM_MASTER_KEY=ConfigField(provider=LazyProvider(
                 lambda r: f"sk-{secrets.token_hex(24)}", cached=True,
@@ -34,28 +35,19 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_public("LiteLLM", "api", "LiteLLM Proxy & Web UI", self.load_nginx_url(
-                "LITELLM_DOMAIN", "ui",
-                proxy_url="http://litellm:4000",
-                auth_enable=True,
-                auth_extra={
-                    "oidc_redirect_uris": ["{base_url}/sso/callback"],
-                    "acl_bypass": [
-                        "^/v1/",
-                        "^/chat/completions",
-                        "^/completions",
-                        "^/embeddings",
-                        "^/health",
-                    ],
-                },
-            )),
-            self.expose_container("LiteLLM", "api", "LiteLLM Proxy & Web UI", self.load_port_url(
-                "LITELLM_PORT", "ui",
-                https=False,
-            )),
-        ]
+    def integrations(self) -> Integrations:
+        return endpoint(
+            self, "web",
+            name="LiteLLM", icon="api", desc="LiteLLM Proxy & Web UI",
+            domain=self.get_config_later("LITELLM_DOMAIN"),
+            proxy="http://litellm:4000",
+            auth=None,
+            auth_bypass=("^/v1/", "^/chat/completions", "^/completions", "^/embeddings", "^/health",),
+            path="ui",
+            direct_port="LITELLM_PORT",
+            oidc_paths=("sso/callback",),
+            oidc_enabled=self.get_config_later("NGINX_AUTH_ENABLE"),
+        )
 
     @subcommand("key", help="print the master key for Web UI login")
     def on_exec_key(self):

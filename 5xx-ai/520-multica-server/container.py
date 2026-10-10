@@ -7,7 +7,8 @@ from typing import Any, Iterable
 
 from linktools.core import ConfigField, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, ExposeLink
+from linktools.cntr import BaseContainer, Integrations
+from linktools.cntr.ext import Nginx, Flare, load_port_url, load_nginx_url
 
 
 class Container(BaseContainer):
@@ -20,7 +21,7 @@ class Container(BaseContainer):
     def configs(self):
         return dict(
             MULTICA_TAG="latest",
-            MULTICA_DOMAIN=self.get_nginx_domain("multica"),
+            MULTICA_DOMAIN=Nginx.domain(self, "multica"),
             MULTICA_FRONTEND_PORT=ConfigField(cast=int, default=0),
             MULTICA_BACKEND_PORT=ConfigField(cast=int, default=0),
             MULTICA_JWT_SECRET=ConfigField(provider=LazyProvider(lambda r: secrets.token_hex(32), cached=True)),
@@ -82,18 +83,19 @@ class Container(BaseContainer):
         return configs
 
     @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_public("Multica", "robot", "AI Agent Team Platform", self.load_nginx_url(
-                "MULTICA_DOMAIN",
-                proxy_conf=self.get_source_path("nginx.conf"),
-                auth_enable=True,
-                waf_enable=False,
-            )),
-            self.expose_container("Multica", "robot", "AI Agent Team Platform", self.load_port_url(
-                "MULTICA_FRONTEND_PORT", https=False,
-            )),
-            self.expose_container("Multica API", "robot", "AI Agent Team API", self.load_port_url(
-                "MULTICA_BACKEND_PORT", https=False,
-            )),
-        ]
+    def integrations(self) -> Integrations:
+        return (
+            {"web": Nginx.site(
+                server_name=self.get_config_later("MULTICA_DOMAIN"),
+                template=self.get_source_path("nginx.conf"),
+                waf=False,
+                auth=None,
+            )},
+            Flare.public("Multica", "robot", "AI Agent Team Platform", load_nginx_url(self, "web")),
+            Flare.container("Multica", "robot", load_port_url(
+                self, "MULTICA_FRONTEND_PORT", https=False,
+            ), desc="AI Agent Team Platform"),
+            Flare.container("Multica API", "robot", load_port_url(
+                self, "MULTICA_BACKEND_PORT", https=False,
+            ), desc="AI Agent Team API"),
+        )

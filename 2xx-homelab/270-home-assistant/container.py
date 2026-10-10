@@ -28,7 +28,8 @@
 """
 from typing import Iterable
 
-from linktools.cntr import BaseContainer, ExposeLink
+from linktools.cntr import BaseContainer, Integrations
+from linktools.cntr.ext import Nginx, endpoint
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
@@ -43,19 +44,17 @@ class Container(BaseContainer):
     def configs(self):
         return dict(
             HOME_ASSISTANT_TAG="stable",
-            HOME_ASSISTANT_DOMAIN=self.get_nginx_domain("homeassistant"),
+            HOME_ASSISTANT_DOMAIN=Nginx.domain(self, "homeassistant"),
             HOME_ASSISTANT_PORT=ConfigField(cast=int, default=8123),
         )
 
     @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_public("HomeAssistant", "homeAssistant", "Home Assistant", self.load_nginx_url(
-                "HOME_ASSISTANT_DOMAIN",
-                proxy_url="http://home-assistant:8123",
-            )),
-            self.expose_container("HomeAssistant", "homeAssistant", "Home Assistant", self.load_port_url(
-                "HOME_ASSISTANT_PORT",
-                https=False,
-            )),
-        ]
+    def integrations(self) -> Integrations:
+        return endpoint(
+            self, "web",
+            name="HomeAssistant", icon="homeAssistant", desc="Home Assistant",
+            domain=self.get_config_later("HOME_ASSISTANT_DOMAIN"),
+            proxy="http://home-assistant:8123",
+            auth=False,
+            direct_port="HOME_ASSISTANT_PORT",
+        )

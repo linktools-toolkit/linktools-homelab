@@ -27,9 +27,14 @@
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
 import uuid
+import re
+from linktools.runtime import lazy_load
 from typing import Iterable
 
-from linktools.cntr import BaseContainer
+import json
+
+from linktools.cntr import OperationContext, BaseContainer, Integrations
+from linktools.cntr.ext import Nginx
 from linktools.core import ConfigField, AliasProvider, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
 
@@ -44,7 +49,7 @@ class Container(BaseContainer):
     def configs(self):
         return dict(
             XRAY_TAG="latest",
-            XRAY_DOMAIN=self.get_nginx_domain(),
+            XRAY_DOMAIN=Nginx.domain(self),
             XRAY_ID=ConfigField(provider=LazyProvider(lambda r: str(uuid.uuid4()), cached=True)),
             XRAY_WEBSOCKET_PATH=ConfigField.chain(
                 AliasProvider("XRAY_PATH"),
@@ -54,13 +59,35 @@ class Container(BaseContainer):
             XRAY_XHTTP_PATH=ConfigField(provider=PromptProvider(default="/i/am/xhttp", cached=True)),
         )
 
-    def on_starting(self):
-        self.render_template(
-            self.get_source_path("config.json"),
-            self.get_app_path("config.json", create_parent=True),
+    @cached_property
+    def integrations(self) -> Integrations:
+        grpc_pattern = lazy_load(lambda: "^" + re.escape(
+            self.get_route_path("XRAY_GRPC_SERVICE_NAME")) + r"(?:/(?:Tun|TunMulti))?$")
+        xhttp_pattern = lazy_load(lambda: "^" + re.escape(
+            self.get_route_path("XRAY_XHTTP_PATH")) + r"(?:/|$)")
+        return (
+            {"web": Nginx.site(
+                server_name=self.get_config_later("XRAY_DOMAIN"),
+                template=self.get_source_path("nginx.conf"),
+                auth=False,
+                waf_bypass=(grpc_pattern, xhttp_pattern),
+                template_vars={
+                    "websocket_path": lazy_load(lambda: self.get_route_path("XRAY_WEBSOCKET_PATH")),
+                    "grpc_path": lazy_load(lambda: self.get_route_path("XRAY_GRPC_SERVICE_NAME")),
+                    "grpc_pattern": grpc_pattern,
+                    "xhttp_path": lazy_load(lambda: self.get_route_path("XRAY_XHTTP_PATH")),
+                },
+            )},
         )
 
-        self.write_nginx_conf(
-            self.get_config("XRAY_DOMAIN"),
-            proxy_conf=self.get_source_path("nginx.conf"),
-        )
+    def get_route_path(self, key: str) -> str:
+        """Use one root-relative path in the proxy and application config."""
+        return "/" + self.get_config(key).strip("/")
+
+    def on_starting(self, context: OperationContext):
+        context.write_files(self, {
+            "config.json": self.render_template(self.get_source_path("config.json")),
+        })
+
+    def on_check(self, context: OperationContext):
+        json.loads(context.file_path(self, "config.json").read_text(encoding="utf-8"))

@@ -26,11 +26,10 @@
   / ==ooooooooooooooo==.o.  ooo= //   ,``--{)B     ,"
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
-from typing import Iterable
-
 import yaml
 
-from linktools.cntr import SourceContainer, ExposeLink, EventContext
+from linktools.cntr import SourceContainer, OperationContext, Integrations
+from linktools.cntr.ext import Flare, load_port_url
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
@@ -46,12 +45,14 @@ class Container(SourceContainer):
         )
 
     @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_container(
-                "ws-scrcpy", "cellphone", "ws-scrcpy",
-                self.load_port_url("WS_SCRCPY_PORT", https=False)),
-        ]
+    def integrations(self) -> Integrations:
+        return (
+            Flare.container(
+                "ws-scrcpy", "cellphone",
+                load_port_url(self, "WS_SCRCPY_PORT", https=False),
+                desc="ws-scrcpy",
+            ),
+        )
 
     @property
     def _source_url(self):
@@ -64,13 +65,12 @@ class Container(SourceContainer):
         tag = self.get_config("WS_SCRCPY_TAG")
         return f"ws-scrcpy-{tag.lstrip('v')}"
 
-    def on_starting(self, context: EventContext):
-        super().on_starting(context)
+    def on_starting(self, context: OperationContext):
+        context.write_files(self, {
+            "config.yaml": yaml.safe_dump({
+                "server": [{"secure": False, "port": self.get_config("WS_SCRCPY_PORT")}],
+            }),
+        })
 
-        with open(self.get_app_path("config.yaml"), "wt") as fd:
-            yaml.dump({
-                "server": [{
-                    "secure": False,
-                    "port": self.get_config("WS_SCRCPY_PORT")
-                }]
-            }, fd)
+    def on_check(self, context: OperationContext):
+        yaml.safe_load(context.file_path(self, "config.yaml").read_text(encoding="utf-8"))

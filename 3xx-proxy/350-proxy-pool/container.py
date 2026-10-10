@@ -28,7 +28,8 @@
 """
 from typing import Iterable
 
-from linktools.cntr import BaseContainer, ExposeLink
+from linktools.cntr import BaseContainer, Integrations
+from linktools.cntr.ext import Nginx, endpoint
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
@@ -43,19 +44,17 @@ class Container(BaseContainer):
     def configs(self):
         return dict(
             PROXY_POOL_TAG="latest",
-            PROXY_POOL_DOMAIN=self.get_nginx_domain(),
+            PROXY_POOL_DOMAIN=Nginx.domain(self),
             PROXY_POOL_PORT=ConfigField(cast=int, default=0),
         )
 
     @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_public("Proxy Pool", "tools", "代理池", self.load_nginx_url(
-                "PROXY_POOL_DOMAIN",
-                proxy_url="http://proxy-pool:5010",
-            )),
-            self.expose_container("Proxy Pool", "tools", "代理池", self.load_port_url(
-                "PROXY_POOL_PORT",
-                https=False
-            )),
-        ]
+    def integrations(self) -> Integrations:
+        return endpoint(
+            self, "web",
+            name="Proxy Pool", icon="tools", desc="代理池",
+            domain=self.get_config_later("PROXY_POOL_DOMAIN"),
+            proxy="http://proxy-pool:5010",
+            auth=False,
+            direct_port="PROXY_POOL_PORT",
+        )

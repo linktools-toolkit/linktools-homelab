@@ -6,7 +6,8 @@ import secrets
 from typing import Any, Iterable
 
 from linktools.cli import subcommand, subcommand_argument
-from linktools.cntr import BaseContainer, ExposeLink
+from linktools.cntr import BaseContainer, Integrations
+from linktools.cntr.ext import Nginx, load_nginx_url
 from linktools.core import ConfigField, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
 
@@ -40,7 +41,7 @@ class Container(BaseContainer):
     def configs(self):
         return dict(
             MCP_PUSH_TAG="latest",
-            MCP_PUSH_DOMAIN=self.get_nginx_domain(),
+            MCP_PUSH_DOMAIN=Nginx.domain(self),
             MCP_PUSH_PORT=ConfigField(cast=int, default=0),
             MCP_PUSH_TOKEN=ConfigField(secret=True, provider=LazyProvider(
                 lambda r: secrets.token_hex(32), cached=True,
@@ -59,18 +60,15 @@ class Container(BaseContainer):
         }
 
     @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_public("Push MCP", "bell", "多渠道消息推送 MCP（Bearer Token 认证）", self.load_nginx_url(
-                "MCP_PUSH_DOMAIN", "mcp",
-                proxy_conf=self.get_source_path("nginx.conf"),
-                auth_enable=False,
-                waf_enable=False,
-            )),
-            self.expose_container("Push MCP", "bell", "多渠道消息推送 MCP", self.load_port_url(
-                "MCP_PUSH_PORT", "mcp", https=False,
-            )),
-        ]
+    def integrations(self) -> Integrations:
+        return (
+            {"web": Nginx.site(
+                server_name=self.get_config_later("MCP_PUSH_DOMAIN"),
+                template=self.get_source_path("nginx.conf"),
+                waf=False,
+                auth=False,
+            )},
+        )
 
     @subcommand("show", help="print MCP server JSON configuration, optionally with a channel example")
     @subcommand_argument("channel", nargs="?", choices=tuple(PUSH_CHANNEL_HEADERS),
@@ -88,7 +86,7 @@ class Container(BaseContainer):
         config = {
             "mcpServers": {
                 "push": {
-                    "url": str(self.load_exist_nginx_url("MCP_PUSH_DOMAIN", "mcp")),
+                    "url": str(load_nginx_url(self, "web", "mcp")),
                     "headers": headers,
                 },
             },

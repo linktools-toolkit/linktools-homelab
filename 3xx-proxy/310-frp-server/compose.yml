@@ -2,5 +2,5 @@ services:
   frps-server:
     image: snowdreamtech/frps:{{ FRPS_TAG }}
     volumes:
-      - '{{ APP_PATH/"frps.ini" }}:/etc/frp/frps.ini:ro'
+      - '{{ APP_PATH/"generated/current/frps.ini" }}:/etc/frp/frps.ini:ro'
     network_mode: host

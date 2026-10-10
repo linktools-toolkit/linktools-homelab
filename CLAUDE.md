@@ -14,7 +14,7 @@ ct-cntr list
 
 # Deploy one or more containers (starts docker compose)
 ct-cntr up <container-name>
-ct-cntr up --build <container-name>   # rebuild image first
+ct-cntr up --pull <container-name>    # refresh images/source inputs
 
 # Stop containers
 ct-cntr down <container-name>
@@ -37,13 +37,19 @@ ct-cntr exec <container-name> <subcommand> [args]
 Every service folder contains at minimum a `container.py` that defines a `Container(BaseContainer)` class. This class declares:
 
 - **`dependencies`** — other container names that must be deployed first (e.g. `["nginx", "coder"]`)
-- **`configs`** (cached_property) — a dict of config keys with defaults, using `Config.Alias`, `Config.Lazy`, `Config.Prompt`, `Config.Property` helpers from `linktools.core`
-- **`exposes`** (cached_property) — list of `ExposeLink` objects produced by `self.expose_public(...)`, `self.expose_private(...)`, `self.expose_container(...)` — each wires up an nginx reverse-proxy entry and/or a direct port
+- **`configs`** (cached_property) — a dict of config keys with defaults, using `ConfigField`, `LazyProvider`, and `PromptProvider` helpers from `linktools.core`
+- **`integrations`** (cached_property) — a reusable tuple/list annotated `Integrations`, containing named site dictionaries and anonymous `Flare`/`Authelia` declarations. Import `Nginx`, `Flare`, `Authelia`, `endpoint`, and URL helpers from `linktools.cntr.ext`; root `linktools.cntr` supplies `BaseContainer`, `SourceContainer`, `Integrations`, and `OperationContext`. Each declaration identifies its consumer. Sites use `{"web": Nginx.site(...)}`: the dictionary key is their only author-supplied identity. Common public endpoints use `endpoint(self, "web", ...)`, expanded with `*` when mixed with other declarations. Keep values lazy and preserve declaration order; no consumer-keyed mappings or directly imported declaration implementation types
 - **Custom subcommands** — methods decorated with `@subcommand(...)` and `@subcommand_argument(...)` become CLI subcommands under `exec <container>`
 
 ### `compose.yml` as Jinja2 Templates
 
 The `compose.yml` in each folder is a **Jinja2 template**, not plain Docker Compose YAML. The framework renders it before passing to docker compose. Template variables include all `configs` keys plus framework-provided globals like `APP_PATH`, `DOCKER_UID`, `DOCKER_GID`, `DOCKER_USER`, and `containers["<name>"]` object access. Comments starting with `#` can contain Jinja2 control flow (e.g. `# {% if PORT > 0 %}`).
+
+### Applying Configuration Changes
+
+A targeted `ct-cntr up <container-name>` compares the selected services with their last successfully applied configuration. It includes required providers and running declared integration consumers; real Compose restart and namespace dependencies can also require actions outside the requested containers. These collateral changes are warned about before execution. Unrelated services are not applied merely because their current configuration differs.
+
+Ordinary container authors declare `configs`, `dependencies`, and `integrations`; the framework handles configuration comparison and ordered application. Keep runtime dependencies explicit, including dependencies implied by cross-container template values, and declare named nginx sites and independent Flare links in `integrations`. Native Compose profiles determine active full-project services; disabled running services retain their existing configuration unless a real dependency requires rebinding.
 
 ### `Dockerfile` as Jinja2 Templates
 
@@ -61,26 +67,91 @@ The `8xx-base/` containers are shared infrastructure depended upon by many servi
 
 The `linktools-cntr` built-in containers (nginx, authelia, lldap, flare, portainer, safeline) are bundled inside the `linktools` package itself, not in this repo.
 
-### Nginx Integration
+### Nginx and Authelia Integration
 
-Containers declare their public domain via `self.get_nginx_domain()` in configs. The `load_nginx_url(...)` call in `exposes` registers a hook that writes the nginx proxy config at deploy time.
+Declare domain defaults with `Nginx.domain(self, name=None)` and proxy sites with
+`{"web": Nginx.site(server_name=..., ...)}`. Every site has an explicit
+dictionary key, unique within its producer. Use `"web"` for the ordinary site;
+use descriptive keys such as `"proxy"` or `"pve"` for additional sites. Keys
+remain stable across commands and determine the generated site filenames.
+`Nginx.site` has no identity or navigation fields. `load_nginx_url(self, "web", *path,
+queries=...)` lazily reads that resolved site; it never registers a proxy or changes
+ACL/OIDC state. In general templates, use `urls.load_nginx_url(container, ...)`.
 
-`load_nginx_url` key parameters:
+Common site fields:
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `proxy_url` | `str` | Upstream URL (default: inferred from service name) |
-| `proxy_conf` | `Path` | Path to a custom nginx `nginx.conf` snippet |
-| `auth_enable` | `bool` | Enable Authelia SSO protection (default: `False`) |
-| `auth_extra` | `dict` | Fine-grained SSO options (see below) |
+| Field | Description |
+|-------|-------------|
+| `server_name` | Lazy hostname; an empty value disables the site |
+| `proxy` | Explicit upstream URL, such as `"http://my-service:8080"` |
+| `template` | Custom native nginx template from `self.get_source_path(...)` |
+| `template_vars` | Values supplied only to the custom template |
+| `https`, `waf`, `auth` | `None` inherits, `False` disables, `True` requires the global capability |
+| `auth_bypass`, `waf_bypass` | Path regexes bypassing the selected protection |
+| `auth_headers` | Lazy credentials injected only after successful authentication |
+| `auth_rule` | Optional native Authelia access-control rule |
+| `public_url` | Explicit public URL for a regex/nonliteral hostname |
+| `default_server` | Explicit default-server policy; `server_name="_"` alone is insufficient |
 
-`auth_extra` sub-keys:
+Declare callbacks separately with `Authelia.oidc(redirect_uris=(lazy_absolute_url,...),
+enabled=lazy_switch)`. This contributes only callbacks to the existing shared
+Authelia OIDC client. It never creates another client or credentials. Empty URLs
+are omitted, disabled declarations do not resolve their URLs, and nonempty URLs
+retain their exact trailing slash/query. GitLab and LiteLLM use `load_nginx_url`;
+Proxmox keeps its exact public and configured local callback URLs.
 
-| Key | Example | Description |
-|-----|---------|-------------|
-| `acl_bypass` | `["\\.(css\|js)$"]` | URL patterns that skip Authelia auth (regex list) |
-| `auth_headers` | `{"Authorization": "Basic ..."}` | Headers injected into proxied requests after auth; values are rendered as Jinja2 templates, so config keys like `{{ MY_TOKEN }}` work |
-| `oidc_redirect_uris` | `["{base_url}/callback"]` | Extra OIDC redirect URIs registered with Authelia; `{base_url}` is replaced with the service's public URL |
+For the common public-site pattern, use the pure `endpoint` function. It returns
+ordinary declarations: one `{key: Nginx.site(...)}` entry, one public Flare link,
+an optional HTTP direct-port bookmark, and optional OIDC callbacks. It does not
+register services, evaluate configuration, create clients, or add lifecycle work.
+`path` applies to both navigation URLs; `oidc_paths` are independent callback
+paths relative to the site root. `oidc_enabled` controls only the callbacks.
+The independent Authelia issuer always remains the Authelia site's URL.
+
+Use raw declarations for custom nginx templates, headers, access-control rules,
+wildcard/regex sites, independently customized links, or other advanced policy.
+`endpoint` intentionally accepts only `name`, `icon`, `desc`, `domain`, `proxy`,
+`auth`, `auth_bypass`, `waf_bypass`, `path`, `direct_port`, `oidc_paths`, and
+`oidc_enabled`; do not expand it into an options bag. This repository uses it
+for 14 beneficial main sites; custom private links and Proxmox's exact public
+and local callbacks remain explicit.
+
+Direct-port links and external bookmarks are standalone Flare declarations.
+`Flare.bookmark(name, icon, url, category="private"/"container"/"other")` uses a
+standard group; `Flare.category(name, desc, order=...)` declares a custom group.
+A category is callable as `(name, icon, desc, url)`, preserving existing link
+metadata. Every public link supplies its URL explicitly, usually
+`load_nginx_url(self, "web")`; an empty/None URL disables that link. Flare
+consumes links in producer/declaration order within each category. When migrating
+legacy attached links, declare them before that producer's former standalone
+links to preserve navigation order. Navigation never creates a runtime dependency.
+
+### Lifecycle and Source Inputs
+
+`on_starting(context: OperationContext)` prepares inputs; `on_check(context)`
+validates them before services are replaced; `on_started(context)` runs afterward.
+Do not use the removed `on_prepare` loading callback, start another service from a
+hook, or overwrite active generated config during preparation.
+
+Use `context.write_files(self, {"config.json": rendered_text})` once per operation.
+Compose mounts the logical `APP_PATH/"generated/current/config.json"`; the
+framework substitutes the immutable prepared file before checks/application.
+Read it in `on_check` with `context.file_path(self, "config.json")`.
+`context.project_containers` is the complete installed project selection;
+`context.target_containers` identifies the operation targets. `context.prepared_dirs`
+maps container names to their immutable prepared directories. Persistent
+credentials and runtime data remain separate from these generated inputs.
+
+`SourceContainer` registers its own source-preparation hook. Keep that hook; don't
+download source during declaration or planning. Build inputs live in retained
+content-addressed snapshots behind `get_docker_context_path()`. `--pull` requests a
+source refresh through `context.refresh_services`; inspecting `context.actions`
+for a `pull` action no longer expresses that policy.
+
+Multica registers no loading-time preparation. VSCode registers a lazy
+`AFTER_COMPOSE_RENDER` callback in `on_init`; installed Multica contributes its
+environment/mounts then registers its existing persistent-secret preparation on
+VSCode's `BEFORE_START` hook. Rendering itself does not write the PAT or data.
 
 ## Creating a New Container
 
@@ -98,8 +169,9 @@ Minimal template (copy and adapt):
 
 ```python
 from typing import Iterable
-from linktools.cntr import BaseContainer, ExposeLink
-from linktools.core import Config
+from linktools.cntr import BaseContainer, Integrations
+from linktools.cntr.ext import Nginx, endpoint
+from linktools.core import ConfigField, PromptProvider
 from linktools.decorator import cached_property
 
 
@@ -113,30 +185,29 @@ class Container(BaseContainer):
     def configs(self):
         return dict(
             MY_TAG="latest",
-            MY_DOMAIN=self.get_nginx_domain(),
-            MY_PORT=Config.Alias(type=int, default=0),
-            MY_PASSWORD=Config.Prompt(cached=True),
+            MY_DOMAIN=Nginx.domain(self),
+            MY_PORT=ConfigField(cast=int, default=0),
+            MY_PASSWORD=ConfigField(provider=PromptProvider(cached=True)),
         )
 
     @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_public("My Service", "icon-name", "服务描述", self.load_nginx_url(
-                "MY_DOMAIN",
-                auth_enable=True,
-            )),
-            self.expose_container("My Service", "icon-name", "服务描述", self.load_port_url(
-                "MY_PORT", https=False,
-            )),
-        ]
+    def integrations(self) -> Integrations:
+        return endpoint(
+            self, "web",
+            name="My Service", icon="link", desc="服务描述",
+            domain=self.get_config_later("MY_DOMAIN"),
+            proxy="http://my-service:8080",
+            auth=None,
+            direct_port="MY_PORT",
+        )
 ```
 
-The second argument to `expose_public`/`expose_container` is a [Material Design Icons](https://pictogrammers.com/library/mdi/) icon name in camelCase (e.g. `"link"`, `"microsoftVisualStudioCode"`).
+The second argument to `Flare.public`/`Flare.bookmark` is a [Material Design Icons](https://pictogrammers.com/library/mdi/) icon name in camelCase (e.g. `"link"`, `"microsoftVisualStudioCode"`).
 
-Key `Config` helpers:
-- `Config.Alias(type=int, default=0)` — typed alias with a default value
-- `Config.Lazy(lambda cfg: ...)` — computed at render time from other config values
-- `Config.Prompt(cached=True)` — interactive prompt, value stored after first entry
+Key config helpers:
+- `ConfigField(cast=int, default=0)` — typed field with a default value
+- `ConfigField(provider=LazyProvider(lambda cfg: ...))` — computed when resolved from other config values
+- `ConfigField(provider=PromptProvider(cached=True))` — interactive prompt, value stored after first entry
 
 ### Step 3: Write `compose.yml`
 
@@ -161,7 +232,7 @@ networks:
   nginx:
 ```
 
-Available Jinja2 globals: all `configs` keys, `APP_PATH` (pathlib.Path), `SOURCE_PATH` (pathlib.Path), `DOCKER_UID`, `DOCKER_GID`, `DOCKER_USER`, `containers["name"]`.
+Available Jinja2 globals: all `configs` keys, `APP_PATH` (pathlib.Path), `SOURCE_PATH` (pathlib.Path), `DOCKER_UID`, `DOCKER_GID`, `DOCKER_USER`, `container` (the owning container), `containers["name"]`, and `urls` (the module containing lazy URL functions).
 
 - `APP_PATH` — runtime data directory (writable, persisted)
 - `SOURCE_PATH` — container source directory (read-only; use for mounting scripts/configs baked into the repo)
@@ -172,15 +243,26 @@ Use `$$` in compose templates to produce a literal `$` in the rendered output (n
 
 ### Step 4 (optional): Add a custom nginx config
 
-Create a `nginx.conf` and reference it in `container.py`:
+Create a `nginx.conf` and reference it in the site declaration in `container.py`.
+Import `Flare` and `load_nginx_url` from `linktools.cntr.ext` for its separate link:
 
 ```python
-self.load_nginx_url("MY_DOMAIN", proxy_conf=self.get_source_path("nginx.conf"))
+{
+    "web": Nginx.site(
+        server_name=self.get_config_later("MY_DOMAIN"),
+        template=self.get_source_path("nginx.conf"),
+    ),
+},
+Flare.public("My Service", "link", "服务描述", load_nginx_url(self, "web")),
 ```
+
+Custom nginx templates receive `site`, `container`, `nginx`, `config`, and `template_vars`, plus `route_auth` when the framework groups a shared hostname. Import shared macros with `{% from "nginx/headers.j2" import proxy_headers with context %}` and emit `{{ proxy_headers() }}` in each proxy location. Also import/call `route_authorization()` in protected proxy locations so a shared hostname uses each route's policy; retain explicit `auth_request off` in intentional bypass locations. Use `grpc_headers` for gRPC and pass business-specific header overrides into the macro. Common streaming limits are available through `{% include "nginx/params.conf" %}`. Framework authentication is applied by the generated server; do not include removed native snippets or duplicate its headers.
+
+Use explicit `local/` or `nginx/` Jinja namespaces. Business templates render once into self-contained `sites/<id>.conf` files, and literal data is not evaluated as another template. Use `$original_scheme`, `$original_host`, and the other `$original_*` request variables, never removed `$cntr_*` names. Docker upstreams must use a variable target so isolated validation does not require running services. When replacing a static URI suffix, preserve its prefix/capture/query behavior explicitly. Set backend variables and WebDAV Destination before a `rewrite ... break`, which stops subsequent rewrite directives. fnOS intentionally retains static `proxy_pass` URLs: its defaults are numeric LAN IPs, and native nginx must preserve configured URI prefixes, query strings, and percent encoding. Changing those targets to hostnames is subject to the same isolated DNS validation constraints; it does not enable networked validation.
 
 ### Step 5 (optional): Add a custom `Dockerfile`
 
-Dockerfiles are also Jinja2 templates. Use `SourceContainer` as base class when you need to download and build from an upstream archive (see `6xx-coder/620-cloudcli` for an example).
+Dockerfiles are also Jinja2 templates. Use `SourceContainer` as base class when you need to download and build from an upstream archive (see `4xx-mobile/410-ws-scrcpy` for an example).
 
 **Auto-build injection**: when a `Dockerfile` is present in the container folder, the framework automatically injects `build.context` and `build.dockerfile` into the service definition — no manual `build:` block needed in `compose.yml`. **This injection is skipped if the service already has an `image:` field** — the framework treats an existing `image:` as a pre-built image to pull, not a local build target. To use a Dockerfile, omit `image:` from `compose.yml` entirely (or comment it out).
 
@@ -207,3 +289,22 @@ This keeps script logic in the repo (version-controlled, hot-swappable without r
 | `6xx-coder` | Dev environments (VS Code, CloudCLI, GitLab, PyPI) |
 | `7xx-builder` | Image/firmware builders (OpenWrt, Redroid) |
 | `8xx-base` | Shared infrastructure volumes and config |
+
+
+## Source Verification
+
+This branch follows the matching `linktools` `refactor/cntr-integrations` branch.
+The declared minimum is still the in-development `linktools-cntr` 0.10.0; use a
+matching source checkout rather than an older installation with the same version.
+
+The `Check source syntax` workflow compiles the Python definitions on Python
+3.10, 3.12, and 3.14 and parses `.linktools.json` using only the standard library:
+
+```sh
+python -m compileall -q [0-9]xx-*
+python -m json.tool .linktools.json > /dev/null
+```
+
+These checks do not import the definitions or validate framework compatibility,
+rendered templates, navigation, OIDC callbacks, lifecycle behavior, or CLI output.
+Native service validation and live deployment require separate verification.

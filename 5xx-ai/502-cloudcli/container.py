@@ -3,7 +3,8 @@
 
 from typing import Iterable
 
-from linktools.cntr import BaseContainer, ExposeLink
+from linktools.cntr import BaseContainer, Integrations
+from linktools.cntr.ext import Nginx, endpoint
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
@@ -18,23 +19,17 @@ class Container(BaseContainer):
     def configs(self):
         return dict(
             CLOUD_CLI_TAG="latest",
-            CLOUD_CLI_DOMAIN=self.get_nginx_domain(),
+            CLOUD_CLI_DOMAIN=Nginx.domain(self),
             CLOUD_CLI_PORT=ConfigField(cast=int, default=0),
         )
 
     @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_public("CloudCLI", "messageOutline", "Cloud CLI", self.load_nginx_url(
-                "CLOUD_CLI_DOMAIN",
-                proxy_url="http://cloudcli:3001",
-                auth_enable=True,
-                auth_extra={
-                    "acl_bypass": ["\\.(css|js)$"],
-                }
-            )),
-            self.expose_container("CloudCLI", "messageOutline", "Cloud CLI", self.load_port_url(
-                "CLOUD_CLI_PORT",
-                https=False
-            )),
-        ]
+    def integrations(self) -> Integrations:
+        return endpoint(
+            self, "web",
+            name="CloudCLI", icon="messageOutline", desc="Cloud CLI",
+            domain=self.get_config_later("CLOUD_CLI_DOMAIN"),
+            proxy="http://cloudcli:3001",
+            auth_bypass=(r"\.(css|js)$",),
+            direct_port="CLOUD_CLI_PORT",
+        )

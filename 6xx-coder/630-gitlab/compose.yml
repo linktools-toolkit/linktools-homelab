@@ -4,7 +4,7 @@ services:
     environment:
       GITLAB_ROOT_PASSWORD: '{{ GITLAB_ROOT_PASSWORD }}'
       GITLAB_OMNIBUS_CONFIG: |
-          external_url '{{ utils.make_url("https", GITLAB_DOMAIN, NGINX_HTTPS_PORT) }}'
+          external_url '{{ urls.load_nginx_url(container, "web") }}'
           gitlab_rails['gitlab_shell_ssh_port'] = {{ GITLAB_SSH_PORT }}
 
           # nginx['enable'] = true
@@ -72,7 +72,7 @@ services:
           logging['logrotate_maxsize'] = "200M"
 
           # {% if NGINX_AUTH_ENABLE %}
-          # {% with client = manager.containers['authelia'].oidc_clients[0] %}
+          # {% with client = manager.containers['authelia'].oidc_client %}
           gitlab_rails['omniauth_providers'] = [
             {
               name: "openid_connect",
@@ -81,7 +81,7 @@ services:
               args: {
                 name: "openid_connect",
                 strategy_class: "OmniAuth::Strategies::OpenIDConnect",
-                issuer: "{{ client['IssuerURL'] }}",
+                issuer: "{{ client['issuer_url'] }}",
                 discovery: true,
                 scope: ["openid","profile","email","groups"],
                 client_auth_method: "basic",
@@ -91,9 +91,9 @@ services:
                 send_scope_to_token_endpoint: true,
                 pkce: true,
                 client_options: {
-                  identifier: "{{ client['ClientID'] }}",
-                  secret: "{{ client['ClientSecret'] }}",
-                  redirect_uri: "{{ utils.make_url("https", GITLAB_DOMAIN, NGINX_HTTPS_PORT, "/users/auth/openid_connect/callback") }}"
+                  identifier: "{{ client['client_id'] }}",
+                  secret: "{{ client['client_secret'] }}",
+                  redirect_uri: "{{ urls.load_nginx_url(container, "web", "users/auth/openid_connect/callback") }}"
                 }
               }
             }
