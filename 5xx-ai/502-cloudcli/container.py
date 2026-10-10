@@ -33,8 +33,8 @@ class Container(BaseContainer):
                 proxy="http://cloudcli:3001",
                 auth_bypass=(r"\.(css|js)$",),
             ),
-            Flare.category("container")("CloudCLI", "messageOutline", "Cloud CLI", load_port_url(
+            Flare.container("CloudCLI", "messageOutline", load_port_url(
                 self, "CLOUD_CLI_PORT",
                 https=False
-            )),
+            ), desc="Cloud CLI"),
         )

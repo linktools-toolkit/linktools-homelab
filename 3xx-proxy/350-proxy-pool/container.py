@@ -58,8 +58,8 @@ class Container(BaseContainer):
                 proxy="http://proxy-pool:5010",
                 auth=False,
             ),
-            Flare.category("container")("Proxy Pool", "tools", "代理池", load_port_url(
+            Flare.container("Proxy Pool", "tools", load_port_url(
                 self, "PROXY_POOL_PORT",
                 https=False
-            )),
+            ), desc="代理池"),
         )

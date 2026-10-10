@@ -58,8 +58,8 @@ class Container(BaseContainer):
                 proxy="http://home-assistant:8123",
                 auth=False,
             ),
-            Flare.category("container")("HomeAssistant", "homeAssistant", "Home Assistant", load_port_url(
+            Flare.container("HomeAssistant", "homeAssistant", load_port_url(
                 self, "HOME_ASSISTANT_PORT",
                 https=False,
-            )),
+            ), desc="Home Assistant"),
         )

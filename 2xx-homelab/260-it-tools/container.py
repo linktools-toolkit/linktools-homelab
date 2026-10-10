@@ -59,5 +59,5 @@ class Container(BaseContainer):
             Flare.category("other")("在线json解析", "codeJson", "", load_nginx_url(self, "web", "json-prettify")),
             Flare.category("other")("DNS查询", "dns", "", "https://tool.chinaz.com/dns/"),
             Flare.category("other")("图标下载", "progressDownload", "", "https://materialdesignicons.com/"),
-            Flare.category("container")("IT Tools", "tools", "it工具集", load_port_url(self, "IT_TOOLS_PORT", https=False)),
+            Flare.container("IT Tools", "tools", load_port_url(self, "IT_TOOLS_PORT", https=False), desc="it工具集"),
         )

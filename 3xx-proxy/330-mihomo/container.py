@@ -43,7 +43,7 @@ class Container(BaseContainer):
                     secret=self.get_config_later("MIHOMO_SECRET"),
                 ),
             )),
-            Flare.category("container")("Mihomo", "vpn", "Mihomo监控", load_port_url(
+            Flare.container("Mihomo", "vpn", load_port_url(
                 self, "MIHOMO_PORT", "ui", "metacubexd", "#", "setup",
                 queries=dict(
                     hostname=self.get_config_later("HOST"),
@@ -51,7 +51,7 @@ class Container(BaseContainer):
                     secret=self.get_config_later("MIHOMO_SECRET"),
                 ),
                 https=False,
-            )),
+            ), desc="Mihomo监控"),
         )
 
     def on_starting(self, context: OperationContext):

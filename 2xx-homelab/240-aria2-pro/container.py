@@ -52,5 +52,5 @@ class Container(BaseContainer):
                 proxy="http://aria2-pro:6800",
                 auth=False,
             ),
-            Flare.category("container")("aria2", "tools", "", load_port_url(self, "ARIA2_PORT", https=False)),
+            Flare.container("aria2", "tools", load_port_url(self, "ARIA2_PORT", https=False), desc=""),
         )

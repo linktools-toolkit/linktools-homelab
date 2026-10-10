@@ -38,14 +38,14 @@ class Container(BaseContainer):
                 waf=False,
                 auth=None,
             ),
-            Flare.category("container")("Hermes API", "robot", "AI Agent Gateway API", load_port_url(
+            Flare.container("Hermes API", "robot", load_port_url(
                 self, "HERMES_AGENT_PORT",
                 https=False,
-            )),
-            Flare.category("container")("Hermes Dashboard", "robot", "AI Agent Dashboard", load_port_url(
+            ), desc="AI Agent Gateway API"),
+            Flare.container("Hermes Dashboard", "robot", load_port_url(
                 self, "HERMES_AGENT_DASHBOARD_PORT",
                 https=False,
-            )),
+            ), desc="AI Agent Dashboard"),
         )
 
     @subcommand("cli", help="run hermes CLI command", prefix_chars=chr(1))

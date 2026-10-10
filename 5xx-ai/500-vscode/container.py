@@ -106,10 +106,10 @@ class Container(BaseContainer):
                 ),
                 cert_domains=(lazy_load(lambda: "*." + self.get_config("VSCODE_DOMAIN")),),
             ),
-            Flare.category("container")("VS Code", "microsoftVisualStudioCode", "在线vscode", load_port_url(
+            Flare.container("VS Code", "microsoftVisualStudioCode", load_port_url(
                 self, "VSCODE_PORT",
                 https=False
-            )),
+            ), desc="在线vscode"),
         )
 
     @cached_property

@@ -61,8 +61,8 @@ class Container(BaseContainer):
                 template=self.get_source_path("nginx.conf"),
                 auth=None,
             ),
-            Flare.category("container")("SublinkPro", "link", "代理订阅管理", load_port_url(
+            Flare.container("SublinkPro", "link", load_port_url(
                 self, "SUBLINK_PORT",
                 https=False
-            )),
+            ), desc="代理订阅管理"),
         )

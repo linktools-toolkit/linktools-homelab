@@ -61,10 +61,10 @@ class Container(BaseContainer):
                 auth=False,
             ),
             Flare.public("pypiserver", "languagePython", "pypiserver", load_nginx_url(self, "web", "simple")),
-            Flare.category("container")("pypiserver", "languagePython", "pypiserver", load_port_url(
+            Flare.container("pypiserver", "languagePython", load_port_url(
                 self, "PYPISERVER_PORT",
                 https=False
-            )),
+            ), desc="pypiserver"),
         )
 
     def on_starting(self, context: OperationContext):

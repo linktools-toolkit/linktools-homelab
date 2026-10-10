@@ -38,7 +38,7 @@ class Container(BaseContainer):
                 waf=False,
                 auth_bypass=(r"^/(v1|vscode|api/mcp)(/|$)", r"\.(css|js|webmanifest)$"),
             ),
-            Flare.category("container")("OmniRoute", "transitConnectionVariant", "Free self-hosted AI gateway", load_port_url(
+            Flare.container("OmniRoute", "transitConnectionVariant", load_port_url(
                 self, "OMNIROUTE_PORT", https=False,
-            )),
+            ), desc="Free self-hosted AI gateway"),
         )

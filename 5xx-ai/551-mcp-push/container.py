@@ -70,9 +70,9 @@ class Container(BaseContainer):
                 auth=False,
             ),
             Flare.public("Push MCP", "bell", "多渠道消息推送 MCP（Bearer Token 认证）", load_nginx_url(self, "web", "mcp")),
-            Flare.category("container")("Push MCP", "bell", "多渠道消息推送 MCP", load_port_url(
+            Flare.container("Push MCP", "bell", load_port_url(
                 self, "MCP_PUSH_PORT", "mcp", https=False,
-            )),
+            ), desc="多渠道消息推送 MCP"),
         )
 
     @subcommand("show", help="print MCP server JSON configuration, optionally with a channel example")

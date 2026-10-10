@@ -45,10 +45,10 @@ class Container(BaseContainer):
                 auth_bypass=("^/v1/", "^/chat/completions", "^/completions", "^/embeddings", "^/health",),
             ),
             Flare.public("LiteLLM", "api", "LiteLLM Proxy & Web UI", load_nginx_url(self, "web", "ui")),
-            Flare.category("container")("LiteLLM", "api", "LiteLLM Proxy & Web UI", load_port_url(
+            Flare.container("LiteLLM", "api", load_port_url(
                 self, "LITELLM_PORT", "ui",
                 https=False,
-            )),
+            ), desc="LiteLLM Proxy & Web UI"),
             Authelia.oidc(
                 redirect_uris=(load_nginx_url(self, "web", "sso/callback"),),
                 enabled=self.get_config_later("NGINX_AUTH_ENABLE"),

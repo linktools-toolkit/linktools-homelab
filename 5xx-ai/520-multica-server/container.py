@@ -93,10 +93,10 @@ class Container(BaseContainer):
                 waf=False,
                 auth=None,
             ),
-            Flare.category("container")("Multica", "robot", "AI Agent Team Platform", load_port_url(
+            Flare.container("Multica", "robot", load_port_url(
                 self, "MULTICA_FRONTEND_PORT", https=False,
-            )),
-            Flare.category("container")("Multica API", "robot", "AI Agent Team API", load_port_url(
+            ), desc="AI Agent Team Platform"),
+            Flare.container("Multica API", "robot", load_port_url(
                 self, "MULTICA_BACKEND_PORT", https=False,
-            )),
+            ), desc="AI Agent Team API"),
         )

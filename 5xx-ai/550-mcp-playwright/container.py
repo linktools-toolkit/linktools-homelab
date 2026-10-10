@@ -52,12 +52,12 @@ class Container(BaseContainer):
                 auth=None,
             ),
             Flare.public("Playwright MCP", "robot", "MCP HTTP 服务（Bearer Token 认证）", load_nginx_url(self, "web", "mcp")),
-            Flare.category("container")("Playwright Browser", "web", "noVNC 浏览器", load_port_url(
+            Flare.container("Playwright Browser", "web", load_port_url(
                 self, "MCP_PLAYWRIGHT_NOVNC_PORT", https=False,
-            )),
-            Flare.category("container")("Playwright MCP", "robot", "MCP HTTP 服务（路径 /mcp）", load_port_url(
+            ), desc="noVNC 浏览器"),
+            Flare.container("Playwright MCP", "robot", load_port_url(
                 self, "MCP_PLAYWRIGHT_PORT", "mcp", https=False,
-            )),
+            ), desc="MCP HTTP 服务（路径 /mcp）"),
         )
 
     @subcommand("show", help="print MCP server JSON configuration")

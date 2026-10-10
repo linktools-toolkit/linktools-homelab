@@ -45,10 +45,10 @@ class Container(BaseContainer):
                 auth_headers={"Authorization": lazy_load(lambda: "Bearer " + self.get_config("AIONUI_TOKEN"))},
                 auth_bypass=(r"\.(css|js|webmanifest)$",),
             ),
-            Flare.category("container")("AionUI", "robot", "AI 助手 Web UI", load_port_url(
+            Flare.container("AionUI", "robot", load_port_url(
                 self, "AIONUI_PORT",
                 https=False,
-            )),
+            ), desc="AI 助手 Web UI"),
         )
 
     @classmethod

@@ -53,8 +53,8 @@ class Container(BaseContainer):
                 template=self.get_source_path("nginx.conf"),
                 auth=False,
             ),
-            Flare.category("container")("qBittorrent", "tools", "", load_port_url(
+            Flare.container("qBittorrent", "tools", load_port_url(
                 self, "QBITTORRENT_PORT",
                 https=False
-            )),
+            ), desc=""),
         )

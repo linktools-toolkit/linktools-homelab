@@ -47,9 +47,9 @@ The `compose.yml` in each folder is a **Jinja2 template**, not plain Docker Comp
 
 ### Applying Configuration Changes
 
-A targeted `ct-cntr up <container-name>` compares the current rendered configuration with the last successfully applied configuration. Besides starting the requested containers and their required runtime dependencies, it also applies pending configuration changes to other already-running services. This can include changes outside the requested container. Unrelated stopped services remain stopped.
+A targeted `ct-cntr up <container-name>` compares the selected services with their last successfully applied configuration. It includes required providers and running declared integration consumers; real Compose restart and namespace dependencies can also require actions outside the requested containers. These collateral changes are warned about before execution. Unrelated services are not applied merely because their current configuration differs.
 
-Ordinary container authors declare `configs`, `dependencies`, and `integrations`; the framework handles configuration comparison and application, including values read across containers in Compose templates. Keep runtime dependencies explicit and declare each nginx site or Flare link under its consumer.
+Ordinary container authors declare `configs`, `dependencies`, and `integrations`; the framework handles configuration comparison and ordered application. Keep runtime dependencies explicit, including dependencies implied by cross-container template values, and declare each nginx site or Flare link under its consumer. Native Compose profiles determine active full-project services; disabled running services retain their existing configuration unless a real dependency requires rebinding.
 
 ### `Dockerfile` as Jinja2 Templates
 

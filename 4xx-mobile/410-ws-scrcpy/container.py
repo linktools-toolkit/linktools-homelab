@@ -47,9 +47,10 @@ class Container(SourceContainer):
     @cached_property
     def integrations(self) -> Integrations:
         return (
-            Flare.category("container")(
-                "ws-scrcpy", "cellphone", "ws-scrcpy",
+            Flare.container(
+                "ws-scrcpy", "cellphone",
                 load_port_url(self, "WS_SCRCPY_PORT", https=False),
+                desc="ws-scrcpy",
             ),
         )
 

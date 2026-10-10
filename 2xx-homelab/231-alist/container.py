@@ -61,8 +61,8 @@ class Container(BaseContainer):
                 proxy="http://alist:5244",
                 auth=False,
             ),
-            Flare.category("container")("Alist", "folderSync", "", load_port_url(
+            Flare.container("Alist", "folderSync", load_port_url(
                 self, "ALIST_PORT",
                 https=False,
-            )),
+            ), desc=""),
         )
