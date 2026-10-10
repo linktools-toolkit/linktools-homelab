@@ -64,7 +64,7 @@ class PreparedFileTests(unittest.TestCase):
                 container = isolated_container(relative, directory, **values)
                 legacy = container.get_app_path(filename, create_parent=True)
                 legacy.write_text("active legacy input", encoding="utf-8")
-                context = OperationContext(containers=[container], target_containers=[container])
+                context = OperationContext(project_containers=[container], target_containers=[container])
                 container.on_starting(context)
                 container.on_check(context)
                 prepared = context.file_path(container, filename)
@@ -81,9 +81,9 @@ class PreparedFileTests(unittest.TestCase):
                 self.assertEqual(mount["source"], str(prepared))
                 self.assertIn('generated/current/' + filename,
                               (container.root_path / "compose.yml").read_text())
-                repeat = OperationContext(containers=[container], target_containers=[container])
+                repeat = OperationContext(project_containers=[container], target_containers=[container])
                 container.on_starting(repeat)
-                self.assertEqual(repeat.prepared_files, context.prepared_files)
+                self.assertEqual(repeat.prepared_dirs, context.prepared_dirs)
                 unchanged = bind_prepared_files(repeat, model, {container.name: yaml.safe_dump(bound)})
                 self.assertEqual(unchanged, bound)
                 container.manager.runtime.create_process.assert_not_called()
@@ -105,11 +105,11 @@ class PreparedFileTests(unittest.TestCase):
     def test_mihomo_only_refreshes_its_own_requested_service(self):
         container = make_manager().containers["mihomo"]
         with patch.dict(container.on_starting.__globals__, utils=Mock()) as namespace:
-            for services, commands in ((frozenset(), ["pull"]), (frozenset({"other"}), ["up"])):
-                container.on_starting(OperationContext(commands=commands, refresh_services=services))
+            for services, actions in ((frozenset(), ["pull"]), (frozenset({"other"}), ["up"])):
+                container.on_starting(OperationContext(actions=actions, refresh_services=services))
                 namespace["utils"].remove_file.assert_not_called()
             container.get_app_path = Mock(side_effect=lambda *parts: Path("/synthetic").joinpath(*parts))
-            container.on_starting(OperationContext(commands=["up"], refresh_services=frozenset({"mihomo"})))
+            container.on_starting(OperationContext(actions=["up"], refresh_services=frozenset({"mihomo"})))
             self.assertEqual(namespace["utils"].remove_file.call_count, 2)
 
     def test_every_container_imports_and_has_no_removed_lifecycle_or_helpers(self):

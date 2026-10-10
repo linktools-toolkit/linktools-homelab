@@ -115,14 +115,17 @@ hook, or overwrite active generated config during preparation.
 Use `context.write_files(self, {"config.json": rendered_text})` once per operation.
 Compose mounts the logical `APP_PATH/"generated/current/config.json"`; the
 framework substitutes the immutable prepared file before checks/application.
-Read it in `on_check` with `context.file_path(self, "config.json")`. Persistent
+Read it in `on_check` with `context.file_path(self, "config.json")`.
+`context.project_containers` is the complete installed project selection;
+`context.target_containers` identifies the operation targets. `context.prepared_dirs`
+maps container names to their immutable prepared directories. Persistent
 credentials and runtime data remain separate from these generated inputs.
 
 `SourceContainer` registers its own source-preparation hook. Keep that hook; don't
 download source during declaration or planning. Build inputs live in retained
 content-addressed snapshots behind `get_docker_context_path()`. `--pull` requests a
-source refresh through `context.refresh_services`; inspecting `context.commands`
-for a `pull` command no longer expresses that policy.
+source refresh through `context.refresh_services`; inspecting `context.actions`
+for a `pull` action no longer expresses that policy.
 
 Multica registers no loading-time preparation. VSCode registers a lazy
 `AFTER_COMPOSE_RENDER` callback in `on_init`; installed Multica contributes its
