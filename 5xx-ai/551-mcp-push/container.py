@@ -7,7 +7,7 @@ from typing import Any, Iterable
 
 from linktools.cli import subcommand, subcommand_argument
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, Flare, load_nginx_url, load_port_url
+from linktools.cntr.ext import Nginx, load_nginx_url
 from linktools.core import ConfigField, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
 
@@ -68,10 +68,6 @@ class Container(BaseContainer):
                 waf=False,
                 auth=False,
             ),
-            Flare.public("Push MCP", "bell", "多渠道消息推送 MCP（Bearer Token 认证）", load_nginx_url(self, "web", "mcp")),
-            Flare.container("Push MCP", "bell", load_port_url(
-                self, "MCP_PUSH_PORT", "mcp", https=False,
-            ), desc="多渠道消息推送 MCP"),
         )
 
     @subcommand("show", help="print MCP server JSON configuration, optionally with a channel example")
