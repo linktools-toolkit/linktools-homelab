@@ -31,8 +31,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return (
             Nginx.site(
-                local_id="web",
-                expose=Flare.public("OmniRoute", "transitConnectionVariant", "Free self-hosted AI gateway"),
+                link=Flare.public("OmniRoute", "transitConnectionVariant", "Free self-hosted AI gateway"),
                 server_name=self.get_config_later("OMNIROUTE_DOMAIN"),
                 proxy="http://omniroute:20128",
                 waf_bypass=(r"^/(v1|vscode|api/mcp)(/|$)",),

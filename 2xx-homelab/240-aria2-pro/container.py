@@ -47,7 +47,6 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return (
             Nginx.site(
-                local_id="web",
                 server_name=self.get_config_later("ARIA2_DOMAIN"),
                 proxy="http://aria2-pro:6800",
                 auth=False,

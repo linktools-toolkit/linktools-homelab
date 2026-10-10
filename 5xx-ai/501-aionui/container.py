@@ -36,8 +36,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return (
             Nginx.site(
-                local_id="web",
-                expose=Flare.public("AionUI", "robot", "AI 助手 Web UI"),
+                link=Flare.public("AionUI", "robot", "AI 助手 Web UI"),
                 server_name=self.get_config_later("AIONUI_DOMAIN"),
                 proxy="http://aionui:3000",
                 template=self.get_source_path("nginx.conf"),

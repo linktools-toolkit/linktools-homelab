@@ -86,8 +86,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return (
             Nginx.site(
-                local_id="web",
-                expose=Flare.public("Multica", "robot", "AI Agent Team Platform"),
+                link=Flare.public("Multica", "robot", "AI Agent Team Platform"),
                 server_name=self.get_config_later("MULTICA_DOMAIN"),
                 template=self.get_source_path("nginx.conf"),
                 waf=False,

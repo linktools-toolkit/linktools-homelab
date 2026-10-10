@@ -79,8 +79,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return (
             Nginx.site(
-                local_id="web",
-                expose=Flare.public("VS Code", "microsoftVisualStudioCode", "在线vscode"),
+                link=Flare.public("VS Code", "microsoftVisualStudioCode", "在线vscode"),
                 server_name=self.get_config_later("VSCODE_DOMAIN"),
                 proxy="http://code-server:8080",
                 auth=None,
@@ -97,7 +96,7 @@ class Container(BaseContainer):
                 ),
                 template=self.get_source_path("proxy.conf"),
                 auth=None,
-                url=lazy_load(
+                public_url=lazy_load(
                     lambda: utils.make_url(
                         "https" if self.get_config("NGINX_HTTPS_ENABLE") else "http",
                         "{{port}}." + self.get_config("VSCODE_DOMAIN"),

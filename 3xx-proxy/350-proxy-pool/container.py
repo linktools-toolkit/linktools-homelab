@@ -52,8 +52,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return (
             Nginx.site(
-                local_id="web",
-                expose=Flare.public("Proxy Pool", "tools", "代理池"),
+                link=Flare.public("Proxy Pool", "tools", "代理池"),
                 server_name=self.get_config_later("PROXY_POOL_DOMAIN"),
                 proxy="http://proxy-pool:5010",
                 auth=False,

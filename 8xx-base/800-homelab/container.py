@@ -69,14 +69,14 @@ class Container(BaseContainer):
         return (
             Nginx.site(
                 local_id="pve",
-                expose=Flare.public("Proxmox", "server", "虚拟化环境"),
+                link=Flare.public("Proxmox", "server", "虚拟化环境"),
                 server_name=lazy_load(lambda: self.get_config("PVE_DOMAIN") if self.get_config("PVE_LOCAL_URL") else ""),
                 proxy=self.get_config_later("PVE_LOCAL_URL"),
                 auth=None,
             ),
             Nginx.site(
                 local_id="primary_gateway",
-                expose=Flare.public("GW1", "RouterNetwork", "主路由管理"),
+                link=Flare.public("GW1", "RouterNetwork", "主路由管理"),
                 server_name=lazy_load(lambda: self.get_config("PRIMARY_GATEWAY_DOMAIN") if self.get_config("PRIMARY_GATEWAY_LOCAL_URL") else ""),
                 proxy=self.get_config_later("PRIMARY_GATEWAY_LOCAL_URL"),
                 auth=None,
@@ -84,7 +84,7 @@ class Container(BaseContainer):
             ),
             Nginx.site(
                 local_id="bypass_gateway",
-                expose=Flare.public("GW2", "RouterNetwork", "旁路由管理"),
+                link=Flare.public("GW2", "RouterNetwork", "旁路由管理"),
                 server_name=lazy_load(lambda: self.get_config("BYPASS_GATEWAY_DOMAIN") if self.get_config("BYPASS_GATEWAY_LOCAL_URL") else ""),
                 proxy=self.get_config_later("BYPASS_GATEWAY_LOCAL_URL"),
                 auth=None,
@@ -92,7 +92,7 @@ class Container(BaseContainer):
             ),
             Nginx.site(
                 local_id="xiaoya_alist",
-                expose=Flare.public("Xiaoya-Alist", "folderSync", "小雅Alist"),
+                link=Flare.public("Xiaoya-Alist", "folderSync", "小雅Alist"),
                 server_name=lazy_load(lambda: self.get_config("XIAOYA_ALIST_DOMAIN") if self.get_config("XIAOYA_ALIST_LOCAL_URL") else ""),
                 proxy=self.get_config_later("XIAOYA_ALIST_LOCAL_URL"),
                 auth=False,
@@ -100,14 +100,14 @@ class Container(BaseContainer):
             ),
             Nginx.site(
                 local_id="emby",
-                expose=Flare.public("Emby", "movie", "Emby"),
+                link=Flare.public("Emby", "movie", "Emby"),
                 server_name=lazy_load(lambda: self.get_config("EMBY_DOMAIN") if self.get_config("EMBY_LOCAL_URL") else ""),
                 proxy=self.get_config_later("EMBY_LOCAL_URL"),
                 auth=False,
             ),
             Nginx.site(
                 local_id="jellyfin",
-                expose=Flare.public("Jellyfin", "movie", "jellyfin"),
+                link=Flare.public("Jellyfin", "movie", "jellyfin"),
                 server_name=lazy_load(lambda: self.get_config("JELLYFIN_DOMAIN") if self.get_config("JELLYFIN_LOCAL_URL") else ""),
                 proxy=self.get_config_later("JELLYFIN_LOCAL_URL"),
                 auth=False,

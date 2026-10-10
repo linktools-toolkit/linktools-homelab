@@ -55,8 +55,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return (
             Nginx.site(
-                local_id="web",
-                expose=Flare.public("SublinkPro", "link", "代理订阅管理"),
+                link=Flare.public("SublinkPro", "link", "代理订阅管理"),
                 server_name=self.get_config_later("SUBLINK_DOMAIN"),
                 template=self.get_source_path("nginx.conf"),
                 auth=None,

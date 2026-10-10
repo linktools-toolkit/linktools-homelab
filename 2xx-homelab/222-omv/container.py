@@ -51,8 +51,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return (
             Nginx.site(
-                local_id="web",
-                expose=Flare.public("OpenMediaVault", "nas", "OMV系统"),
+                link=Flare.public("OpenMediaVault", "nas", "OMV系统"),
                 server_name=self.get_config_later("OMV_DOMAIN"),
                 proxy=self.get_config_later("OMV_LOCAL_URL"),
                 auth=False,

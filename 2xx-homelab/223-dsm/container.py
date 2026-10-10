@@ -54,8 +54,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return (
             Nginx.site(
-                local_id="web",
-                expose=Flare.public("DSM", "nas", "群晖系统"),
+                link=Flare.public("DSM", "nas", "群晖系统"),
                 server_name=self.get_config_later("DSM_DOMAIN"),
                 proxy="http://dsm:5000",
                 auth=False,

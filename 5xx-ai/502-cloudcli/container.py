@@ -27,8 +27,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return (
             Nginx.site(
-                local_id="web",
-                expose=Flare.public("CloudCLI", "messageOutline", "Cloud CLI"),
+                link=Flare.public("CloudCLI", "messageOutline", "Cloud CLI"),
                 server_name=self.get_config_later("CLOUD_CLI_DOMAIN"),
                 proxy="http://cloudcli:3001",
                 auth_bypass=(r"\.(css|js)$",),

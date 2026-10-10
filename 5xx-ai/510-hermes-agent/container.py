@@ -30,8 +30,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return (
             Nginx.site(
-                local_id="web",
-                expose=Flare.public("Hermes Agent", "robot", "AI Agent Dashboard"),
+                link=Flare.public("Hermes Agent", "robot", "AI Agent Dashboard"),
                 server_name=self.get_config_later("HERMES_AGENT_DOMAIN"),
                 proxy="http://hermes-dashboard:9120",
                 template=self.get_source_path("nginx.conf"),

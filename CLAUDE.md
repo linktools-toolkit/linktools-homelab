@@ -38,7 +38,7 @@ Every service folder contains at minimum a `container.py` that defines a `Contai
 
 - **`dependencies`** — other container names that must be deployed first (e.g. `["nginx", "coder"]`)
 - **`configs`** (cached_property) — a dict of config keys with defaults, using `ConfigField`, `LazyProvider`, and `PromptProvider` helpers from `linktools.core`
-- **`integrations`** (cached_property) — a reusable flat tuple/list annotated `Integrations`. Import `Nginx`, `Flare`, `Authelia`, and URL helpers from `linktools.cntr.ext`; root `linktools.cntr` supplies `BaseContainer`, `SourceContainer`, `Integrations`, and `OperationContext`. Each declaration identifies its consumer. Sites use `Nginx.site(..., local_id="web")`; links use `Flare.public(...)`, `Flare.bookmark(...)`, or callable `Flare.category(...)` groups. Keep values lazy and preserve declaration order; no consumer-keyed mappings or directly imported declaration implementation types
+- **`integrations`** (cached_property) — a reusable flat tuple/list annotated `Integrations`. Import `Nginx`, `Flare`, `Authelia`, and URL helpers from `linktools.cntr.ext`; root `linktools.cntr` supplies `BaseContainer`, `SourceContainer`, `Integrations`, and `OperationContext`. Each declaration identifies its consumer. Sites use `Nginx.site(...)`, adding `local_id` only to distinguish additional sites; links use `Flare.public(...)`, `Flare.bookmark(...)`, or callable `Flare.category(...)` groups. Keep values lazy and preserve declaration order; no consumer-keyed mappings or directly imported declaration implementation types
 - **Custom subcommands** — methods decorated with `@subcommand(...)` and `@subcommand_argument(...)` become CLI subcommands under `exec <container>`
 
 ### `compose.yml` as Jinja2 Templates
@@ -70,8 +70,9 @@ The `linktools-cntr` built-in containers (nginx, authelia, lldap, flare, portain
 ### Nginx and Authelia Integration
 
 Declare domain defaults with `Nginx.domain(self, name=None)` and proxy sites with
-`Nginx.site(server_name=..., local_id="web", ...)`. Site IDs are unique within
-each producer and remain stable across commands. `load_nginx_url(self, "web", *path,
+`Nginx.site(server_name=..., ...)`. The default site ID is `"web"`; additional
+sites use explicit `local_id` values unique within each producer. IDs remain
+stable across commands. `load_nginx_url(self, "web", *path,
 queries=...)` lazily reads that resolved site; it never registers a proxy or changes
 ACL/OIDC state. In general templates, use `urls.load_nginx_url(container, ...)`.
 
@@ -82,13 +83,14 @@ Common site fields:
 | `server_name` | Lazy hostname; an empty value disables the site |
 | `proxy` | Explicit upstream URL, such as `"http://my-service:8080"` |
 | `template` | Custom native nginx template from `self.get_source_path(...)` |
+| `template_vars` | Values supplied only to the custom template |
 | `https`, `waf`, `auth` | `None` inherits, `False` disables, `True` requires the global capability |
 | `auth_bypass`, `waf_bypass` | Path regexes bypassing the selected protection |
 | `auth_headers` | Lazy credentials injected only after successful authentication |
 | `auth_rule` | Optional native Authelia access-control rule |
-| `url` | Explicit public URL for a regex/nonliteral hostname |
-| `default` | Explicit default-server policy; `server_name="_"` alone is insufficient |
-| `expose` | Attached `Flare.public(...)` link; omitted URL inherits the site URL |
+| `public_url` | Explicit public URL for a regex/nonliteral hostname |
+| `default_server` | Explicit default-server policy; `server_name="_"` alone is insufficient |
+| `link` | Attached `Flare.public(...)` link; omitted URL inherits the site URL |
 
 Declare callbacks separately with `Authelia.oidc(redirect_uris=(lazy_absolute_url,...),
 enabled=lazy_switch)`. This contributes only callbacks to the existing shared
@@ -173,11 +175,10 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return (
             Nginx.site(
-                local_id="web",
                 server_name=self.get_config_later("MY_DOMAIN"),
                 proxy="http://my-service:8080",
                 auth=None,
-                expose=Flare.public("My Service", "link", "服务描述"),
+                link=Flare.public("My Service", "link", "服务描述"),
             ),
             Flare.bookmark(
                 "My Service", "link", load_port_url(self, "MY_PORT", https=False),
@@ -231,13 +232,12 @@ Create a `nginx.conf` and reference it in the site declaration in `container.py`
 
 ```python
 Nginx.site(
-    local_id="web",
     server_name=self.get_config_later("MY_DOMAIN"),
     template=self.get_source_path("nginx.conf"),
 ),
 ```
 
-Custom nginx templates receive `site`, `container`, `nginx`, `config`, and `vars`, plus `route_auth` when the framework groups a shared hostname. Import shared macros with `{% from "nginx/headers.j2" import proxy_headers with context %}` and emit `{{ proxy_headers() }}` in each proxy location. Also import/call `route_authorization()` in protected proxy locations so a shared hostname uses each route's policy; retain explicit `auth_request off` in intentional bypass locations. Use `grpc_headers` for gRPC and pass business-specific header overrides into the macro. Common streaming limits are available through `{% include "nginx/params.conf" %}`. Framework authentication is applied by the generated server; do not include removed native snippets or duplicate its headers.
+Custom nginx templates receive `site`, `container`, `nginx`, `config`, and `template_vars`, plus `route_auth` when the framework groups a shared hostname. Import shared macros with `{% from "nginx/headers.j2" import proxy_headers with context %}` and emit `{{ proxy_headers() }}` in each proxy location. Also import/call `route_authorization()` in protected proxy locations so a shared hostname uses each route's policy; retain explicit `auth_request off` in intentional bypass locations. Use `grpc_headers` for gRPC and pass business-specific header overrides into the macro. Common streaming limits are available through `{% include "nginx/params.conf" %}`. Framework authentication is applied by the generated server; do not include removed native snippets or duplicate its headers.
 
 Use explicit `local/` or `nginx/` Jinja namespaces. Business templates render once into self-contained `sites/<id>.conf` files, and literal data is not evaluated as another template. Use `$original_scheme`, `$original_host`, and the other `$original_*` request variables, never removed `$cntr_*` names. Docker upstreams must use a variable target so isolated validation does not require running services. When replacing a static URI suffix, preserve its prefix/capture/query behavior explicitly. Set backend variables and WebDAV Destination before a `rewrite ... break`, which stops subsequent rewrite directives. fnOS intentionally retains static `proxy_pass` URLs: its defaults are numeric LAN IPs, and native nginx must preserve configured URI prefixes, query strings, and percent encoding. Changing those targets to hostnames is subject to the same isolated DNS validation constraints; it does not enable networked validation.
 

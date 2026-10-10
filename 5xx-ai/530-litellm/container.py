@@ -38,7 +38,6 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return (
             Nginx.site(
-                local_id="web",
                 server_name=self.get_config_later("LITELLM_DOMAIN"),
                 proxy="http://litellm:4000",
                 auth=None,

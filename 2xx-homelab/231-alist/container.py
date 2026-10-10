@@ -55,8 +55,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return (
             Nginx.site(
-                local_id="web",
-                expose=Flare.public("Alist", "folderSync", ""),
+                link=Flare.public("Alist", "folderSync", ""),
                 server_name=self.get_config_later("ALIST_DOMAIN"),
                 proxy="http://alist:5244",
                 auth=False,

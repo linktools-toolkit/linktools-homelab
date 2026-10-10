@@ -65,8 +65,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return (
             Nginx.site(
-                local_id="web",
-                expose=Flare.public("Nextcloud", "cloudDownloadOutline", "私人网盘"),
+                link=Flare.public("Nextcloud", "cloudDownloadOutline", "私人网盘"),
                 server_name=self.get_config_later("NEXTCLOUD_DOMAIN"),
                 template=self.get_source_path("nginx.conf"),
                 auth=False,

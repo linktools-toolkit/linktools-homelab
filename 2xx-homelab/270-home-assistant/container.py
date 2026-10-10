@@ -52,8 +52,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return (
             Nginx.site(
-                local_id="web",
-                expose=Flare.public("HomeAssistant", "homeAssistant", "Home Assistant"),
+                link=Flare.public("HomeAssistant", "homeAssistant", "Home Assistant"),
                 server_name=self.get_config_later("HOME_ASSISTANT_DOMAIN"),
                 proxy="http://home-assistant:8123",
                 auth=False,

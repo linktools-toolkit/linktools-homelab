@@ -31,7 +31,6 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return (
             Nginx.site(
-                local_id="web",
                 server_name=self.get_config_later("MIHOMO_DOMAIN"),
                 proxy="http://mihomo:9090",
                 auth=None,

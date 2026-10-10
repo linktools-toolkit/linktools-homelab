@@ -47,8 +47,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return (
             Nginx.site(
-                local_id="web",
-                expose=Flare.public("qBittorrent", "tools", ""),
+                link=Flare.public("qBittorrent", "tools", ""),
                 server_name=self.get_config_later("QBITTORRENT_DOMAIN"),
                 template=self.get_source_path("nginx.conf"),
                 auth=False,

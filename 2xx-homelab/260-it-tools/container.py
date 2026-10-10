@@ -47,8 +47,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return (
             Nginx.site(
-                local_id="web",
-                expose=Flare.public("IT Tools", "tools", "it工具集"),
+                link=Flare.public("IT Tools", "tools", "it工具集"),
                 server_name=self.get_config_later("IT_TOOLS_DOMAIN"),
                 proxy="http://it-tools",
                 auth_bypass=(r"\.(css|js|webmanifest)$",),

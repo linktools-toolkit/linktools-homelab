@@ -63,7 +63,6 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return (
             Nginx.site(
-                local_id="web",
                 server_name=self.get_config_later("MCP_PUSH_DOMAIN"),
                 template=self.get_source_path("nginx.conf"),
                 waf=False,

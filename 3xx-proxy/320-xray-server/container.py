@@ -67,12 +67,11 @@ class Container(BaseContainer):
             self.get_route_path("XRAY_XHTTP_PATH")) + r"(?:/|$)")
         return (
             Nginx.site(
-                local_id="web",
                 server_name=self.get_config_later("XRAY_DOMAIN"),
                 template=self.get_source_path("nginx.conf"),
                 auth=False,
                 waf_bypass=(grpc_pattern, xhttp_pattern),
-                vars={
+                template_vars={
                     "websocket_path": lazy_load(lambda: self.get_route_path("XRAY_WEBSOCKET_PATH")),
                     "grpc_path": lazy_load(lambda: self.get_route_path("XRAY_GRPC_SERVICE_NAME")),
                     "grpc_pattern": grpc_pattern,

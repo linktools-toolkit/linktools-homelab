@@ -67,8 +67,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return (
             Nginx.site(
-                local_id="web",
-                expose=Flare.public("Gitlab", "git", "代码仓库管理"),
+                link=Flare.public("Gitlab", "git", "代码仓库管理"),
                 server_name=self.get_config_later("GITLAB_DOMAIN"),
                 proxy="http://gitlab:8181",
                 auth=None,
