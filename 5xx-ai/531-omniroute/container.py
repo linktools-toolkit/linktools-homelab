@@ -35,7 +35,7 @@ class Container(BaseContainer):
                 expose=Flare.public("OmniRoute", "transitConnectionVariant", "Free self-hosted AI gateway"),
                 server_name=self.get_config_later("OMNIROUTE_DOMAIN"),
                 proxy="http://omniroute:20128",
-                waf=False,
+                waf_bypass=(r"^/(v1|vscode|api/mcp)(/|$)",),
                 auth_bypass=(r"^/(v1|vscode|api/mcp)(/|$)", r"\.(css|js|webmanifest)$"),
             ),
             Flare.container("OmniRoute", "transitConnectionVariant", load_port_url(

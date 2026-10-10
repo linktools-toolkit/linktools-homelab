@@ -96,6 +96,7 @@ class Container(BaseContainer):
                 server_name=lazy_load(lambda: self.get_config("XIAOYA_ALIST_DOMAIN") if self.get_config("XIAOYA_ALIST_LOCAL_URL") else ""),
                 proxy=self.get_config_later("XIAOYA_ALIST_LOCAL_URL"),
                 auth=False,
+                waf_bypass=(r"^/soutv",),
             ),
             Nginx.site(
                 local_id="emby",

@@ -28,5 +28,12 @@ Coverage includes the frozen 65-entry navigation fixture and its ordering,
 31 proxy declarations, all 12 business templates, authentication/WAF combinations,
 exact OIDC callback slash/query behavior, generated-config immutable mounts,
 Multica's lazy VSCode composition, source hook preservation, and refresh selection.
+WAF route checks inspect the actual rendered `$uri` maps and verify the simple
+case-insensitive regexes against positive and adjacent nonmatching paths using
+Python regex matching. OmniRoute inherits the global WAF setting and bypasses
+only its existing unauthenticated API prefixes (`/v1`, `/vscode`, `/api/mcp` with
+path-segment boundaries). Xiaoya-Alist bypasses the literal `/soutv` prefix,
+including `/soutvAnything`; SublinkPro requires `/api/v1/script/` with the final
+slash. Existing authentication policy and static-asset auth bypasses stay intact.
 Native `nginx -t`, Docker image/native-service checks and live deployment remain
 separate validation; a passing offline run does not claim they were performed.

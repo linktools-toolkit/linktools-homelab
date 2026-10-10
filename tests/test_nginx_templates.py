@@ -39,7 +39,83 @@ def render_nginx(**values):
     return manager, files, bodies
 
 
+WAF_BYPASS_CASES = (
+    (("omniroute", "web"), (r"^/(v1|vscode|api/mcp)(/|$)",),
+     ("/v1", "/v1/", "/v1/chat/completions", "/vscode", "/vscode/stream",
+      "/api/mcp", "/api/mcp/", "/api/mcp/tools", "/V1/CHAT", "/v1?stream=true"),
+     ("/", "/dashboard", "/api", "/api/settings", "/v10/chat", "/v1extra",
+      "/vscode-extra", "/vscodeevil", "/api/mcpp", "/api/mcpx", "/api/mcp-extra", "/nested/v1/chat",
+      "/dashboard?next=/v1/chat",
+      "/assets/app.css", "/assets/app.js", "/manifest.webmanifest")),
+    (("homelab", "xiaoya_alist"), (r"^/soutv",),
+     ("/soutv", "/soutv/", "/soutv/channel", "/soutvAnything", "/SOUTV/live", "/soutv?channel=1"),
+     ("/", "/sou", "/sout", "/xsoutv", "/nested/soutv", "/api/fs/list", "/?path=/soutv")),
+    (("sublink", "web"), (r"^/api/v1/script/",),
+     ("/api/v1/script/", "/api/v1/script/test.js", "/api/v1/script/nested/run",
+      "/API/V1/SCRIPT/run", "/api/v1/script/?name=run"),
+     ("/", "/api/v1/script", "/api/v1/scripts/", "/api/v1/script-extra/",
+      "/api/v1/scrip/", "/nested/api/v1/script/", "/api/v1/subscription/",
+      "/c/subscription", "/assets/app.js", "/api/v1/script?next=/")),
+)
+
+
 class NativeTemplateTests(unittest.TestCase):
+    def bypass_map_patterns(self, body, capability, site, expected):
+        variable = capability + "_skip_" + site.var_name
+        block = re.search(r"map \$uri \$" + re.escape(variable) + r" \{(.*?)\n\}",
+                          body, re.DOTALL)
+        self.assertIsNotNone(block, variable)
+        rules = [line.strip() for line in block.group(1).splitlines() if line.strip()]
+        self.assertEqual(rules, ["default 0;"] + [json.dumps("~*" + regex) + " 1;" for regex in expected])
+        # Read the emitted map rules, including nginx's case-insensitive ~* mode.
+        # These simple expressions share Python/PCRE semantics; no nginx is run.
+        return tuple(re.compile(json.loads(rule[:-3])[2:], re.IGNORECASE) for rule in rules[1:])
+
+    def test_requested_waf_bypasses_keep_precise_rendered_path_scopes(self):
+        manager, files, _ = render_nginx(NGINX_WAF_ENABLE=True, NGINX_AUTH_ENABLE=True)
+        for key, patterns, bypass_paths, protected_paths in WAF_BYPASS_CASES:
+            with self.subTest(site=key):
+                site = manager.nginx_sites[key]
+                body = files["sites/" + site.file_id + ".conf"]
+                self.assertTrue(site.waf)
+                self.assertEqual(site.waf_bypass, patterns)
+                regexes = self.bypass_map_patterns(body, "waf", site, patterns)
+                self.assertIn("if ($waf_skip_" + site.var_name + " = 0) { return 418; }", body)
+                for paths, expected in ((bypass_paths, True), (protected_paths, False)):
+                    for path in paths:
+                        with self.subTest(path=path):
+                            # The asserted $uri map key excludes query strings.
+                            uri = path.split("?", 1)[0]
+                            self.assertEqual(any(regex.search(uri) for regex in regexes), expected)
+
+    def test_waf_bypasses_preserve_existing_auth_policy(self):
+        manager, files, bodies = render_nginx(NGINX_WAF_ENABLE=True, NGINX_AUTH_ENABLE=True)
+        omni = manager.nginx_sites[("omniroute", "web")]
+        self.assertTrue(omni.auth)
+        auth_patterns = (r"^/(v1|vscode|api/mcp)(/|$)", r"\.(css|js|webmanifest)$")
+        self.assertEqual(omni.auth_bypass, auth_patterns)
+        self.bypass_map_patterns(files["sites/" + omni.file_id + ".conf"], "auth", omni, auth_patterns)
+        xiaoya = manager.nginx_sites[("homelab", "xiaoya_alist")]
+        self.assertFalse(xiaoya.auth)
+        self.assertEqual(xiaoya.auth_bypass, ())
+        sublink = manager.nginx_sites[("sublink", "web")]
+        self.assertTrue(sublink.auth)
+        self.assertEqual(sublink.auth_bypass, ())
+        sublink_body = bodies[("sublink", "web")]
+        self.assertIn("location ^~ /c/ {\n    auth_request off;", sublink_body)
+        self.assertIn("location ~* \\.(css|js|webmanifest)$ {\n    auth_request off;", sublink_body)
+        self.assertNotIn("location ^~ /api/v1/script/", sublink_body)
+
+    def test_requested_waf_bypasses_inherit_disabled_global_waf(self):
+        manager, files, _ = render_nginx(NGINX_WAF_ENABLE=False)
+        for key, _, _, _ in WAF_BYPASS_CASES:
+            with self.subTest(site=key):
+                site = manager.nginx_sites[key]
+                body = files["sites/" + site.file_id + ".conf"]
+                self.assertFalse(site.waf)
+                self.assertNotIn("$waf_skip_", body)
+                self.assertNotIn("location @waf", body)
+
     def test_all_twelve_templates_render_with_complete_headers_and_runtime_dns(self):
         for auth in (False, True):
             for waf in (False, True):

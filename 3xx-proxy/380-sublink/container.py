@@ -60,6 +60,7 @@ class Container(BaseContainer):
                 server_name=self.get_config_later("SUBLINK_DOMAIN"),
                 template=self.get_source_path("nginx.conf"),
                 auth=None,
+                waf_bypass=(r"^/api/v1/script/",),
             ),
             Flare.container("SublinkPro", "link", load_port_url(
                 self, "SUBLINK_PORT",
