@@ -26,7 +26,6 @@
   / ==ooooooooooooooo==.o.  ooo= //   ,``--{)B     ,"
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
-import functools
 import os
 
 from linktools.cntr import BaseContainer
@@ -47,7 +46,5 @@ class Container(BaseContainer):
         result = {}
         for name in (".codex", ".claude", ".cursor", ".gemini", ".cc-switch"):
             path = os.path.join(self.get_config("AI_HOME_PATH"), name)
-            self.start_hooks.append(functools.partial(os.makedirs, path, mode=0o755, exist_ok=True))
-            self.start_hooks.append(functools.partial(self.manager.runtime.chown, path, self.get_config("DOCKER_USER"), recursive=False))
             result[name] = path
         return result
