@@ -60,10 +60,10 @@ class Container(BaseContainer):
                 "^/embeddings",
                 "^/health",
             ),
-            extensions=lambda url: [
+            extensions=[
                 Flare.links(
                     Flare.public(
-                        url=url("ui"),
+                        url="/ui",
                     ),
                     Flare.container(
                         url=load_port_url(self, "LITELLM_PORT", "ui", https=False),
@@ -73,7 +73,7 @@ class Container(BaseContainer):
                     desc="LiteLLM Proxy & Web UI",
                 ),
                 Authelia.oidc(
-                    redirect_uris=(url("sso/callback"),),
+                    redirect_uris=("/sso/callback",),
                 ),
             ],
         )

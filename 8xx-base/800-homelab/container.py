@@ -78,10 +78,10 @@ class Container(BaseContainer):
                 ),
                 proxy=self.get_config_later("PVE_LOCAL_URL"),
                 auth=None,
-                extensions=lambda url: [
+                extensions=[
                     Flare.public("Proxmox", "server", "虚拟化环境"),
                     Authelia.oidc(
-                        redirect_uris=(url(), self.get_config_later("PVE_LOCAL_URL")),
+                        redirect_uris=("{url}", self.get_config_later("PVE_LOCAL_URL")),
                     ),
                 ],
             ),

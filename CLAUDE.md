@@ -38,7 +38,7 @@ Every service folder contains at minimum a `container.py` that defines a `Contai
 
 - **`dependencies`** — other container names that must be deployed first (e.g. `["nginx", "coder"]`)
 - **`configs`** (cached_property) — a dict of config keys with defaults, using `ConfigField`, `LazyProvider`, and `PromptProvider` helpers from `linktools.core`
-- **`integrations`** (cached_property) — a reusable, optionally nested tuple/list annotated `Integrations`, containing `Nginx`, `Flare`, and `Authelia` declarations directly. Import these declarations, `endpoint`, and URL helpers from `linktools.cntr.ext`; root `linktools.cntr` supplies `BaseContainer`, `SourceContainer`, `Integrations`, and `OperationContext`. Each declaration identifies its consumer. Use `endpoint(self, domain=..., extensions=[...])` for sites, or `extensions=lambda url: [...]` when a declaration needs the site URL; its plain tuple contains one `Nginx` declaration followed by its leaf extensions. An endpoint tuple or `Flare.links(...)` group can be an array element without `*`. The common integration normalizer recursively preserves declaration order; consumers do not implement separate flattening. Keep values lazy; no key/value declaration dictionaries, consumer-keyed mappings, or directly imported declaration implementation types
+- **`integrations`** (cached_property) — a reusable, optionally nested tuple/list annotated `Integrations`, containing `Nginx`, `Flare`, and `Authelia` declarations directly. Import these declarations, `endpoint`, and URL helpers from `linktools.cntr.ext`; root `linktools.cntr` supplies `BaseContainer`, `SourceContainer`, `Integrations`, and `OperationContext`. Each declaration identifies its consumer. Use `endpoint(self, domain=..., extensions=[...])` for sites; its plain tuple contains one `Nginx` declaration followed by its leaf extensions. An endpoint tuple or `Flare.links(...)` group can be an array element without `*`. The common integration normalizer recursively preserves declaration order; consumers do not implement separate flattening. Keep values lazy; no key/value declaration dictionaries, consumer-keyed mappings, or directly imported declaration implementation types
 - **Custom subcommands** — methods decorated with `@subcommand(...)` and `@subcommand_argument(...)` become CLI subcommands under `exec <container>`
 
 ### `compose.yml` as Jinja2 Templates
@@ -103,8 +103,9 @@ This contributes only callbacks to the existing shared Authelia OIDC client. It
 never creates another client or credentials. There is no `enabled` argument:
 OIDC declarations are independent of endpoint `auth` and `NGINX_AUTH_ENABLE`.
 Empty URLs are omitted, and nonempty URLs retain their exact trailing slash/query.
-GitLab and LiteLLM use the extension factory's site-bound `url(...)` builder;
-Proxmox preserves both the public site URL and its exact configured local URL.
+GitLab and LiteLLM declare relative callback URLs in their endpoint extensions;
+Proxmox uses `"{url}"` for the exact public base URL without adding a slash, and
+keeps its configured local URL unchanged.
 Disabling a public site omits only its empty derived URL; an explicit nonempty
 absolute callback remains declared.
 For the common web-site pattern, use the pure `endpoint` function. It returns
@@ -126,9 +127,10 @@ Its domain comes from that site. `Nginx.site` does not accept `auth_rule`.
 This repository uses `endpoint` for all 31 nginx sites, including custom nginx
 templates, authentication headers, Xray's lazy template variables, VSCode's regex
 proxy, and the six homelab sites. VSCode declares both sites in `integrations` and
-uses one lazy business `proxy_url` for its proxy declaration and Compose setting.
-Homelab declares all six endpoints together; Proxmox's callback declaration is
-inside its endpoint's extensions factory.
+keeps one lazy business `proxy_url` for the Compose `VSCODE_PROXY_URI` setting.
+Its regex proxy site has no public navigation or OIDC reference, so it does not
+need an explicit `public_url`. Homelab declares all six endpoints together;
+Proxmox's callback declaration is inside its endpoint's extensions list.
 
 Use `Flare.links(*links, name=..., icon=..., desc=...)` to share omitted metadata
 across a public application and its private/direct-port bookmarks. It returns a
@@ -141,10 +143,10 @@ explicit direct URL. Omitted public URLs inherit; explicitly supplied `None`,
 empty strings, and custom URLs are preserved. Outside an endpoint, public links
 need an explicit URL. Empty/None URLs disable links.
 
-Navigation paths remain explicit: use `Flare.public(url=url("ui"))` inside an
-extension factory, or `Flare.public(url=load_nginx_url(self, None, "ui"))` for a
-single-site producer. Declare OIDC separately with the exact absolute lazy
-callback, such as `Authelia.oidc(redirect_uris=(url("sso/callback"),))`.
+Navigation paths remain explicit: use `Flare.public(url="/ui")` inside endpoint
+extensions, or `Flare.public(url=load_nginx_url(self, None, "ui"))` outside them
+for a single-site producer. Declare OIDC separately with
+`Authelia.oidc(redirect_uris=("/sso/callback",))` inside the endpoint.
 A navigation path never changes a callback or the independent Authelia issuer.
 GitLab and LiteLLM render their OIDC client settings whenever the installed
 Authelia provider has a concrete HTTPS public URL, including when nginx auth is
@@ -303,23 +305,30 @@ def integrations(self) -> Integrations:
     return [
         endpoint(self, domain=self.get_config_later("APP_DOMAIN"), proxy="http://app:8080"),
         endpoint(self, domain=self.get_config_later("PROXY_DOMAIN"),
-                 template=self.get_source_path("proxy.conf"), public_url=self.proxy_url),
+                 template=self.get_source_path("proxy.conf")),
     ]
 ```
 
-VSCode keeps both declarations in `integrations`. Its lazy `proxy_url` is the
-single source for its proxy site's public URL and the Compose `VSCODE_PROXY_URI`;
-it returns empty when nginx, wildcard routing or the domain is unavailable.
+VSCode keeps both declarations in `integrations`. Its lazy `proxy_url` supplies
+the Compose `VSCODE_PROXY_URI` independently; it returns empty when nginx,
+wildcard routing or the domain is unavailable.
 Only retain an endpoint object in a cached property when another declaration
 actually needs to reference that original object.
 
-For links and OIDC inside an endpoint, `extensions=lambda url: [...]` receives
-a URL builder bound to that site. `url(*path, queries=...)` returns the same lazy
-value as `load_nginx_url`; pass it directly into Flare or OIDC declarations.
-For example, `Authelia.oidc((url(),))` contributes this endpoint's public URL
-independently of its auth setting. Do not resolve `url()` inside the factory.
-Existing lists and generators still work. Mihomo uses this factory for its
-`#/setup` navigation while keeping its direct container link separate.
+Use ordinary extension lists or generators. The endpoint binds only extension
+URL fields: Flare links and Authelia redirect URIs. Relative URLs follow standard
+URL resolution against the site's public URL, so `"/callback"` selects that path
+at the origin and `"/"` retains the trailing root slash. A leading `"{url}"`
+placeholder selects the exact public base, preserving its existing trailing
+slash and query; `"{url}"` alone never adds a slash. Absolute URLs are unchanged.
+Explicit empty/None link URLs stay disabled, and empty callback URLs are omitted.
+When the site has no public URL, derived relative URLs are empty; independent
+absolute URLs remain available. Other declaration fields are not interpolated.
+
+Keep URL values lazy when they contain configuration. Mihomo uses
+`lazy_load(utils.join_url, "/ui/metacubexd/#/setup", queries=...)` for its
+fragment-based public navigation, while its direct container URL remains explicit.
+OIDC URLs remain independent of endpoint and global auth settings.
 
 An omitted URL in `Flare.public()` inside either endpoint inherits that endpoint's
 site; it does not select the producer's first or only enabled site.

@@ -104,7 +104,6 @@ class Container(BaseContainer):
                 self,
                 domain=proxy_domain,
                 template=self.get_source_path("proxy.conf"),
-                public_url=self.proxy_url,
                 cert_domains=(lazy_load(lambda: "*." + domain),),
             ),
         ]

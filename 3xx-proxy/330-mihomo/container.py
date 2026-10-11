@@ -6,6 +6,7 @@ from linktools.cntr import BaseContainer, OperationContext, Integrations
 from linktools.cntr.ext import Nginx, Flare, load_port_url, endpoint
 from linktools.core import ConfigField, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
+from linktools.runtime import lazy_load
 
 
 class Container(BaseContainer):
@@ -34,14 +35,12 @@ class Container(BaseContainer):
             domain=self.get_config_later("MIHOMO_DOMAIN"),
             proxy="http://mihomo:9090",
             auth=None,
-            extensions=lambda url: [
+            extensions=[
                 Flare.links(
                     Flare.public(
-                        url=url(
-                            "ui",
-                            "metacubexd",
-                            "#",
-                            "setup",
+                        url=lazy_load(
+                            utils.join_url,
+                            "/ui/metacubexd/#/setup",
                             queries=dict(
                                 hostname=self.get_config_later("MIHOMO_DOMAIN"),
                                 port=self.get_config_later("NGINX_HTTPS_PORT"),

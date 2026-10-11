@@ -82,14 +82,14 @@ class Container(BaseContainer):
             domain=self.get_config_later("GITLAB_DOMAIN"),
             proxy="http://gitlab:8181",
             auth=None,
-            extensions=lambda url: [
+            extensions=[
                 Flare.public(
                     "Gitlab",
                     "git",
                     "代码仓库管理",
                 ),
                 Authelia.oidc(
-                    redirect_uris=(url("users/auth/openid_connect/callback"),),
+                    redirect_uris=("/users/auth/openid_connect/callback",),
                 ),
             ],
         )
