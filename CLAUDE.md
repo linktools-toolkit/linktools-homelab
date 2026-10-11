@@ -115,9 +115,9 @@ by default and accepts native rule fields such as `subject`, `resources`, and
 `methods`. Its domain comes from the named site. `Nginx.site` no longer accepts
 `auth_rule`; use the explicit Authelia declaration for a raw site too.
 
-This repository uses `endpoint` for 23 ordinary web sites, including custom
-nginx templates and authentication headers. Xray's advanced template variables,
-VSCode's additional regex proxy site, and the six independently named homelab
+This repository uses `endpoint` for 24 primary web sites, including custom
+nginx templates, authentication headers, and Xray's lazy template variables.
+VSCode's additional regex proxy site and the six independently named homelab
 sites remain raw declarations. Their stable keys and native fields are unchanged.
 
 Use `Flare.links(*links, name=..., icon=..., desc=...)` to share omitted metadata

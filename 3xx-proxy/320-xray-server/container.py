@@ -34,7 +34,7 @@ from typing import Iterable
 import json
 
 from linktools.cntr import OperationContext, BaseContainer, Integrations
-from linktools.cntr.ext import Nginx
+from linktools.cntr.ext import endpoint, Nginx
 from linktools.core import ConfigField, AliasProvider, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
 
@@ -61,23 +61,32 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        grpc_pattern = lazy_load(lambda: "^" + re.escape(
-            self.get_route_path("XRAY_GRPC_SERVICE_NAME")) + r"(?:/(?:Tun|TunMulti))?$")
-        xhttp_pattern = lazy_load(lambda: "^" + re.escape(
-            self.get_route_path("XRAY_XHTTP_PATH")) + r"(?:/|$)")
-        return (
-            {"web": Nginx.site(
-                server_name=self.get_config_later("XRAY_DOMAIN"),
-                template=self.get_source_path("nginx.conf"),
-                auth=False,
-                waf_bypass=(grpc_pattern, xhttp_pattern),
-                template_vars={
-                    "websocket_path": lazy_load(lambda: self.get_route_path("XRAY_WEBSOCKET_PATH")),
-                    "grpc_path": lazy_load(lambda: self.get_route_path("XRAY_GRPC_SERVICE_NAME")),
-                    "grpc_pattern": grpc_pattern,
-                    "xhttp_path": lazy_load(lambda: self.get_route_path("XRAY_XHTTP_PATH")),
-                },
-            )},
+        grpc_pattern = lazy_load(
+            lambda: (
+                "^"
+                + re.escape(self.get_route_path("XRAY_GRPC_SERVICE_NAME"))
+                + r"(?:/(?:Tun|TunMulti))?$"
+            )
+        )
+        xhttp_pattern = lazy_load(
+            lambda: "^" + re.escape(self.get_route_path("XRAY_XHTTP_PATH")) + r"(?:/|$)"
+        )
+        return endpoint(
+            self,
+            domain=self.get_config_later("XRAY_DOMAIN"),
+            template=self.get_source_path("nginx.conf"),
+            auth=False,
+            waf_bypass=(grpc_pattern, xhttp_pattern),
+            template_vars={
+                "websocket_path": lazy_load(
+                    lambda: self.get_route_path("XRAY_WEBSOCKET_PATH")
+                ),
+                "grpc_path": lazy_load(
+                    lambda: self.get_route_path("XRAY_GRPC_SERVICE_NAME")
+                ),
+                "grpc_pattern": grpc_pattern,
+                "xhttp_path": lazy_load(lambda: self.get_route_path("XRAY_XHTTP_PATH")),
+            },
         )
 
     def get_route_path(self, key: str) -> str:
