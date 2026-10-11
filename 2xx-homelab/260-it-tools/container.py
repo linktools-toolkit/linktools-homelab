@@ -45,48 +45,53 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return [
-            endpoint(
-                self,
-                domain=self.get_config_later("IT_TOOLS_DOMAIN"),
-                proxy="http://it-tools",
-                auth_bypass=(r"\.(css|js|webmanifest)$",),
-                extensions=[
-                    Authelia.access(policy="one_factor"),
-                    Flare.links(
-                        Flare.public(),
-                        Flare.category("other")(
-                            name="正则表达式测试",
-                            icon="regex",
-                            desc="",
-                            url=load_nginx_url(self, "web", "regex-tester"),
-                        ),
-                        Flare.category("other")(
-                            name="正则表达式手册",
-                            icon="regex",
-                            desc="",
-                            url=load_nginx_url(self, "web", "regex-memo"),
-                        ),
-                        Flare.category("other")(
-                            name="在线json解析",
-                            icon="codeJson",
-                            desc="",
-                            url=load_nginx_url(self, "web", "json-prettify"),
-                        ),
-                        Flare.category("other")(
-                            name="DNS查询", icon="dns", desc="", url="https://tool.chinaz.com/dns/"
-                        ),
-                        Flare.category("other")(
-                            name="图标下载",
-                            icon="progressDownload",
-                            desc="",
-                            url="https://materialdesignicons.com/",
-                        ),
-                        Flare.container(url=load_port_url(self, "IT_TOOLS_PORT", https=False)),
-                        name="IT Tools",
-                        icon="tools",
-                        desc="it工具集",
+        return endpoint(
+            self,
+            domain=self.get_config_later("IT_TOOLS_DOMAIN"),
+            proxy="http://it-tools",
+            auth_bypass=(r"\.(css|js|webmanifest)$",),
+            extensions=[
+                Authelia.access(
+                    policy="one_factor",
+                ),
+                Flare.links(
+                    Flare.public(),
+                    Flare.category("other")(
+                        name="正则表达式测试",
+                        icon="regex",
+                        desc="",
+                        url=load_nginx_url(self, "web", "regex-tester"),
                     ),
-                ],
-            ),
-        ]
+                    Flare.category("other")(
+                        name="正则表达式手册",
+                        icon="regex",
+                        desc="",
+                        url=load_nginx_url(self, "web", "regex-memo"),
+                    ),
+                    Flare.category("other")(
+                        name="在线json解析",
+                        icon="codeJson",
+                        desc="",
+                        url=load_nginx_url(self, "web", "json-prettify"),
+                    ),
+                    Flare.category("other")(
+                        name="DNS查询",
+                        icon="dns",
+                        desc="",
+                        url="https://tool.chinaz.com/dns/",
+                    ),
+                    Flare.category("other")(
+                        name="图标下载",
+                        icon="progressDownload",
+                        desc="",
+                        url="https://materialdesignicons.com/",
+                    ),
+                    Flare.container(
+                        url=load_port_url(self, "IT_TOOLS_PORT", https=False),
+                    ),
+                    name="IT Tools",
+                    icon="tools",
+                    desc="it工具集",
+                ),
+            ],
+        )

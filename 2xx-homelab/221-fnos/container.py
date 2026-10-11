@@ -49,20 +49,20 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return [
-            endpoint(
-                self,
-                domain=self.get_config_later("FNOS_DOMAIN"),
-                template=self.get_source_path("nginx.conf"),
-                auth=False,
-                extensions=[
-                    Flare.links(
-                        Flare.public(),
-                        Flare.category("private")(url=load_config_url(self, "FNOS_LOCAL_URL")),
-                        name="fnOS",
-                        icon="nas",
-                        desc="飞牛系统",
+        return endpoint(
+            self,
+            domain=self.get_config_later("FNOS_DOMAIN"),
+            template=self.get_source_path("nginx.conf"),
+            auth=False,
+            extensions=[
+                Flare.links(
+                    Flare.public(),
+                    Flare.category("private")(
+                        url=load_config_url(self, "FNOS_LOCAL_URL"),
                     ),
-                ],
-            ),
-        ]
+                    name="fnOS",
+                    icon="nas",
+                    desc="飞牛系统",
+                ),
+            ],
+        )

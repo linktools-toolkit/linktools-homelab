@@ -61,16 +61,14 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return [
-            endpoint(
-                self,
-                domain=self.get_config_later("MCP_PUSH_DOMAIN"),
-                template=self.get_source_path("nginx.conf"),
-                waf=False,
-                auth=False,
-                extensions=[],
-            ),
-        ]
+        return endpoint(
+            self,
+            domain=self.get_config_later("MCP_PUSH_DOMAIN"),
+            template=self.get_source_path("nginx.conf"),
+            waf=False,
+            auth=False,
+            extensions=[],
+        )
 
     @subcommand("show", help="print MCP server JSON configuration, optionally with a channel example")
     @subcommand_argument("channel", nargs="?", choices=tuple(PUSH_CHANNEL_HEADERS),

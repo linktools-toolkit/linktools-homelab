@@ -29,52 +29,50 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return [
-            endpoint(
-                self,
-                domain=self.get_config_later("MIHOMO_DOMAIN"),
-                proxy="http://mihomo:9090",
-                auth=None,
-                extensions=[
-                    Flare.links(
-                        Flare.public(
-                            url=load_nginx_url(
-                                self,
-                                "web",
-                                "ui",
-                                "metacubexd",
-                                "#",
-                                "setup",
-                                queries=dict(
-                                    hostname=self.get_config_later("MIHOMO_DOMAIN"),
-                                    port=self.get_config_later("NGINX_HTTPS_PORT"),
-                                    secret=self.get_config_later("MIHOMO_SECRET"),
-                                ),
-                            )
+        return endpoint(
+            self,
+            domain=self.get_config_later("MIHOMO_DOMAIN"),
+            proxy="http://mihomo:9090",
+            auth=None,
+            extensions=[
+                Flare.links(
+                    Flare.public(
+                        url=load_nginx_url(
+                            self,
+                            "web",
+                            "ui",
+                            "metacubexd",
+                            "#",
+                            "setup",
+                            queries=dict(
+                                hostname=self.get_config_later("MIHOMO_DOMAIN"),
+                                port=self.get_config_later("NGINX_HTTPS_PORT"),
+                                secret=self.get_config_later("MIHOMO_SECRET"),
+                            ),
                         ),
-                        Flare.container(
-                            url=load_port_url(
-                                self,
-                                "MIHOMO_PORT",
-                                "ui",
-                                "metacubexd",
-                                "#",
-                                "setup",
-                                queries=dict(
-                                    hostname=self.get_config_later("HOST"),
-                                    port=self.get_config_later("MIHOMO_PORT"),
-                                    secret=self.get_config_later("MIHOMO_SECRET"),
-                                ),
-                                https=False,
-                            )
-                        ),
-                        name="Mihomo",
-                        icon="vpn",
-                        desc="Mihomo监控",
                     ),
-                ],
-            ),
-        ]
+                    Flare.container(
+                        url=load_port_url(
+                            self,
+                            "MIHOMO_PORT",
+                            "ui",
+                            "metacubexd",
+                            "#",
+                            "setup",
+                            queries=dict(
+                                hostname=self.get_config_later("HOST"),
+                                port=self.get_config_later("MIHOMO_PORT"),
+                                secret=self.get_config_later("MIHOMO_SECRET"),
+                            ),
+                            https=False,
+                        ),
+                    ),
+                    name="Mihomo",
+                    icon="vpn",
+                    desc="Mihomo监控",
+                ),
+            ],
+        )
 
     def on_starting(self, context: OperationContext):
         if "mihomo" in context.refresh_services:

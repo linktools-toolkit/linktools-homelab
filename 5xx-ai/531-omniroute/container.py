@@ -29,21 +29,21 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return [
-            endpoint(
-                self,
-                domain=self.get_config_later("OMNIROUTE_DOMAIN"),
-                proxy="http://omniroute:20128",
-                auth_bypass=(r"^/(v1|vscode|api/mcp)(/|$)", r"\.(css|js|webmanifest)$"),
-                waf_bypass=(r"^/(v1|vscode|api/mcp)(/|$)",),
-                extensions=[
-                    Flare.links(
-                        Flare.public(),
-                        Flare.container(url=load_port_url(self, "OMNIROUTE_PORT", https=False)),
-                        name="OmniRoute",
-                        icon="transitConnectionVariant",
-                        desc="Free self-hosted AI gateway",
+        return endpoint(
+            self,
+            domain=self.get_config_later("OMNIROUTE_DOMAIN"),
+            proxy="http://omniroute:20128",
+            auth_bypass=(r"^/(v1|vscode|api/mcp)(/|$)", r"\.(css|js|webmanifest)$"),
+            waf_bypass=(r"^/(v1|vscode|api/mcp)(/|$)",),
+            extensions=[
+                Flare.links(
+                    Flare.public(),
+                    Flare.container(
+                        url=load_port_url(self, "OMNIROUTE_PORT", https=False),
                     ),
-                ],
-            ),
-        ]
+                    name="OmniRoute",
+                    icon="transitConnectionVariant",
+                    desc="Free self-hosted AI gateway",
+                ),
+            ],
+        )

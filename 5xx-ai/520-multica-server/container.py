@@ -84,26 +84,30 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return [
-            endpoint(
-                self,
-                domain=self.get_config_later("MULTICA_DOMAIN"),
-                template=self.get_source_path("nginx.conf"),
-                waf=False,
-                auth=None,
-                extensions=[
-                    Flare.links(
-                        Flare.public(),
-                        Flare.container(url=load_port_url(self, "MULTICA_FRONTEND_PORT", https=False)),
-                        Flare.container(
-                            name="Multica API",
-                            url=load_port_url(self, "MULTICA_BACKEND_PORT", https=False),
-                            desc="AI Agent Team API",
+        return endpoint(
+            self,
+            domain=self.get_config_later("MULTICA_DOMAIN"),
+            template=self.get_source_path("nginx.conf"),
+            waf=False,
+            auth=None,
+            extensions=[
+                Flare.links(
+                    Flare.public(),
+                    Flare.container(
+                        url=load_port_url(
+                            self, "MULTICA_FRONTEND_PORT", https=False
                         ),
-                        name="Multica",
-                        icon="robot",
-                        desc="AI Agent Team Platform",
                     ),
-                ],
-            ),
-        ]
+                    Flare.container(
+                        name="Multica API",
+                        url=load_port_url(
+                            self, "MULTICA_BACKEND_PORT", https=False
+                        ),
+                        desc="AI Agent Team API",
+                    ),
+                    name="Multica",
+                    icon="robot",
+                    desc="AI Agent Team Platform",
+                ),
+            ],
+        )

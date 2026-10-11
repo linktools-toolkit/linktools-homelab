@@ -50,20 +50,20 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return [
-            endpoint(
-                self,
-                domain=self.get_config_later("HOME_ASSISTANT_DOMAIN"),
-                proxy="http://home-assistant:8123",
-                auth=False,
-                extensions=[
-                    Flare.links(
-                        Flare.public(),
-                        Flare.container(url=load_port_url(self, "HOME_ASSISTANT_PORT", https=False)),
-                        name="HomeAssistant",
-                        icon="homeAssistant",
-                        desc="Home Assistant",
+        return endpoint(
+            self,
+            domain=self.get_config_later("HOME_ASSISTANT_DOMAIN"),
+            proxy="http://home-assistant:8123",
+            auth=False,
+            extensions=[
+                Flare.links(
+                    Flare.public(),
+                    Flare.container(
+                        url=load_port_url(self, "HOME_ASSISTANT_PORT", https=False),
                     ),
-                ],
-            ),
-        ]
+                    name="HomeAssistant",
+                    icon="homeAssistant",
+                    desc="Home Assistant",
+                ),
+            ],
+        )

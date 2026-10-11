@@ -53,20 +53,20 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return [
-            endpoint(
-                self,
-                domain=self.get_config_later("ALIST_DOMAIN"),
-                proxy="http://alist:5244",
-                auth=False,
-                extensions=[
-                    Flare.links(
-                        Flare.public(),
-                        Flare.container(url=load_port_url(self, "ALIST_PORT", https=False)),
-                        name="Alist",
-                        icon="folderSync",
-                        desc="",
+        return endpoint(
+            self,
+            domain=self.get_config_later("ALIST_DOMAIN"),
+            proxy="http://alist:5244",
+            auth=False,
+            extensions=[
+                Flare.links(
+                    Flare.public(),
+                    Flare.container(
+                        url=load_port_url(self, "ALIST_PORT", https=False),
                     ),
-                ],
-            ),
-        ]
+                    name="Alist",
+                    icon="folderSync",
+                    desc="",
+                ),
+            ],
+        )

@@ -212,21 +212,19 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return [
-            endpoint(
-                self,
-                domain=self.get_config_later("MY_DOMAIN"),
-                proxy="http://my-service:8080",
-                auth=None,
-                extensions=[
-                    Flare.links(
-                        Flare.public(),
-                        Flare.container(url=load_port_url(self, "MY_PORT", https=False)),
-                        name="My Service", icon="link", desc="服务描述",
-                    ),
-                ],
-            ),
-        ]
+        return endpoint(
+            self,
+            domain=self.get_config_later("MY_DOMAIN"),
+            proxy="http://my-service:8080",
+            auth=None,
+            extensions=[
+                Flare.links(
+                    Flare.public(),
+                    Flare.container(url=load_port_url(self, "MY_PORT", https=False)),
+                    name="My Service", icon="link", desc="服务描述",
+                ),
+            ],
+        )
 ```
 
 The second argument to `Flare.public`/`Flare.bookmark` is a [Material Design Icons](https://pictogrammers.com/library/mdi/) icon name in camelCase (e.g. `"link"`, `"microsoftVisualStudioCode"`).

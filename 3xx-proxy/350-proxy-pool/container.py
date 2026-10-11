@@ -50,20 +50,20 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return [
-            endpoint(
-                self,
-                domain=self.get_config_later("PROXY_POOL_DOMAIN"),
-                proxy="http://proxy-pool:5010",
-                auth=False,
-                extensions=[
-                    Flare.links(
-                        Flare.public(),
-                        Flare.container(url=load_port_url(self, "PROXY_POOL_PORT", https=False)),
-                        name="Proxy Pool",
-                        icon="tools",
-                        desc="代理池",
+        return endpoint(
+            self,
+            domain=self.get_config_later("PROXY_POOL_DOMAIN"),
+            proxy="http://proxy-pool:5010",
+            auth=False,
+            extensions=[
+                Flare.links(
+                    Flare.public(),
+                    Flare.container(
+                        url=load_port_url(self, "PROXY_POOL_PORT", https=False),
                     ),
-                ],
-            ),
-        ]
+                    name="Proxy Pool",
+                    icon="tools",
+                    desc="代理池",
+                ),
+            ],
+        )

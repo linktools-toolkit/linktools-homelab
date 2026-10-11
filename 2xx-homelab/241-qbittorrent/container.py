@@ -45,20 +45,20 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return [
-            endpoint(
-                self,
-                domain=self.get_config_later("QBITTORRENT_DOMAIN"),
-                template=self.get_source_path("nginx.conf"),
-                auth=False,
-                extensions=[
-                    Flare.links(
-                        Flare.public(),
-                        Flare.container(url=load_port_url(self, "QBITTORRENT_PORT", https=False)),
-                        name="qBittorrent",
-                        icon="tools",
-                        desc="",
+        return endpoint(
+            self,
+            domain=self.get_config_later("QBITTORRENT_DOMAIN"),
+            template=self.get_source_path("nginx.conf"),
+            auth=False,
+            extensions=[
+                Flare.links(
+                    Flare.public(),
+                    Flare.container(
+                        url=load_port_url(self, "QBITTORRENT_PORT", https=False),
                     ),
-                ],
-            ),
-        ]
+                    name="qBittorrent",
+                    icon="tools",
+                    desc="",
+                ),
+            ],
+        )

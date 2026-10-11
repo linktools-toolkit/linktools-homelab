@@ -87,32 +87,47 @@ class Container(BaseContainer):
                 extensions=[
                     Flare.links(
                         Flare.public(),
-                        Flare.container(url=load_port_url(self, "VSCODE_PORT", https=False)),
+                        Flare.container(
+                            url=load_port_url(self, "VSCODE_PORT", https=False),
+                        ),
                         name="VS Code",
                         icon="microsoftVisualStudioCode",
                         desc="在线vscode",
                     ),
                 ],
             ),
-            {"proxy": Nginx.site(
-                server_name=lazy_load(
-                    lambda: (
-                        r"~^(?<proxy_port>\d+)\." + re.escape(self.get_config("VSCODE_DOMAIN")) + "$"
-                        if self.get_config("NGINX_WILDCARD_DOMAIN") and self.get_config("VSCODE_DOMAIN")
-                        else ""
-                    )
+            {
+                "proxy": Nginx.site(
+                    server_name=lazy_load(
+                        lambda: (
+                            r"~^(?<proxy_port>\d+)\."
+                            + re.escape(self.get_config("VSCODE_DOMAIN"))
+                            + "$"
+                            if self.get_config("NGINX_WILDCARD_DOMAIN")
+                            and self.get_config("VSCODE_DOMAIN")
+                            else ""
+                        )
+                    ),
+                    template=self.get_source_path("proxy.conf"),
+                    auth=None,
+                    public_url=lazy_load(
+                        lambda: utils.make_url(
+                            "https"
+                            if self.get_config("NGINX_HTTPS_ENABLE")
+                            else "http",
+                            "{{port}}." + self.get_config("VSCODE_DOMAIN"),
+                            self.get_config(
+                                "NGINX_HTTPS_PORT"
+                                if self.get_config("NGINX_HTTPS_ENABLE")
+                                else "NGINX_HTTP_PORT"
+                            ),
+                        )
+                    ),
+                    cert_domains=(
+                        lazy_load(lambda: "*." + self.get_config("VSCODE_DOMAIN")),
+                    ),
                 ),
-                template=self.get_source_path("proxy.conf"),
-                auth=None,
-                public_url=lazy_load(
-                    lambda: utils.make_url(
-                        "https" if self.get_config("NGINX_HTTPS_ENABLE") else "http",
-                        "{{port}}." + self.get_config("VSCODE_DOMAIN"),
-                        self.get_config("NGINX_HTTPS_PORT" if self.get_config("NGINX_HTTPS_ENABLE") else "NGINX_HTTP_PORT"),
-                    )
-                ),
-                cert_domains=(lazy_load(lambda: "*." + self.get_config("VSCODE_DOMAIN")),),
-            )},
+            },
         ]
 
     @cached_property

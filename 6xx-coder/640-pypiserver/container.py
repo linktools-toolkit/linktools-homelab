@@ -53,23 +53,25 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return [
-            endpoint(
-                self,
-                domain=self.get_config_later("PYPISERVER_DOMAIN"),
-                template=self.get_source_path("nginx.conf"),
-                auth=False,
-                extensions=[
-                    Flare.links(
-                        Flare.public(url=load_nginx_url(self, "web", "simple")),
-                        Flare.container(url=load_port_url(self, "PYPISERVER_PORT", https=False)),
-                        name="pypiserver",
-                        icon="languagePython",
-                        desc="pypiserver",
+        return endpoint(
+            self,
+            domain=self.get_config_later("PYPISERVER_DOMAIN"),
+            template=self.get_source_path("nginx.conf"),
+            auth=False,
+            extensions=[
+                Flare.links(
+                    Flare.public(
+                        url=load_nginx_url(self, "web", "simple"),
                     ),
-                ],
-            ),
-        ]
+                    Flare.container(
+                        url=load_port_url(self, "PYPISERVER_PORT", https=False),
+                    ),
+                    name="pypiserver",
+                    icon="languagePython",
+                    desc="pypiserver",
+                ),
+            ],
+        )
 
     def on_starting(self, context: OperationContext):
         path = self.get_app_data_path("auth", ".htpasswd", create_parent=True)

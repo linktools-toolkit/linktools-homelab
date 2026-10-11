@@ -63,17 +63,19 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return [
-            endpoint(
-                self,
-                domain=self.get_config_later("NEXTCLOUD_DOMAIN"),
-                template=self.get_source_path("nginx.conf"),
-                auth=False,
-                extensions=[
-                    Flare.public("Nextcloud", "cloudDownloadOutline", "私人网盘"),
-                ],
-            ),
-        ]
+        return endpoint(
+            self,
+            domain=self.get_config_later("NEXTCLOUD_DOMAIN"),
+            template=self.get_source_path("nginx.conf"),
+            auth=False,
+            extensions=[
+                Flare.public(
+                    "Nextcloud",
+                    "cloudDownloadOutline",
+                    "私人网盘",
+                ),
+            ],
+        )
 
     @subcommand("scan", help="scan all files")
     def on_exec_scan(self):

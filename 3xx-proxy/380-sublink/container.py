@@ -53,21 +53,21 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return [
-            endpoint(
-                self,
-                domain=self.get_config_later("SUBLINK_DOMAIN"),
-                template=self.get_source_path("nginx.conf"),
-                auth=None,
-                waf_bypass=(r"^/api/v1/script/",),
-                extensions=[
-                    Flare.links(
-                        Flare.public(),
-                        Flare.container(url=load_port_url(self, "SUBLINK_PORT", https=False)),
-                        name="SublinkPro",
-                        icon="link",
-                        desc="代理订阅管理",
+        return endpoint(
+            self,
+            domain=self.get_config_later("SUBLINK_DOMAIN"),
+            template=self.get_source_path("nginx.conf"),
+            auth=None,
+            waf_bypass=(r"^/api/v1/script/",),
+            extensions=[
+                Flare.links(
+                    Flare.public(),
+                    Flare.container(
+                        url=load_port_url(self, "SUBLINK_PORT", https=False),
                     ),
-                ],
-            ),
-        ]
+                    name="SublinkPro",
+                    icon="link",
+                    desc="代理订阅管理",
+                ),
+            ],
+        )

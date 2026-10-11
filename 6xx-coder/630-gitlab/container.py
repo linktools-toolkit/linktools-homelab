@@ -65,23 +65,27 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return [
-            endpoint(
-                self,
-                domain=self.get_config_later("GITLAB_DOMAIN"),
-                proxy="http://gitlab:8181",
-                auth=None,
-                extensions=[
-                    Flare.public("Gitlab", "git", "代码仓库管理"),
-                    Authelia.oidc(
-                        redirect_uris=(
-                            load_nginx_url(self, "web", "users/auth/openid_connect/callback"),
+        return endpoint(
+            self,
+            domain=self.get_config_later("GITLAB_DOMAIN"),
+            proxy="http://gitlab:8181",
+            auth=None,
+            extensions=[
+                Flare.public(
+                    "Gitlab",
+                    "git",
+                    "代码仓库管理",
+                ),
+                Authelia.oidc(
+                    redirect_uris=(
+                        load_nginx_url(
+                            self, "web", "users/auth/openid_connect/callback"
                         ),
-                        enabled=self.get_config_later("NGINX_AUTH_ENABLE"),
                     ),
-                ],
-            ),
-        ]
+                    enabled=self.get_config_later("NGINX_AUTH_ENABLE"),
+                ),
+            ],
+        )
 
     @subcommand("fix", help="fix permissions")
     def on_exec_fix(self):

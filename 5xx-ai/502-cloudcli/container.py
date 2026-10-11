@@ -25,20 +25,20 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return [
-            endpoint(
-                self,
-                domain=self.get_config_later("CLOUD_CLI_DOMAIN"),
-                proxy="http://cloudcli:3001",
-                auth_bypass=(r"\.(css|js)$",),
-                extensions=[
-                    Flare.links(
-                        Flare.public(),
-                        Flare.container(url=load_port_url(self, "CLOUD_CLI_PORT", https=False)),
-                        name="CloudCLI",
-                        icon="messageOutline",
-                        desc="Cloud CLI",
+        return endpoint(
+            self,
+            domain=self.get_config_later("CLOUD_CLI_DOMAIN"),
+            proxy="http://cloudcli:3001",
+            auth_bypass=(r"\.(css|js)$",),
+            extensions=[
+                Flare.links(
+                    Flare.public(),
+                    Flare.container(
+                        url=load_port_url(self, "CLOUD_CLI_PORT", https=False),
                     ),
-                ],
-            ),
-        ]
+                    name="CloudCLI",
+                    icon="messageOutline",
+                    desc="Cloud CLI",
+                ),
+            ],
+        )

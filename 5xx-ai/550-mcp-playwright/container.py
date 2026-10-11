@@ -42,27 +42,27 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return [
-            endpoint(
-                self,
-                domain=self.get_config_later("MCP_PLAYWRIGHT_DOMAIN"),
-                template=self.get_source_path("nginx.conf"),
-                waf=False,
-                auth=None,
-                extensions=[
-                    Flare.links(
-                        Flare.public(),
-                        Flare.container(
-                            url=load_port_url(self, "MCP_PLAYWRIGHT_NOVNC_PORT", https=False),
-                            desc="noVNC 浏览器",
+        return endpoint(
+            self,
+            domain=self.get_config_later("MCP_PLAYWRIGHT_DOMAIN"),
+            template=self.get_source_path("nginx.conf"),
+            waf=False,
+            auth=None,
+            extensions=[
+                Flare.links(
+                    Flare.public(),
+                    Flare.container(
+                        url=load_port_url(
+                            self, "MCP_PLAYWRIGHT_NOVNC_PORT", https=False
                         ),
-                        name="Playwright Browser",
-                        icon="web",
-                        desc="通过 noVNC 操作 MCP 浏览器",
+                        desc="noVNC 浏览器",
                     ),
-                ],
-            ),
-        ]
+                    name="Playwright Browser",
+                    icon="web",
+                    desc="通过 noVNC 操作 MCP 浏览器",
+                ),
+            ],
+        )
 
     @subcommand("show", help="print MCP server JSON configuration")
     def on_exec_show(self):

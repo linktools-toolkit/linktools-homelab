@@ -52,20 +52,20 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return [
-            endpoint(
-                self,
-                domain=self.get_config_later("DSM_DOMAIN"),
-                proxy="http://dsm:5000",
-                auth=False,
-                extensions=[
-                    Flare.links(
-                        Flare.public(),
-                        Flare.category("private")(url=load_port_url(self, "DSM_PORT", https=False)),
-                        name="DSM",
-                        icon="nas",
-                        desc="群晖系统",
+        return endpoint(
+            self,
+            domain=self.get_config_later("DSM_DOMAIN"),
+            proxy="http://dsm:5000",
+            auth=False,
+            extensions=[
+                Flare.links(
+                    Flare.public(),
+                    Flare.category("private")(
+                        url=load_port_url(self, "DSM_PORT", https=False),
                     ),
-                ],
-            ),
-        ]
+                    name="DSM",
+                    icon="nas",
+                    desc="群晖系统",
+                ),
+            ],
+        )
