@@ -375,11 +375,18 @@ This branch follows the matching `linktools` `refactor/cntr-integrations` branch
 The declared minimum is still the in-development `linktools-cntr` 0.10.0; use a
 matching source checkout rather than an older installation with the same version.
 
-The `Check source syntax` workflow compiles the Python definitions on Python
-3.10, 3.12, and 3.14 and parses `.linktools.json` using only the standard library:
+This repository has no pull-request source-check CI or retained tests directory.
+Framework regression checks belong to `linktools-cntr`; validate changed homelab
+definitions locally against the matching framework checkout. The following
+standard-library checks parse Python and repository metadata without creating
+bytecode files:
 
 ```sh
-python -m compileall -q [0-9]xx-*
+python - <<'PYTHON'
+from pathlib import Path
+for path in Path(".").glob("[0-9]xx-*/**/*.py"):
+    compile(path.read_bytes(), str(path), "exec")
+PYTHON
 python -m json.tool .linktools.json > /dev/null
 ```
 
