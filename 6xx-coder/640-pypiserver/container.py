@@ -74,8 +74,9 @@ class Container(BaseContainer):
         )
 
     def on_starting(self, context: OperationContext):
+        username = self.get_config("PYPISERVER_USERNAME")
+        password = self.get_config("PYPISERVER_PASSWORD")
+        content = f"{username}:{password}"
         path = self.get_app_data_path("auth", ".htpasswd", create_parent=True)
         with open(path, "wt") as fd:
-            username = self.get_config('PYPISERVER_USERNAME')
-            password = self.get_config('PYPISERVER_PASSWORD')
-            fd.write(f"{username}:{password}")
+            fd.write(content)

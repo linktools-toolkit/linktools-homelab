@@ -47,17 +47,13 @@ class Container(BaseContainer):
 
     def configure_vscode(self, compose):
         """Extend the rendered service without writing runtime files."""
-        try:
-            script = self.get_source_path("scripts/10-multica.sh")
-            if not script.is_file() or not os.access(script, os.X_OK):
-                self.logger.warning(f"Skip Multica startup integration: script is unavailable: {script}")
-                return
-            pat = self._prepare_pat()
-            self._inject_vscode(compose, script, pat)
-        except Exception as exc:
-            self.logger.warning(f"Skip Multica startup integration: {type(exc).__name__}: {exc}")
+        script = self.get_source_path("scripts/10-multica.sh")
+        if not script.is_file() or not os.access(script, os.X_OK):
+            self.logger.warning(f"Skip Multica startup integration: script is unavailable: {script}")
+            return
+        self._inject_vscode(compose, script)
 
-    def _inject_vscode(self, compose, script, pat):
+    def _inject_vscode(self, compose, script):
         vscode = self.manager.containers["vscode"]
         secret_dir = self.get_app_path("secrets")
         environment = ["MULTICA_WORKSPACES_ROOT=/workspace/.multica/workspaces"]
@@ -77,7 +73,7 @@ class Container(BaseContainer):
         # A targeted VSCode start only runs VSCode's start hooks.
         vscode.add_start_hook(
             ("multica", "prepare_files"),
-            lambda: self._write_pat(pat),
+            lambda: self._write_pat(self._prepare_pat()),
             name="prepare Multica files",
         )
 
