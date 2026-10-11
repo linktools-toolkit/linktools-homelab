@@ -28,7 +28,8 @@
 """
 from typing import Iterable
 
-from linktools.cntr import BaseContainer, ExposeLink
+from linktools.cntr import BaseContainer, Integrations
+from linktools.cntr.ext import Nginx, Flare, load_config_url, endpoint
 from linktools.decorator import cached_property
 
 
@@ -41,19 +42,27 @@ class Container(BaseContainer):
     @cached_property
     def configs(self):
         return dict(
-            FNOS_DOMAIN=self.get_nginx_domain("fn"),
+            FNOS_DOMAIN=Nginx.domain(self, "fn"),
             FNOS_LOCAL_URL="http://10.10.10.1:5666",
             FNOS_DAV_LOCAL_URL="http://10.10.10.1:5005",
         )
 
     @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_public("fnOS", "nas", "飞牛系统", self.load_nginx_url(
-                "FNOS_DOMAIN",
-                proxy_conf=self.get_source_path("nginx.conf"),
-            )),
-            self.expose_private("fnOS", "nas", "飞牛系统", self.load_config_url(
-                "FNOS_LOCAL_URL",
-            )),
-        ]
+    def integrations(self) -> Integrations:
+        return endpoint(
+            self,
+            domain=self.get_config_later("FNOS_DOMAIN"),
+            template=self.get_source_path("nginx.conf"),
+            auth=False,
+            extensions=[
+                Flare.links(
+                    Flare.public(),
+                    Flare.category("private")(
+                        url=load_config_url(self, "FNOS_LOCAL_URL"),
+                    ),
+                    name="fnOS",
+                    icon="nas",
+                    desc="飞牛系统",
+                ),
+            ],
+        )

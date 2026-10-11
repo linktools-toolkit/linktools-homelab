@@ -3,8 +3,5 @@ services:
     image: 'rclone/rclone:{{ RCLONE_TAG }}'
     volumes:
       - {{ (APP_PATH/"config") | mkdir | chown }}:/config/rclone
-#     {% for path in container.mount_paths %}
-      - '{{ path }}'
-#     {% endfor %}
     entrypoint: ["/usr/sbin/crond"]
     command: ["-f", "-d", "0"]

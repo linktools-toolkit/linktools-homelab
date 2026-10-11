@@ -35,11 +35,29 @@ from linktools import utils
 from linktools.cli import subcommand
 from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
-from linktools.cntr import BaseContainer, ExposeLink
+from linktools.cntr import BaseContainer, Integrations
+from linktools.cntr.lifecycle import HookPhase
+from linktools.cntr.ext import Nginx, endpoint, Flare, load_port_url
 from linktools.rich import prompt
+from linktools.runtime import lazy_load
 
 
 class Container(BaseContainer):
+
+    def on_init(self):
+        # Register only the callback during discovery. Installed state and config
+        # are read after all containers are loaded, when Compose is rendered.
+        self.hooks.register(
+            HookPhase.AFTER_COMPOSE_RENDER,
+            self._configure_multica,
+            key=("multica", "inject_vscode"),
+            name="inject Multica into VSCode Compose",
+        )
+
+    def _configure_multica(self, compose):
+        multica = self.containers.get("multica")
+        if multica is not None and multica.enable:
+            multica.configure_vscode(compose)
 
     @property
     def dependencies(self) -> Iterable[str]:
@@ -49,7 +67,7 @@ class Container(BaseContainer):
     def configs(self):
         return dict(
             VSCODE_TAG="latest",
-            VSCODE_DOMAIN=self.get_nginx_domain(),
+            VSCODE_DOMAIN=Nginx.domain(self),
             VSCODE_PORT=ConfigField(cast=int, default=0),
             VSCODE_PASSWORD=ConfigField(provider=LazyProvider(
                 lambda r: prompt("VSCODE_PASSWORD") if not r.get("NGINX_AUTH_ENABLE") else "",
@@ -58,50 +76,56 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
+    def integrations(self) -> Integrations:
+        domain = self.get_config_later("VSCODE_DOMAIN")
+        proxy_domain = lazy_load(
+            lambda: r"~^(?<proxy_port>\d+)\." + re.escape(domain) + "$"
+            if self.get_config("NGINX_WILDCARD_DOMAIN") and domain else ""
+        )
         return [
-            self.expose_public("VS Code", "microsoftVisualStudioCode", "在线vscode", self.load_nginx_url(
-                "VSCODE_DOMAIN",
-                proxy_url="http://code-server:8080",
-                auth_enable=True,
-                auth_extra={
-                    "acl_bypass": ["\\.(css|js)$"],
-                }
-            )),
-            self.expose_container("VS Code", "microsoftVisualStudioCode", "在线vscode", self.load_port_url(
-                "VSCODE_PORT",
-                https=False
-            )),
+            endpoint(
+                self,
+                domain=domain,
+                proxy="http://code-server:8080",
+                auth_bypass=(r"\.(css|js)$",),
+                extensions=[
+                    Flare.links(
+                        Flare.public(),
+                        Flare.container(
+                            url=load_port_url(self, "VSCODE_PORT", https=False),
+                        ),
+                        name="VS Code",
+                        icon="microsoftVisualStudioCode",
+                        desc="在线vscode",
+                    ),
+                ],
+            ),
+            endpoint(
+                self,
+                domain=proxy_domain,
+                template=self.get_source_path("proxy.conf"),
+                cert_domains=(lazy_load(lambda: "*." + domain),),
+            ),
         ]
 
     @cached_property
     def proxy_url(self):
-        nginx = self.manager.containers["nginx"]
-        if nginx.enable and self.get_config("NGINX_WILDCARD_DOMAIN"):
+        def make_url():
+            if "nginx" not in self.manager.integration_snapshot:
+                return ""
+            if not self.get_config("NGINX_WILDCARD_DOMAIN"):
+                return ""
             domain = self.get_config("VSCODE_DOMAIN")
-            if domain:
-                if self.get_config("NGINX_HTTPS_ENABLE"):
-                    scheme = "https"
-                    port = self.get_config("NGINX_HTTPS_PORT")
-                else:
-                    scheme = "http"
-                    port = self.get_config("NGINX_HTTP_PORT")
-                proxy_domain = domain.replace(".", "\\.")
-                self.start_hooks.append(lambda: self.write_nginx_conf(
-                    rf"~^(?<proxy_port>\d+).{proxy_domain}$",
-                    proxy_name="proxy",
-                    proxy_domain_name=f"{domain}_proxy",
-                    proxy_conf=self.get_source_path("proxy.conf"),
-                    auth_enable=True,
-                ))
-                return utils.make_url(scheme, f"{{{{port}}}}.{domain}", port)
-        return ""
+            if not domain:
+                return ""
+            https = self.get_config("NGINX_HTTPS_ENABLE")
+            return utils.make_url(
+                "https" if https else "http",
+                "{{port}}." + domain,
+                self.get_config("NGINX_HTTPS_PORT" if https else "NGINX_HTTP_PORT"),
+            )
 
-    def on_prepare(self):
-        if self.proxy_url:
-            nginx = self.manager.containers["nginx"]
-            domain = self.get_config("VSCODE_DOMAIN")
-            nginx.append_ssl_domains(f"*.{domain}")
+        return lazy_load(make_url)
 
     @subcommand("install", help="install modules into the running container")
     def on_exec_install(self):

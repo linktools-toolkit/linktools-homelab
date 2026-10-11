@@ -28,11 +28,12 @@
 """
 import tempfile
 import uuid
-from typing import Iterable
+from typing import AbstractSet, Iterable, Mapping
 
 from linktools import utils
 from linktools.cli import subcommand, subcommand_argument
-from linktools.cntr import BaseContainer, ExposeLink
+from linktools.cntr import BaseContainer, Integrations
+from linktools.cntr.ext import Nginx, endpoint, Flare, Authelia
 from linktools.core import ConfigField, PromptProvider
 from linktools.decorator import cached_property
 
@@ -44,10 +45,22 @@ class Container(BaseContainer):
         return ["nginx"]
 
     @cached_property
+    def oidc_provider(self) -> "BaseContainer | None":
+        if "authelia" not in self.manager.integration_snapshot:
+            return None
+        provider = self.manager.containers["authelia"]
+        return provider if provider.public_url.startswith("https://") else None
+
+    def get_runtime_requirements(self, required: AbstractSet[str]) -> Mapping[str, Iterable[str]]:
+        if self.name in required and self.oidc_provider is not None:
+            return {"authelia": ("authelia",)}
+        return {}
+
+    @cached_property
     def configs(self):
         return dict(
             GITLAB_TAG="latest",
-            GITLAB_DOMAIN=self.get_nginx_domain(),
+            GITLAB_DOMAIN=Nginx.domain(self),
             GITLAB_SSH_PORT=ConfigField(cast=int, provider=PromptProvider(default=3001, cached=True)),
             GITLAB_ROOT_PASSWORD=ConfigField(provider=PromptProvider(  # gitlab默认root密码
                 default="xxx123456xxxx", cached=True,
@@ -63,20 +76,23 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_public("Gitlab", "git", "代码仓库管理", self.load_nginx_url(
-                "GITLAB_DOMAIN",
-                proxy_url="http://gitlab:8181",
-                auth_enable=True,
-                auth_extra={
-                    "oidc_redirect_uris": [utils.make_url(
-                        "https", self.get_config("GITLAB_DOMAIN"), self.get_config("NGINX_HTTPS_PORT"),
-                        "/users/auth/openid_connect/callback",
-                    )]
-                }
-            )),
-        ]
+    def integrations(self) -> Integrations:
+        return endpoint(
+            self,
+            domain=self.get_config_later("GITLAB_DOMAIN"),
+            proxy="http://gitlab:8181",
+            auth=None,
+            extensions=[
+                Flare.public(
+                    "Gitlab",
+                    "git",
+                    "代码仓库管理",
+                ),
+                Authelia.oidc(
+                    redirect_uris=("/users/auth/openid_connect/callback",),
+                ),
+            ],
+        )
 
     @subcommand("fix", help="fix permissions")
     def on_exec_fix(self):

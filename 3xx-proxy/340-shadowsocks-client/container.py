@@ -27,7 +27,9 @@
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
 
-from linktools.cntr import BaseContainer
+import json
+
+from linktools.cntr import OperationContext, BaseContainer
 from linktools.core import ConfigField, PromptProvider
 from linktools.decorator import cached_property
 
@@ -45,8 +47,10 @@ class Container(BaseContainer):
             SHADOWSOCKS_SERVER_METHOD=ConfigField(provider=PromptProvider(default="aes-256-gcm", cached=True)),
         )
 
-    def on_starting(self):
-        self.render_template(
-            self.get_source_path("config.json"),
-            self.get_app_path("config.json", create_parent=True),
-        )
+    def on_starting(self, context: OperationContext):
+        context.write_files(self, {
+            "config.json": self.render_template(self.get_source_path("config.json")),
+        })
+
+    def on_check(self, context: OperationContext):
+        json.loads(context.file_path(self, "config.json").read_text(encoding="utf-8"))

@@ -3,7 +3,7 @@ services:
     image: 'ghcr.io/xtls/xray-core:{{ XRAY_TAG }}'
     command: ["run", "-c", "/etc/xray/config.json"]
     volumes:
-      - '{{ (APP_PATH/"config.json") | chown }}:/etc/xray/config.json'
+      - '{{ (APP_PATH/"generated/current/config.json") | chown }}:/etc/xray/config.json'
     networks:
       - nginx
 

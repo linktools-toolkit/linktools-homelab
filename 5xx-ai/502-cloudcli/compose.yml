@@ -8,7 +8,7 @@ services:
     volumes:
       - '{{ (APP_PATH/"home") | mkdir | chown(docker_user) }}:/workspace'
 #     {% for name, path in containers["ai"].home_files.items() %}
-      - '{{ path }}:/workspace/{{ name }}'
+      - '{{ path | mkdir | chown(docker_user) }}:/workspace/{{ name }}'
 #     {% endfor %}
 #     {% for name, path in containers["coder"].home_files.items() %}
       - '{{ path }}:/workspace/{{ name }}'

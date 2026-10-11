@@ -28,7 +28,8 @@
 """
 from typing import Iterable
 
-from linktools.cntr import BaseContainer, ExposeLink
+from linktools.cntr import OperationContext, BaseContainer, Integrations
+from linktools.cntr.ext import Nginx, Flare, load_nginx_url, load_port_url, endpoint
 from linktools.core import ConfigField, PromptProvider
 from linktools.decorator import cached_property
 
@@ -43,7 +44,7 @@ class Container(BaseContainer):
     def configs(self):
         return dict(
             PYPISERVER_TAG="latest",
-            PYPISERVER_DOMAIN=self.get_nginx_domain("pypi"),
+            PYPISERVER_DOMAIN=Nginx.domain(self, "pypi"),
             PYPISERVER_PORT=ConfigField(cast=int, default=0),
             PYPISERVER_USERNAME=ConfigField(provider=PromptProvider(cached=True)),
             PYPISERVER_PASSWORD=ConfigField(provider=PromptProvider(cached=True)),
@@ -51,21 +52,31 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_public("pypiserver", "languagePython", "pypiserver", self.load_nginx_url(
-                "PYPISERVER_DOMAIN", "simple",
-                proxy_conf=self.get_source_path("nginx.conf"),
-            )),
-            self.expose_container("pypiserver", "languagePython", "pypiserver", self.load_port_url(
-                "PYPISERVER_PORT",
-                https=False
-            )),
-        ]
+    def integrations(self) -> Integrations:
+        return endpoint(
+            self,
+            domain=self.get_config_later("PYPISERVER_DOMAIN"),
+            template=self.get_source_path("nginx.conf"),
+            auth=False,
+            extensions=[
+                Flare.links(
+                    Flare.public(
+                        url=load_nginx_url(self, None, "simple"),
+                    ),
+                    Flare.container(
+                        url=load_port_url(self, "PYPISERVER_PORT", https=False),
+                    ),
+                    name="pypiserver",
+                    icon="languagePython",
+                    desc="pypiserver",
+                ),
+            ],
+        )
 
-    def on_starting(self):
+    def on_starting(self, context: OperationContext):
+        username = self.get_config("PYPISERVER_USERNAME")
+        password = self.get_config("PYPISERVER_PASSWORD")
+        content = f"{username}:{password}"
         path = self.get_app_data_path("auth", ".htpasswd", create_parent=True)
         with open(path, "wt") as fd:
-            username = self.get_config('PYPISERVER_USERNAME')
-            password = self.get_config('PYPISERVER_PASSWORD')
-            fd.write(f"{username}:{password}")
+            fd.write(content)

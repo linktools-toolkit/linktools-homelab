@@ -26,10 +26,11 @@
   / ==ooooooooooooooo==.o.  ooo= //   ,``--{)B     ,"
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
-import os
+
+from configparser import RawConfigParser
 
 from linktools import utils
-from linktools.cntr import BaseContainer
+from linktools.cntr import OperationContext, BaseContainer
 from linktools.core import ConfigField, PromptProvider
 from linktools.decorator import cached_property
 
@@ -46,8 +47,11 @@ class Container(BaseContainer):
             FRPS_VHOST_HTTPS_PORT=ConfigField(cast=int, provider=PromptProvider(default=443, cached=True)),
         )
 
-    def on_starting(self):
-        self.render_template(
-            os.path.join(self.root_path, "frps.ini"),
-            self.get_app_path("frps.ini", create_parent=True),
-        )
+    def on_starting(self, context: OperationContext):
+        context.write_files(self, {
+            "frps.ini": self.render_template(self.get_source_path("frps.ini")),
+        })
+
+    def on_check(self, context: OperationContext):
+        parser = RawConfigParser()
+        parser.read_string(context.file_path(self, "frps.ini").read_text(encoding="utf-8"))

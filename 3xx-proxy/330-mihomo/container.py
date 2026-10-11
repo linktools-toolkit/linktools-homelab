@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from typing import Iterable
-
 from linktools import utils
-from linktools.cntr import BaseContainer, EventContext, ExposeLink
+from linktools.cntr import BaseContainer, OperationContext, Integrations
+from linktools.cntr.ext import Nginx, Flare, load_port_url, endpoint
 from linktools.core import ConfigField, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
+from linktools.runtime import lazy_load
 
 
 class Container(BaseContainer):
@@ -15,7 +15,7 @@ class Container(BaseContainer):
     def configs(self):
         return dict(
             MIHOMO_TAG="Alpha",
-            MIHOMO_DOMAIN=self.get_nginx_domain(),
+            MIHOMO_DOMAIN=Nginx.domain(self),
             MIHOMO_PORT=ConfigField(cast=int, default=9090),
             MIHOMO_HTTP_PROXY_PORT=ConfigField(cast=int, default=7890),
             MIHOMO_SOCKS_PROXY_PORT=ConfigField(cast=int, default=7891),
@@ -29,31 +29,49 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def exposes(self) -> Iterable[ExposeLink]:
-        return [
-            self.expose_public("Mihomo", "vpn", "Mihomo监控", self.load_nginx_url(
-                "MIHOMO_DOMAIN", "ui", "metacubexd", "#", "setup",
-                queries=dict(
-                    hostname=self.get_config_later("MIHOMO_DOMAIN"),
-                    port=self.get_config_later("NGINX_HTTPS_PORT"),
-                    secret=self.get_config_later("MIHOMO_SECRET"),
+    def integrations(self) -> Integrations:
+        return endpoint(
+            self,
+            domain=self.get_config_later("MIHOMO_DOMAIN"),
+            proxy="http://mihomo:9090",
+            auth=None,
+            extensions=[
+                Flare.links(
+                    Flare.public(
+                        url=lazy_load(
+                            utils.join_url,
+                            "/ui/metacubexd/#/setup",
+                            queries=dict(
+                                hostname=self.get_config_later("MIHOMO_DOMAIN"),
+                                port=self.get_config_later("NGINX_HTTPS_PORT"),
+                                secret=self.get_config_later("MIHOMO_SECRET"),
+                            ),
+                        ),
+                    ),
+                    Flare.container(
+                        url=load_port_url(
+                            self,
+                            "MIHOMO_PORT",
+                            "ui",
+                            "metacubexd",
+                            "#",
+                            "setup",
+                            queries=dict(
+                                hostname=self.get_config_later("HOST"),
+                                port=self.get_config_later("MIHOMO_PORT"),
+                                secret=self.get_config_later("MIHOMO_SECRET"),
+                            ),
+                            https=False,
+                        ),
+                    ),
+                    name="Mihomo",
+                    icon="vpn",
+                    desc="Mihomo监控",
                 ),
-                proxy_name="mihomo",
-                proxy_url="http://mihomo:9090",
-                auth_enable=True,
-            )),
-            self.expose_container("Mihomo", "vpn", "Mihomo监控", self.load_port_url(
-                "MIHOMO_PORT", "ui", "metacubexd", "#", "setup",
-                queries=dict(
-                    hostname=self.get_config_later("HOST"),
-                    port=self.get_config_later("MIHOMO_PORT"),
-                    secret=self.get_config_later("MIHOMO_SECRET"),
-                ),
-                https=False,
-            )),
-        ]
+            ],
+        )
 
-    def on_starting(self, context: EventContext):
-        if "pull" in (context.commands or []):
+    def on_starting(self, context: OperationContext):
+        if "mihomo" in context.refresh_services:
             utils.remove_file(self.get_app_path("config", "geoip.metadb"))
             utils.remove_file(self.get_app_path("config", "ui"))

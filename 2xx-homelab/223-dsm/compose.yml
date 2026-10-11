@@ -15,9 +15,6 @@ services:
 #   {% endif %}
     volumes:
       - '{{ (APP_PATH/"data") | mkdir | chown }}:/storage'
-#   {% for path in container.mount_paths %}
-#      - '{{ path }}'
-#   {% endfor %}
     restart: always
     stop_grace_period: 2m
     networks:

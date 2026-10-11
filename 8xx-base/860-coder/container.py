@@ -70,7 +70,6 @@ class Container(BaseContainer):
             CODER_GIT_NAME=ConfigField(provider=LazyProvider(lambda r: self._get_git_name())),
             CODER_GIT_EMAIL=ConfigField(provider=LazyProvider(lambda r: self._get_git_email())),
             CODER_NPM_REGISTRY="https://registry.npmmirror.com",
-            CODER_PIP_REGISTRY="https://pypi.org/simple/",
             CODER_PROJECT_PATH=ConfigField.chain(
                 AliasProvider("PROJECT_PATH"),
                 PromptProvider(cached=True),

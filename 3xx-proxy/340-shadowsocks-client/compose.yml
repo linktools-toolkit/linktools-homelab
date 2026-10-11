@@ -4,7 +4,7 @@ services:
     ports:
       - '{{ SHADOWSOCKS_CLIENT_PORT }}:1080/tcp'
     volumes:
-      - '{{ APP_PATH/"config.json" }}:/etc/shadowsocks-rust/config.json'
+      - '{{ APP_PATH/"generated/current/config.json" }}:/etc/shadowsocks-rust/config.json'
     networks:
       - shadowsocks
 
