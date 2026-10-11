@@ -37,7 +37,7 @@ from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, Integrations
 from linktools.cntr.lifecycle import HookPhase
-from linktools.cntr.ext import Nginx, load_nginx_url, endpoint, Flare, load_port_url
+from linktools.cntr.ext import Nginx, endpoint, Flare, load_port_url
 from linktools.rich import prompt
 from linktools.runtime import lazy_load
 
@@ -77,56 +77,56 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return [self.web_endpoint, self.proxy_endpoint]
-
-    @cached_property
-    def web_endpoint(self) -> Integrations:
-        return endpoint(
-            self,
-            domain=self.get_config_later("VSCODE_DOMAIN"),
-            proxy="http://code-server:8080",
-            auth_bypass=(r"\.(css|js)$",),
-            extensions=[
-                Flare.links(
-                    Flare.public(),
-                    Flare.container(
-                        url=load_port_url(self, "VSCODE_PORT", https=False),
-                    ),
-                    name="VS Code",
-                    icon="microsoftVisualStudioCode",
-                    desc="在线vscode",
-                ),
-            ],
-        )
-
-    @cached_property
-    def proxy_endpoint(self) -> Integrations:
         domain = self.get_config_later("VSCODE_DOMAIN")
         proxy_domain = lazy_load(
             lambda: r"~^(?<proxy_port>\d+)\." + re.escape(domain) + "$"
             if self.get_config("NGINX_WILDCARD_DOMAIN") and domain else ""
         )
-        proxy_public_url = lazy_load(
-            lambda: utils.make_url(
-                "https" if self.get_config("NGINX_HTTPS_ENABLE") else "http",
-                "{{port}}." + domain,
-                self.get_config(
-                    "NGINX_HTTPS_PORT" if self.get_config("NGINX_HTTPS_ENABLE")
-                    else "NGINX_HTTP_PORT"
-                ),
-            )
-        )
-        return endpoint(
-            self,
-            domain=proxy_domain,
-            template=self.get_source_path("proxy.conf"),
-            public_url=proxy_public_url,
-            cert_domains=(lazy_load(lambda: "*." + domain),),
-        )
+        return [
+            endpoint(
+                self,
+                domain=domain,
+                proxy="http://code-server:8080",
+                auth_bypass=(r"\.(css|js)$",),
+                extensions=[
+                    Flare.links(
+                        Flare.public(),
+                        Flare.container(
+                            url=load_port_url(self, "VSCODE_PORT", https=False),
+                        ),
+                        name="VS Code",
+                        icon="microsoftVisualStudioCode",
+                        desc="在线vscode",
+                    ),
+                ],
+            ),
+            endpoint(
+                self,
+                domain=proxy_domain,
+                template=self.get_source_path("proxy.conf"),
+                public_url=self.proxy_url,
+                cert_domains=(lazy_load(lambda: "*." + domain),),
+            ),
+        ]
 
     @cached_property
     def proxy_url(self):
-        return load_nginx_url(self, self.proxy_endpoint)
+        def make_url():
+            if "nginx" not in self.manager.integration_snapshot:
+                return ""
+            if not self.get_config("NGINX_WILDCARD_DOMAIN"):
+                return ""
+            domain = self.get_config("VSCODE_DOMAIN")
+            if not domain:
+                return ""
+            https = self.get_config("NGINX_HTTPS_ENABLE")
+            return utils.make_url(
+                "https" if https else "http",
+                "{{port}}." + domain,
+                self.get_config("NGINX_HTTPS_PORT" if https else "NGINX_HTTP_PORT"),
+            )
+
+        return lazy_load(make_url)
 
     @subcommand("install", help="install modules into the running container")
     def on_exec_install(self):

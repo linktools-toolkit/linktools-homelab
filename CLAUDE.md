@@ -286,26 +286,32 @@ endpoint(
 ),
 ```
 
-Additional sites also use `endpoint`. Retain any endpoint that needs to be
-referenced in a `cached_property` and include the same object in `integrations`:
+Additional sites also use `endpoint` and can be declared together:
 
 ```python
 @cached_property
 def integrations(self) -> Integrations:
-    return [self.web_endpoint, self.proxy_endpoint]
-
-@cached_property
-def proxy_endpoint(self) -> Integrations:
-    return endpoint(
-        self,
-        domain=self.get_config_later("PROXY_DOMAIN"),
-        template=self.get_source_path("proxy.conf"),
-    )
-
-@cached_property
-def proxy_url(self):
-    return load_nginx_url(self, self.proxy_endpoint)
+    return [
+        endpoint(self, domain=self.get_config_later("APP_DOMAIN"), proxy="http://app:8080"),
+        endpoint(self, domain=self.get_config_later("PROXY_DOMAIN"),
+                 template=self.get_source_path("proxy.conf"), public_url=self.proxy_url),
+    ]
 ```
+
+VSCode keeps both declarations in `integrations`. Its lazy `proxy_url` is the
+single source for its proxy site's public URL and the Compose `VSCODE_PROXY_URI`;
+it returns empty when nginx, wildcard routing or the domain is unavailable.
+Only retain an endpoint object in a cached property when another declaration
+actually needs to reference that original object.
+
+For links and OIDC inside an endpoint, `extensions=lambda url, auth: [...]`
+receives a URL builder bound to that site and a lazy auth flag. `url(*path,
+queries=...)` returns the same lazy value as `load_nginx_url`; pass it directly
+into Flare or OIDC declarations. For example, `Authelia.oidc((url(),),
+enabled=auth)` explicitly contributes this endpoint's URL when authentication
+is enabled. Do not resolve `url()` or branch on `auth` inside the factory.
+Existing lists and generators still work. Mihomo uses this factory for its
+`#/setup` navigation while keeping its direct container link separate.
 
 An omitted URL in `Flare.public()` inside either endpoint inherits that endpoint's
 site; it does not select the producer's first or only enabled site.
