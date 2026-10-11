@@ -2,13 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import secrets
-from typing import Iterable
+from typing import AbstractSet, Iterable, Mapping
 
 from linktools.cli import subcommand
 from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, endpoint, Flare, Authelia, load_nginx_url, load_port_url
+from linktools.cntr.ext import Nginx, endpoint, Flare, Authelia, load_port_url
 
 
 class Container(BaseContainer):
@@ -16,6 +16,18 @@ class Container(BaseContainer):
     @property
     def dependencies(self) -> Iterable[str]:
         return ["nginx"]
+
+    @cached_property
+    def oidc_provider(self) -> "BaseContainer | None":
+        if "authelia" not in self.manager.integration_snapshot:
+            return None
+        provider = self.manager.containers["authelia"]
+        return provider if provider.public_url.startswith("https://") else None
+
+    def get_runtime_requirements(self, required: AbstractSet[str]) -> Mapping[str, Iterable[str]]:
+        if self.name in required and self.oidc_provider is not None:
+            return {"authelia": ("authelia",)}
+        return {}
 
     @cached_property
     def configs(self):
@@ -48,10 +60,10 @@ class Container(BaseContainer):
                 "^/embeddings",
                 "^/health",
             ),
-            extensions=[
+            extensions=lambda url: [
                 Flare.links(
                     Flare.public(
-                        url=load_nginx_url(self, None, "ui"),
+                        url=url("ui"),
                     ),
                     Flare.container(
                         url=load_port_url(self, "LITELLM_PORT", "ui", https=False),
@@ -61,8 +73,7 @@ class Container(BaseContainer):
                     desc="LiteLLM Proxy & Web UI",
                 ),
                 Authelia.oidc(
-                    redirect_uris=(load_nginx_url(self, None, "sso/callback"),),
-                    enabled=self.get_config_later("NGINX_AUTH_ENABLE"),
+                    redirect_uris=(url("sso/callback"),),
                 ),
             ],
         )

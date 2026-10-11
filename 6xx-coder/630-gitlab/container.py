@@ -28,12 +28,12 @@
 """
 import tempfile
 import uuid
-from typing import Iterable
+from typing import AbstractSet, Iterable, Mapping
 
 from linktools import utils
 from linktools.cli import subcommand, subcommand_argument
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, endpoint, Flare, Authelia, load_nginx_url
+from linktools.cntr.ext import Nginx, endpoint, Flare, Authelia
 from linktools.core import ConfigField, PromptProvider
 from linktools.decorator import cached_property
 
@@ -43,6 +43,18 @@ class Container(BaseContainer):
     @property
     def dependencies(self) -> Iterable[str]:
         return ["nginx"]
+
+    @cached_property
+    def oidc_provider(self) -> "BaseContainer | None":
+        if "authelia" not in self.manager.integration_snapshot:
+            return None
+        provider = self.manager.containers["authelia"]
+        return provider if provider.public_url.startswith("https://") else None
+
+    def get_runtime_requirements(self, required: AbstractSet[str]) -> Mapping[str, Iterable[str]]:
+        if self.name in required and self.oidc_provider is not None:
+            return {"authelia": ("authelia",)}
+        return {}
 
     @cached_property
     def configs(self):
@@ -70,19 +82,14 @@ class Container(BaseContainer):
             domain=self.get_config_later("GITLAB_DOMAIN"),
             proxy="http://gitlab:8181",
             auth=None,
-            extensions=[
+            extensions=lambda url: [
                 Flare.public(
                     "Gitlab",
                     "git",
                     "代码仓库管理",
                 ),
                 Authelia.oidc(
-                    redirect_uris=(
-                        load_nginx_url(
-                            self, None, "users/auth/openid_connect/callback"
-                        ),
-                    ),
-                    enabled=self.get_config_later("NGINX_AUTH_ENABLE"),
+                    redirect_uris=(url("users/auth/openid_connect/callback"),),
                 ),
             ],
         )

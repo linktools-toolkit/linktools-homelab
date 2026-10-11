@@ -8,8 +8,8 @@ services:
       - 'LITELLM_SALT_KEY={{ LITELLM_SALT_KEY }}'
       - 'DATABASE_URL=postgresql://{{ LITELLM_DB_USERNAME }}:{{ LITELLM_DB_PASSWORD }}@{{ LITELLM_DB_HOST }}:{{ LITELLM_DB_PORT }}/{{ LITELLM_DB_DATABASE }}'
       - 'PROXY_BASE_URL={{ urls.load_nginx_url(container) }}'
-#     {% if NGINX_AUTH_ENABLE %}
-#     {% with client = manager.containers['authelia'].oidc_client %}
+#     {% if container.oidc_provider is not none %}
+#     {% with client = container.oidc_provider.oidc_client %}
       - 'GENERIC_CLIENT_ID={{ client["client_id"] }}'
       - 'GENERIC_CLIENT_SECRET={{ client["client_secret"] }}'
       - 'GENERIC_AUTHORIZATION_ENDPOINT={{ client["issuer_url"] }}/api/oidc/authorization'

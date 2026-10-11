@@ -34,7 +34,7 @@ class Container(BaseContainer):
             domain=self.get_config_later("MIHOMO_DOMAIN"),
             proxy="http://mihomo:9090",
             auth=None,
-            extensions=lambda url, auth: [
+            extensions=lambda url: [
                 Flare.links(
                     Flare.public(
                         url=url(

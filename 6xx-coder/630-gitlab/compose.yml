@@ -71,8 +71,8 @@ services:
           logging['logrotate_method'] = "copytruncate"
           logging['logrotate_maxsize'] = "200M"
 
-          # {% if NGINX_AUTH_ENABLE %}
-          # {% with client = manager.containers['authelia'].oidc_client %}
+          # {% if container.oidc_provider is not none %}
+          # {% with client = container.oidc_provider.oidc_client %}
           gitlab_rails['omniauth_providers'] = [
             {
               name: "openid_connect",

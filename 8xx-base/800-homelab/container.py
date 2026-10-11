@@ -29,7 +29,7 @@
 from typing import Iterable
 
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Authelia, load_nginx_url, Nginx, Flare, load_config_url, endpoint
+from linktools.cntr.ext import Authelia, Nginx, Flare, load_config_url, endpoint
 from linktools.decorator import cached_property
 from linktools.runtime import lazy_load
 
@@ -65,25 +65,26 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def pve_endpoint(self) -> Integrations:
-        return endpoint(
-            self,
-            domain=lazy_load(
-                lambda: (
-                    self.get_config("PVE_DOMAIN")
-                    if self.get_config("PVE_LOCAL_URL")
-                    else ""
-                )
-            ),
-            proxy=self.get_config_later("PVE_LOCAL_URL"),
-            auth=None,
-            extensions=[Flare.public("Proxmox", "server", "虚拟化环境")],
-        )
-
-    @cached_property
     def integrations(self) -> Integrations:
         return [
-            self.pve_endpoint,
+            endpoint(
+                self,
+                domain=lazy_load(
+                    lambda: (
+                        self.get_config("PVE_DOMAIN")
+                        if self.get_config("PVE_LOCAL_URL")
+                        else ""
+                    )
+                ),
+                proxy=self.get_config_later("PVE_LOCAL_URL"),
+                auth=None,
+                extensions=lambda url: [
+                    Flare.public("Proxmox", "server", "虚拟化环境"),
+                    Authelia.oidc(
+                        redirect_uris=(url(), self.get_config_later("PVE_LOCAL_URL")),
+                    ),
+                ],
+            ),
             endpoint(
                 self,
                 domain=lazy_load(
@@ -195,17 +196,5 @@ class Container(BaseContainer):
                 "movie",
                 "jellyfin",
                 load_config_url(self, "JELLYFIN_LOCAL_URL"),
-            ),
-            Authelia.oidc(
-                redirect_uris=(
-                    load_nginx_url(self, self.pve_endpoint),
-                    self.get_config_later("PVE_LOCAL_URL"),
-                ),
-                enabled=lazy_load(
-                    lambda: (
-                        self.get_config("NGINX_AUTH_ENABLE")
-                        and bool(load_nginx_url(self, self.pve_endpoint))
-                    )
-                ),
             ),
         ]
