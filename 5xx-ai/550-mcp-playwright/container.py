@@ -69,7 +69,7 @@ class Container(BaseContainer):
         config = {
             "mcpServers": {
                 "playwright": {
-                    "url": str(load_nginx_url(self, "web", "mcp")),
+                    "url": str(load_nginx_url(self, None, "mcp")),
                     "headers": {
                         "Authorization": f"Bearer {self.get_config('MCP_PLAYWRIGHT_TOKEN')}",
                     },

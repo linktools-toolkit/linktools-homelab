@@ -79,7 +79,7 @@ class Container(BaseContainer):
                 Authelia.oidc(
                     redirect_uris=(
                         load_nginx_url(
-                            self, "web", "users/auth/openid_connect/callback"
+                            self, None, "users/auth/openid_connect/callback"
                         ),
                     ),
                     enabled=self.get_config_later("NGINX_AUTH_ENABLE"),

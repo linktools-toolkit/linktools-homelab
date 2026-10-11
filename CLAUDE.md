@@ -38,7 +38,7 @@ Every service folder contains at minimum a `container.py` that defines a `Contai
 
 - **`dependencies`** — other container names that must be deployed first (e.g. `["nginx", "coder"]`)
 - **`configs`** (cached_property) — a dict of config keys with defaults, using `ConfigField`, `LazyProvider`, and `PromptProvider` helpers from `linktools.core`
-- **`integrations`** (cached_property) — a reusable, optionally nested tuple/list annotated `Integrations`, containing named site dictionaries and anonymous `Flare`/`Authelia` declarations. Import `Nginx`, `Flare`, `Authelia`, `endpoint`, and URL helpers from `linktools.cntr.ext`; root `linktools.cntr` supplies `BaseContainer`, `SourceContainer`, `Integrations`, and `OperationContext`. Each declaration identifies its consumer. Raw sites use `{"web": Nginx.site(...)}`: the dictionary key is their only author-supplied identity. Common web sites use `endpoint(self, domain=..., extensions=[...])`, which always declares `"web"`. An endpoint tuple or `Flare.links(...)` group can be an array element without `*`. The common integration normalizer recursively preserves declaration order; consumers do not implement separate flattening. Keep values lazy; no consumer-keyed mappings or directly imported declaration implementation types
+- **`integrations`** (cached_property) — a reusable, optionally nested tuple/list annotated `Integrations`, containing `Nginx`, `Flare`, and `Authelia` declarations directly. Import these declarations, `endpoint`, and URL helpers from `linktools.cntr.ext`; root `linktools.cntr` supplies `BaseContainer`, `SourceContainer`, `Integrations`, and `OperationContext`. Each declaration identifies its consumer. Use `endpoint(self, domain=..., extensions=[...])` for sites; its plain tuple contains one `Nginx` declaration followed by its leaf extensions. An endpoint tuple or `Flare.links(...)` group can be an array element without `*`. The common integration normalizer recursively preserves declaration order; consumers do not implement separate flattening. Keep values lazy; no key/value declaration dictionaries, consumer-keyed mappings, or directly imported declaration implementation types
 - **Custom subcommands** — methods decorated with `@subcommand(...)` and `@subcommand_argument(...)` become CLI subcommands under `exec <container>`
 
 ### `compose.yml` as Jinja2 Templates
@@ -49,7 +49,7 @@ The `compose.yml` in each folder is a **Jinja2 template**, not plain Docker Comp
 
 A targeted `ct-cntr up <container-name>` compares the selected services with their last successfully applied configuration. It includes required providers and running declared integration consumers; real Compose restart and namespace dependencies can also require actions outside the requested containers. These collateral changes are warned about before execution. Unrelated services are not applied merely because their current configuration differs.
 
-Ordinary container authors declare `configs`, `dependencies`, and `integrations`; the framework handles configuration comparison and ordered application. Keep runtime dependencies explicit, including dependencies implied by cross-container template values, and declare named nginx sites and independent Flare links in `integrations`. Native Compose profiles determine active full-project services; disabled running services retain their existing configuration unless a real dependency requires rebinding.
+Ordinary container authors declare `configs`, `dependencies`, and `integrations`; the framework handles configuration comparison and ordered application. Keep runtime dependencies explicit, including dependencies implied by cross-container template values, and declare nginx sites and independent Flare links in `integrations`. Native Compose profiles determine active full-project services; disabled running services retain their existing configuration unless a real dependency requires rebinding.
 
 ### `Dockerfile` as Jinja2 Templates
 
@@ -70,14 +70,20 @@ The `linktools-cntr` built-in containers (nginx, authelia, lldap, flare, portain
 ### Nginx and Authelia Integration
 
 Declare domain defaults with `Nginx.domain(self, name=None)` and proxy sites with
-`{"web": Nginx.site(server_name=..., ...)}`. Every site has an explicit
-dictionary key, unique within its producer. Use `"web"` for the ordinary site;
-use descriptive keys such as `"proxy"` or `"pve"` for additional sites. Keys
-remain stable across commands and determine the generated site filenames.
-`Nginx.site` has no identity or navigation fields. `load_nginx_url(self, "web", *path,
-queries=...)` lazily reads that resolved site; it never registers a proxy or changes
-ACL/OIDC state. In general templates, use `urls.load_nginx_url(container, ...)`.
+`endpoint(self, domain=..., proxy=...)`. Integrations contain declaration objects,
+never site-key dictionaries. `Nginx.site(server_name=..., ...)` is also a direct
+leaf declaration, with no author-supplied identity or navigation fields.
 
+`load_nginx_url(self)` lazily reads the sole declared nginx site, including when
+that site is disabled. It is ambiguous when the producer declares multiple sites,
+even if only one is currently enabled. To select among multiple sites, retain an
+endpoint in a `cached_property`, include that same tuple in `integrations`, and
+pass it as `load_nginx_url(self, self.proxy_endpoint)`. An original declared
+`Nginx` object is also accepted. References use object identity, so never recreate
+an equivalent declaration or use a string key. The helper never registers a proxy
+or changes ACL/OIDC state. For a single-site subpage, use
+`load_nginx_url(self, None, "ui", queries=...)`. In general templates, use
+`urls.load_nginx_url(container, ...)`.
 Common site fields:
 
 | Field | Description |
@@ -100,7 +106,7 @@ retain their exact trailing slash/query. GitLab and LiteLLM use `load_nginx_url`
 Proxmox keeps its exact public and configured local callback URLs.
 
 For the common web-site pattern, use the pure `endpoint` function. It returns
-ordinary declarations beginning with `{"web": Nginx.site(...)}`, followed by
+a plain tuple beginning with `Nginx.site(...)`, followed by the flattened
 explicit `extensions`. It does not create navigation, callbacks, services,
 clients, or lifecycle work automatically. `domain` maps to `server_name`; the
 remaining site arguments are flat native fields: `proxy`, `template`, `https`,
@@ -110,16 +116,16 @@ remaining site arguments are flat native fields: `proxy`, `template`, `https`,
 direct-port, or OIDC option on `endpoint`.
 
 Declare access-control rules with `Authelia.access(policy="one_factor", ...)`
-in `extensions` or the surrounding integration list. It targets `site="web"`
-by default and accepts native rule fields such as `subject`, `resources`, and
-`methods`. Its domain comes from the named site. `Nginx.site` no longer accepts
-`auth_rule`; use the explicit Authelia declaration for a raw site too.
+in `extensions`. The endpoint binds the rule to its actual site automatically;
+native rule fields such as `subject`, `resources`, and `methods` remain explicit.
+For a standalone rule, pass the original declared site object as `site=...`.
+Its domain comes from that site. `Nginx.site` does not accept `auth_rule`.
 
-This repository uses `endpoint` for 24 primary web sites, including custom
-nginx templates, authentication headers, and Xray's lazy template variables.
-VSCode's additional regex proxy site and the six independently named homelab
-sites remain raw declarations. Their stable keys and native fields are unchanged.
-
+This repository uses `endpoint` for all 31 nginx sites, including custom nginx
+templates, authentication headers, Xray's lazy template variables, VSCode's regex
+proxy, and the six homelab sites. VSCode retains cached `web_endpoint` and
+`proxy_endpoint` tuples so its proxy URL selects the actual declaration. Homelab
+retains a cached `pve_endpoint` for its public OIDC callback.
 Use `Flare.links(*links, name=..., icon=..., desc=...)` to share omitted metadata
 across a public application and its private/direct-port bookmarks. It returns a
 tuple of independent declarations that can sit directly in `extensions`, including
@@ -132,9 +138,9 @@ empty strings, and custom URLs are preserved. Outside an endpoint, public links
 need an explicit URL. Empty/None URLs disable links.
 
 Navigation paths remain explicit: use
-`Flare.public(url=load_nginx_url(self, "web", "ui"))` for a subpage. Declare OIDC
+`Flare.public(url=load_nginx_url(self, None, "ui"))` for a subpage. Declare OIDC
 separately with the exact absolute lazy callback, such as
-`Authelia.oidc(redirect_uris=(load_nginx_url(self, "web", "sso/callback"),),
+`Authelia.oidc(redirect_uris=(load_nginx_url(self, None, "sso/callback"),),
 enabled=...)`. A navigation path never changes a callback or the independent
 Authelia issuer. Proxmox retains its exact public and configured local callbacks.
 
@@ -280,12 +286,32 @@ endpoint(
 ),
 ```
 
-Use `{"proxy": Nginx.site(...)}` for an additional named site. Its separate public
-link should specify `load_nginx_url(self, "proxy")` explicitly.
+Additional sites also use `endpoint`. Retain any endpoint that needs to be
+referenced in a `cached_property` and include the same object in `integrations`:
 
+```python
+@cached_property
+def integrations(self) -> Integrations:
+    return [self.web_endpoint, self.proxy_endpoint]
+
+@cached_property
+def proxy_endpoint(self) -> Integrations:
+    return endpoint(
+        self,
+        domain=self.get_config_later("PROXY_DOMAIN"),
+        template=self.get_source_path("proxy.conf"),
+    )
+
+@cached_property
+def proxy_url(self):
+    return load_nginx_url(self, self.proxy_endpoint)
+```
+
+An omitted URL in `Flare.public()` inside either endpoint inherits that endpoint's
+site; it does not select the producer's first or only enabled site.
 Custom nginx templates receive `site`, `container`, `nginx`, `config`, and `template_vars`, plus `route_auth` when the framework groups a shared hostname. Import shared macros with `{% from "nginx/headers.j2" import proxy_headers with context %}` and emit `{{ proxy_headers() }}` in each proxy location. Also import/call `route_authorization()` in protected proxy locations so a shared hostname uses each route's policy; retain explicit `auth_request off` in intentional bypass locations. Use `grpc_headers` for gRPC and pass business-specific header overrides into the macro. Common streaming limits are available through `{% include "nginx/params.conf" %}`. Framework authentication is applied by the generated server; do not include removed native snippets or duplicate its headers.
 
-Use explicit `local/` or `nginx/` Jinja namespaces. Business templates render once into self-contained `sites/<id>.conf` files, and literal data is not evaluated as another template. Use `$original_scheme`, `$original_host`, and the other `$original_*` request variables, never removed `$cntr_*` names. Docker upstreams must use a variable target so isolated validation does not require running services. When replacing a static URI suffix, preserve its prefix/capture/query behavior explicitly. Set backend variables and WebDAV Destination before a `rewrite ... break`, which stops subsequent rewrite directives. fnOS intentionally retains static `proxy_pass` URLs: its defaults are numeric LAN IPs, and native nginx must preserve configured URI prefixes, query strings, and percent encoding. Changing those targets to hostnames is subject to the same isolated DNS validation constraints; it does not enable networked validation.
+Use explicit `local/` or `nginx/` Jinja namespaces. Business templates render once into self-contained site blocks in `sites/generated.conf`, and literal data is not evaluated as another template. Use `$original_scheme`, `$original_host`, and the other `$original_*` request variables, never removed `$cntr_*` names. Docker upstreams must use a variable target so isolated validation does not require running services. When replacing a static URI suffix, preserve its prefix/capture/query behavior explicitly. Set backend variables and WebDAV Destination before a `rewrite ... break`, which stops subsequent rewrite directives. fnOS intentionally retains static `proxy_pass` URLs: its defaults are numeric LAN IPs, and native nginx must preserve configured URI prefixes, query strings, and percent encoding. Changing those targets to hostnames is subject to the same isolated DNS validation constraints; it does not enable networked validation.
 
 ### Step 5 (optional): Add a custom `Dockerfile`
 

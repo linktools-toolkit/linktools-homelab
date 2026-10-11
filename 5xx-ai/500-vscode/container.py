@@ -77,6 +77,30 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
+        return [self.web_endpoint, self.proxy_endpoint]
+
+    @cached_property
+    def web_endpoint(self) -> Integrations:
+        return endpoint(
+            self,
+            domain=self.get_config_later("VSCODE_DOMAIN"),
+            proxy="http://code-server:8080",
+            auth_bypass=(r"\.(css|js)$",),
+            extensions=[
+                Flare.links(
+                    Flare.public(),
+                    Flare.container(
+                        url=load_port_url(self, "VSCODE_PORT", https=False),
+                    ),
+                    name="VS Code",
+                    icon="microsoftVisualStudioCode",
+                    desc="在线vscode",
+                ),
+            ],
+        )
+
+    @cached_property
+    def proxy_endpoint(self) -> Integrations:
         domain = self.get_config_later("VSCODE_DOMAIN")
         proxy_domain = lazy_load(
             lambda: r"~^(?<proxy_port>\d+)\." + re.escape(domain) + "$"
@@ -92,37 +116,17 @@ class Container(BaseContainer):
                 ),
             )
         )
-        return [
-            endpoint(
-                self,
-                domain=domain,
-                proxy="http://code-server:8080",
-                auth_bypass=(r"\.(css|js)$",),
-                extensions=[
-                    Flare.links(
-                        Flare.public(),
-                        Flare.container(
-                            url=load_port_url(self, "VSCODE_PORT", https=False),
-                        ),
-                        name="VS Code",
-                        icon="microsoftVisualStudioCode",
-                        desc="在线vscode",
-                    ),
-                ],
-            ),
-            {
-                "proxy": Nginx.site(
-                    server_name=proxy_domain,
-                    template=self.get_source_path("proxy.conf"),
-                    public_url=proxy_public_url,
-                    cert_domains=(lazy_load(lambda: "*." + domain),),
-                ),
-            },
-        ]
+        return endpoint(
+            self,
+            domain=proxy_domain,
+            template=self.get_source_path("proxy.conf"),
+            public_url=proxy_public_url,
+            cert_domains=(lazy_load(lambda: "*." + domain),),
+        )
 
     @cached_property
     def proxy_url(self):
-        return load_nginx_url(self, "proxy")
+        return load_nginx_url(self, self.proxy_endpoint)
 
     @subcommand("install", help="install modules into the running container")
     def on_exec_install(self):

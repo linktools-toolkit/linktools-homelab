@@ -86,7 +86,7 @@ class Container(BaseContainer):
         config = {
             "mcpServers": {
                 "push": {
-                    "url": str(load_nginx_url(self, "web", "mcp")),
+                    "url": str(load_nginx_url(self, None, "mcp")),
                     "headers": headers,
                 },
             },

@@ -61,7 +61,7 @@ class Container(BaseContainer):
             extensions=[
                 Flare.links(
                     Flare.public(
-                        url=load_nginx_url(self, "web", "simple"),
+                        url=load_nginx_url(self, None, "simple"),
                     ),
                     Flare.container(
                         url=load_port_url(self, "PYPISERVER_PORT", https=False),

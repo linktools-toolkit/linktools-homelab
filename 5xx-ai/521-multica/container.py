@@ -28,7 +28,7 @@ class Container(BaseContainer):
     def _prompt_url(self, config, name):
         server = self.manager.containers.get("multica-server")
         if server is not None and server.enable:
-            default = str(load_nginx_url(server, "web"))
+            default = str(load_nginx_url(server))
             return prompt(name, default=default)
         return prompt(name)
 

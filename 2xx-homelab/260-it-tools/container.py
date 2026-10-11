@@ -60,19 +60,19 @@ class Container(BaseContainer):
                         name="正则表达式测试",
                         icon="regex",
                         desc="",
-                        url=load_nginx_url(self, "web", "regex-tester"),
+                        url=load_nginx_url(self, None, "regex-tester"),
                     ),
                     Flare.category("other")(
                         name="正则表达式手册",
                         icon="regex",
                         desc="",
-                        url=load_nginx_url(self, "web", "regex-memo"),
+                        url=load_nginx_url(self, None, "regex-memo"),
                     ),
                     Flare.category("other")(
                         name="在线json解析",
                         icon="codeJson",
                         desc="",
-                        url=load_nginx_url(self, "web", "json-prettify"),
+                        url=load_nginx_url(self, None, "json-prettify"),
                     ),
                     Flare.category("other")(
                         name="DNS查询",

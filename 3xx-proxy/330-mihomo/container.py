@@ -39,7 +39,7 @@ class Container(BaseContainer):
                     Flare.public(
                         url=load_nginx_url(
                             self,
-                            "web",
+                            None,
                             "ui",
                             "metacubexd",
                             "#",
