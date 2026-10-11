@@ -77,12 +77,26 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
+        domain = self.get_config_later("VSCODE_DOMAIN")
+        proxy_domain = lazy_load(
+            lambda: r"~^(?<proxy_port>\d+)\." + re.escape(domain) + "$"
+            if self.get_config("NGINX_WILDCARD_DOMAIN") and domain else ""
+        )
+        proxy_public_url = lazy_load(
+            lambda: utils.make_url(
+                "https" if self.get_config("NGINX_HTTPS_ENABLE") else "http",
+                "{{port}}." + domain,
+                self.get_config(
+                    "NGINX_HTTPS_PORT" if self.get_config("NGINX_HTTPS_ENABLE")
+                    else "NGINX_HTTP_PORT"
+                ),
+            )
+        )
         return [
             endpoint(
                 self,
-                domain=self.get_config_later("VSCODE_DOMAIN"),
+                domain=domain,
                 proxy="http://code-server:8080",
-                auth=None,
                 auth_bypass=(r"\.(css|js)$",),
                 extensions=[
                     Flare.links(
@@ -98,34 +112,10 @@ class Container(BaseContainer):
             ),
             {
                 "proxy": Nginx.site(
-                    server_name=lazy_load(
-                        lambda: (
-                            r"~^(?<proxy_port>\d+)\."
-                            + re.escape(self.get_config("VSCODE_DOMAIN"))
-                            + "$"
-                            if self.get_config("NGINX_WILDCARD_DOMAIN")
-                            and self.get_config("VSCODE_DOMAIN")
-                            else ""
-                        )
-                    ),
+                    server_name=proxy_domain,
                     template=self.get_source_path("proxy.conf"),
-                    auth=None,
-                    public_url=lazy_load(
-                        lambda: utils.make_url(
-                            "https"
-                            if self.get_config("NGINX_HTTPS_ENABLE")
-                            else "http",
-                            "{{port}}." + self.get_config("VSCODE_DOMAIN"),
-                            self.get_config(
-                                "NGINX_HTTPS_PORT"
-                                if self.get_config("NGINX_HTTPS_ENABLE")
-                                else "NGINX_HTTP_PORT"
-                            ),
-                        )
-                    ),
-                    cert_domains=(
-                        lazy_load(lambda: "*." + self.get_config("VSCODE_DOMAIN")),
-                    ),
+                    public_url=proxy_public_url,
+                    cert_domains=(lazy_load(lambda: "*." + domain),),
                 ),
             },
         ]
