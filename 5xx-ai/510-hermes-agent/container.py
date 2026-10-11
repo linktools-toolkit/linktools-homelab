@@ -8,7 +8,7 @@ from linktools.cli import subcommand, subcommand_argument
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, Flare, load_port_url, load_nginx_url
+from linktools.cntr.ext import Nginx, Flare, load_port_url, endpoint
 
 
 class Container(BaseContainer):
@@ -28,24 +28,33 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return (
-            {"web": Nginx.site(
-                server_name=self.get_config_later("HERMES_AGENT_DOMAIN"),
+        return [
+            endpoint(
+                self,
+                domain=self.get_config_later("HERMES_AGENT_DOMAIN"),
                 proxy="http://hermes-dashboard:9120",
                 template=self.get_source_path("nginx.conf"),
                 waf=False,
                 auth=None,
-            )},
-            Flare.public("Hermes Agent", "robot", "AI Agent Dashboard", load_nginx_url(self, "web")),
-            Flare.container("Hermes API", "robot", load_port_url(
-                self, "HERMES_AGENT_PORT",
-                https=False,
-            ), desc="AI Agent Gateway API"),
-            Flare.container("Hermes Dashboard", "robot", load_port_url(
-                self, "HERMES_AGENT_DASHBOARD_PORT",
-                https=False,
-            ), desc="AI Agent Dashboard"),
-        )
+                extensions=[
+                    Flare.links(
+                        Flare.public(),
+                        Flare.container(
+                            name="Hermes API",
+                            url=load_port_url(self, "HERMES_AGENT_PORT", https=False),
+                            desc="AI Agent Gateway API",
+                        ),
+                        Flare.container(
+                            name="Hermes Dashboard",
+                            url=load_port_url(self, "HERMES_AGENT_DASHBOARD_PORT", https=False),
+                        ),
+                        name="Hermes Agent",
+                        icon="robot",
+                        desc="AI Agent Dashboard",
+                    ),
+                ],
+            ),
+        ]
 
     @subcommand("cli", help="run hermes CLI command", prefix_chars=chr(1))
     @subcommand_argument("args", nargs="...", metavar="ARGS", help="hermes args")

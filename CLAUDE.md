@@ -38,7 +38,7 @@ Every service folder contains at minimum a `container.py` that defines a `Contai
 
 - **`dependencies`** — other container names that must be deployed first (e.g. `["nginx", "coder"]`)
 - **`configs`** (cached_property) — a dict of config keys with defaults, using `ConfigField`, `LazyProvider`, and `PromptProvider` helpers from `linktools.core`
-- **`integrations`** (cached_property) — a reusable tuple/list annotated `Integrations`, containing named site dictionaries and anonymous `Flare`/`Authelia` declarations. Import `Nginx`, `Flare`, `Authelia`, `endpoint`, and URL helpers from `linktools.cntr.ext`; root `linktools.cntr` supplies `BaseContainer`, `SourceContainer`, `Integrations`, and `OperationContext`. Each declaration identifies its consumer. Sites use `{"web": Nginx.site(...)}`: the dictionary key is their only author-supplied identity. Common public endpoints use `endpoint(self, "web", ...)`, expanded with `*` when mixed with other declarations. Keep values lazy and preserve declaration order; no consumer-keyed mappings or directly imported declaration implementation types
+- **`integrations`** (cached_property) — a reusable, optionally nested tuple/list annotated `Integrations`, containing named site dictionaries and anonymous `Flare`/`Authelia` declarations. Import `Nginx`, `Flare`, `Authelia`, `endpoint`, and URL helpers from `linktools.cntr.ext`; root `linktools.cntr` supplies `BaseContainer`, `SourceContainer`, `Integrations`, and `OperationContext`. Each declaration identifies its consumer. Raw sites use `{"web": Nginx.site(...)}`: the dictionary key is their only author-supplied identity. Common web sites use `endpoint(self, domain=..., extensions=[...])`, which always declares `"web"`. An endpoint tuple or `Flare.links(...)` group can be an array element without `*`. The common integration normalizer recursively preserves declaration order; consumers do not implement separate flattening. Keep values lazy; no consumer-keyed mappings or directly imported declaration implementation types
 - **Custom subcommands** — methods decorated with `@subcommand(...)` and `@subcommand_argument(...)` become CLI subcommands under `exec <container>`
 
 ### `compose.yml` as Jinja2 Templates
@@ -89,7 +89,6 @@ Common site fields:
 | `https`, `waf`, `auth` | `None` inherits, `False` disables, `True` requires the global capability |
 | `auth_bypass`, `waf_bypass` | Path regexes bypassing the selected protection |
 | `auth_headers` | Lazy credentials injected only after successful authentication |
-| `auth_rule` | Optional native Authelia access-control rule |
 | `public_url` | Explicit public URL for a regex/nonliteral hostname |
 | `default_server` | Explicit default-server policy; `server_name="_"` alone is insufficient |
 
@@ -100,31 +99,52 @@ are omitted, disabled declarations do not resolve their URLs, and nonempty URLs
 retain their exact trailing slash/query. GitLab and LiteLLM use `load_nginx_url`;
 Proxmox keeps its exact public and configured local callback URLs.
 
-For the common public-site pattern, use the pure `endpoint` function. It returns
-ordinary declarations: one `{key: Nginx.site(...)}` entry, one public Flare link,
-an optional HTTP direct-port bookmark, and optional OIDC callbacks. It does not
-register services, evaluate configuration, create clients, or add lifecycle work.
-`path` applies to both navigation URLs; `oidc_paths` are independent callback
-paths relative to the site root. `oidc_enabled` controls only the callbacks.
-The independent Authelia issuer always remains the Authelia site's URL.
+For the common web-site pattern, use the pure `endpoint` function. It returns
+ordinary declarations beginning with `{"web": Nginx.site(...)}`, followed by
+explicit `extensions`. It does not create navigation, callbacks, services,
+clients, or lifecycle work automatically. `domain` maps to `server_name`; the
+remaining site arguments are flat native fields: `proxy`, `template`, `https`,
+`waf`, `waf_bypass`, `auth`, `auth_bypass`, `auth_headers`, `public_url`,
+`cert_domains`, `template_vars`, and `default_server`. Capability defaults remain
+`None` (inherit). There is no positional site key, navigation metadata, path,
+direct-port, or OIDC option on `endpoint`.
 
-Use raw declarations for custom nginx templates, headers, access-control rules,
-wildcard/regex sites, independently customized links, or other advanced policy.
-`endpoint` intentionally accepts only `name`, `icon`, `desc`, `domain`, `proxy`,
-`auth`, `auth_bypass`, `waf_bypass`, `path`, `direct_port`, `oidc_paths`, and
-`oidc_enabled`; do not expand it into an options bag. This repository uses it
-for 14 beneficial main sites; custom private links and Proxmox's exact public
-and local callbacks remain explicit.
+Declare access-control rules with `Authelia.access(policy="one_factor", ...)`
+in `extensions` or the surrounding integration list. It targets `site="web"`
+by default and accepts native rule fields such as `subject`, `resources`, and
+`methods`. Its domain comes from the named site. `Nginx.site` no longer accepts
+`auth_rule`; use the explicit Authelia declaration for a raw site too.
 
-Direct-port links and external bookmarks are standalone Flare declarations.
-`Flare.bookmark(name, icon, url, category="private"/"container"/"other")` uses a
-standard group; `Flare.category(name, desc, order=...)` declares a custom group.
-A category is callable as `(name, icon, desc, url)`, preserving existing link
-metadata. Every public link supplies its URL explicitly, usually
-`load_nginx_url(self, "web")`; an empty/None URL disables that link. Flare
-consumes links in producer/declaration order within each category. When migrating
-legacy attached links, declare them before that producer's former standalone
-links to preserve navigation order. Navigation never creates a runtime dependency.
+This repository uses `endpoint` for 23 ordinary web sites, including custom
+nginx templates and authentication headers. Xray's advanced template variables,
+VSCode's additional regex proxy site, and the six independently named homelab
+sites remain raw declarations. Their stable keys and native fields are unchanged.
+
+Use `Flare.links(*links, name=..., icon=..., desc=...)` to share omitted metadata
+across a public application and its private/direct-port bookmarks. It returns a
+tuple of independent declarations that can sit directly in `extensions`, including
+nested lists, without `*`. Per-link metadata overrides the group; blank descriptions retain
+the normal fallback to the link name. For example, `Flare.public()` inherits the
+site URL only when included in an endpoint's extensions, while
+`Flare.container(url=load_port_url(self, "MY_PORT", https=False))` keeps its
+explicit direct URL. Omitted public URLs inherit; explicitly supplied `None`,
+empty strings, and custom URLs are preserved. Outside an endpoint, public links
+need an explicit URL. Empty/None URLs disable links.
+
+Navigation paths remain explicit: use
+`Flare.public(url=load_nginx_url(self, "web", "ui"))` for a subpage. Declare OIDC
+separately with the exact absolute lazy callback, such as
+`Authelia.oidc(redirect_uris=(load_nginx_url(self, "web", "sso/callback"),),
+enabled=...)`. A navigation path never changes a callback or the independent
+Authelia issuer. Proxmox retains its exact public and configured local callbacks.
+
+Direct-port links and external bookmarks can also remain standalone Flare
+declarations. `Flare.bookmark(name, icon, url, category="private"/"container"/"other")`
+uses a standard group; `Flare.category(name, desc, order=...)` declares a custom
+group. A category is callable as `(name, icon, desc, url)` or with omitted metadata
+inside `Flare.links`. Flare consumes links in producer/declaration order within
+each category. When migrating attached links, retain their order relative to that
+producer's standalone links. Navigation never creates a runtime dependency.
 
 ### Lifecycle and Source Inputs
 
@@ -170,7 +190,7 @@ Minimal template (copy and adapt):
 ```python
 from typing import Iterable
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, endpoint
+from linktools.cntr.ext import Nginx, Flare, endpoint, load_port_url
 from linktools.core import ConfigField, PromptProvider
 from linktools.decorator import cached_property
 
@@ -192,14 +212,21 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return endpoint(
-            self, "web",
-            name="My Service", icon="link", desc="服务描述",
-            domain=self.get_config_later("MY_DOMAIN"),
-            proxy="http://my-service:8080",
-            auth=None,
-            direct_port="MY_PORT",
-        )
+        return [
+            endpoint(
+                self,
+                domain=self.get_config_later("MY_DOMAIN"),
+                proxy="http://my-service:8080",
+                auth=None,
+                extensions=[
+                    Flare.links(
+                        Flare.public(),
+                        Flare.container(url=load_port_url(self, "MY_PORT", https=False)),
+                        name="My Service", icon="link", desc="服务描述",
+                    ),
+                ],
+            ),
+        ]
 ```
 
 The second argument to `Flare.public`/`Flare.bookmark` is a [Material Design Icons](https://pictogrammers.com/library/mdi/) icon name in camelCase (e.g. `"link"`, `"microsoftVisualStudioCode"`).
@@ -243,18 +270,20 @@ Use `$$` in compose templates to produce a literal `$` in the rendered output (n
 
 ### Step 4 (optional): Add a custom nginx config
 
-Create a `nginx.conf` and reference it in the site declaration in `container.py`.
-Import `Flare` and `load_nginx_url` from `linktools.cntr.ext` for its separate link:
+Create a `nginx.conf` and reference it from `endpoint` in `container.py`.
+Navigation stays explicit in `extensions`:
 
 ```python
-{
-    "web": Nginx.site(
-        server_name=self.get_config_later("MY_DOMAIN"),
-        template=self.get_source_path("nginx.conf"),
-    ),
-},
-Flare.public("My Service", "link", "服务描述", load_nginx_url(self, "web")),
+endpoint(
+    self,
+    domain=self.get_config_later("MY_DOMAIN"),
+    template=self.get_source_path("nginx.conf"),
+    extensions=[Flare.public("My Service", "link", "服务描述")],
+),
 ```
+
+Use `{"proxy": Nginx.site(...)}` for an additional named site. Its separate public
+link should specify `load_nginx_url(self, "proxy")` explicitly.
 
 Custom nginx templates receive `site`, `container`, `nginx`, `config`, and `template_vars`, plus `route_auth` when the framework groups a shared hostname. Import shared macros with `{% from "nginx/headers.j2" import proxy_headers with context %}` and emit `{{ proxy_headers() }}` in each proxy location. Also import/call `route_authorization()` in protected proxy locations so a shared hostname uses each route's policy; retain explicit `auth_request off` in intentional bypass locations. Use `grpc_headers` for gRPC and pass business-specific header overrides into the macro. Common streaming limits are available through `{% include "nginx/params.conf" %}`. Framework authentication is applied by the generated server; do not include removed native snippets or duplicate its headers.
 

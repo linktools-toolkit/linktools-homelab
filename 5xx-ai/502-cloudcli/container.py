@@ -4,7 +4,7 @@
 from typing import Iterable
 
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, endpoint
+from linktools.cntr.ext import Nginx, endpoint, Flare, load_port_url
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
@@ -25,11 +25,20 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return endpoint(
-            self, "web",
-            name="CloudCLI", icon="messageOutline", desc="Cloud CLI",
-            domain=self.get_config_later("CLOUD_CLI_DOMAIN"),
-            proxy="http://cloudcli:3001",
-            auth_bypass=(r"\.(css|js)$",),
-            direct_port="CLOUD_CLI_PORT",
-        )
+        return [
+            endpoint(
+                self,
+                domain=self.get_config_later("CLOUD_CLI_DOMAIN"),
+                proxy="http://cloudcli:3001",
+                auth_bypass=(r"\.(css|js)$",),
+                extensions=[
+                    Flare.links(
+                        Flare.public(),
+                        Flare.container(url=load_port_url(self, "CLOUD_CLI_PORT", https=False)),
+                        name="CloudCLI",
+                        icon="messageOutline",
+                        desc="Cloud CLI",
+                    ),
+                ],
+            ),
+        ]

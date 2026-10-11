@@ -13,7 +13,7 @@ from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
 from linktools.runtime import lazy_load
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, Flare, load_port_url, load_nginx_url
+from linktools.cntr.ext import Nginx, Flare, load_port_url, endpoint
 
 
 class Container(BaseContainer):
@@ -34,21 +34,28 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return (
-            {"web": Nginx.site(
-                server_name=self.get_config_later("AIONUI_DOMAIN"),
+        return [
+            endpoint(
+                self,
+                domain=self.get_config_later("AIONUI_DOMAIN"),
                 proxy="http://aionui:3000",
                 template=self.get_source_path("nginx.conf"),
                 auth=None,
-                auth_headers={"Authorization": lazy_load(lambda: "Bearer " + self.get_config("AIONUI_TOKEN"))},
+                auth_headers={
+                    "Authorization": lazy_load(lambda: "Bearer " + self.get_config("AIONUI_TOKEN"))
+                },
                 auth_bypass=(r"\.(css|js|webmanifest)$",),
-            )},
-            Flare.public("AionUI", "robot", "AI 助手 Web UI", load_nginx_url(self, "web")),
-            Flare.container("AionUI", "robot", load_port_url(
-                self, "AIONUI_PORT",
-                https=False,
-            ), desc="AI 助手 Web UI"),
-        )
+                extensions=[
+                    Flare.links(
+                        Flare.public(),
+                        Flare.container(url=load_port_url(self, "AIONUI_PORT", https=False)),
+                        name="AionUI",
+                        icon="robot",
+                        desc="AI 助手 Web UI",
+                    ),
+                ],
+            ),
+        ]
 
     @classmethod
     def _make_jwt(cls, secret: str) -> str:

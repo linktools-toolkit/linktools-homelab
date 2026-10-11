@@ -29,7 +29,7 @@
 from typing import Iterable
 
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, endpoint
+from linktools.cntr.ext import Nginx, endpoint, Flare, load_port_url
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
 
@@ -50,11 +50,20 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return endpoint(
-            self, "web",
-            name="Proxy Pool", icon="tools", desc="代理池",
-            domain=self.get_config_later("PROXY_POOL_DOMAIN"),
-            proxy="http://proxy-pool:5010",
-            auth=False,
-            direct_port="PROXY_POOL_PORT",
-        )
+        return [
+            endpoint(
+                self,
+                domain=self.get_config_later("PROXY_POOL_DOMAIN"),
+                proxy="http://proxy-pool:5010",
+                auth=False,
+                extensions=[
+                    Flare.links(
+                        Flare.public(),
+                        Flare.container(url=load_port_url(self, "PROXY_POOL_PORT", https=False)),
+                        name="Proxy Pool",
+                        icon="tools",
+                        desc="代理池",
+                    ),
+                ],
+            ),
+        ]

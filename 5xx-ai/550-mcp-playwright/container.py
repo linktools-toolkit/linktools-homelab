@@ -8,7 +8,7 @@ from typing import Iterable
 
 from linktools.cli import subcommand
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, Flare, load_nginx_url, load_port_url
+from linktools.cntr.ext import Nginx, Flare, load_nginx_url, load_port_url, endpoint
 from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
 
@@ -42,18 +42,27 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return (
-            {"web": Nginx.site(
-                server_name=self.get_config_later("MCP_PLAYWRIGHT_DOMAIN"),
+        return [
+            endpoint(
+                self,
+                domain=self.get_config_later("MCP_PLAYWRIGHT_DOMAIN"),
                 template=self.get_source_path("nginx.conf"),
                 waf=False,
                 auth=None,
-            )},
-            Flare.public("Playwright Browser", "web", "通过 noVNC 操作 MCP 浏览器", load_nginx_url(self, "web")),
-            Flare.container("Playwright Browser", "web", load_port_url(
-                self, "MCP_PLAYWRIGHT_NOVNC_PORT", https=False,
-            ), desc="noVNC 浏览器"),
-        )
+                extensions=[
+                    Flare.links(
+                        Flare.public(),
+                        Flare.container(
+                            url=load_port_url(self, "MCP_PLAYWRIGHT_NOVNC_PORT", https=False),
+                            desc="noVNC 浏览器",
+                        ),
+                        name="Playwright Browser",
+                        icon="web",
+                        desc="通过 noVNC 操作 MCP 浏览器",
+                    ),
+                ],
+            ),
+        ]
 
     @subcommand("show", help="print MCP server JSON configuration")
     def on_exec_show(self):

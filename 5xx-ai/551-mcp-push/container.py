@@ -7,7 +7,7 @@ from typing import Any, Iterable
 
 from linktools.cli import subcommand, subcommand_argument
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, load_nginx_url
+from linktools.cntr.ext import Nginx, load_nginx_url, endpoint
 from linktools.core import ConfigField, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
 
@@ -61,14 +61,16 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return (
-            {"web": Nginx.site(
-                server_name=self.get_config_later("MCP_PUSH_DOMAIN"),
+        return [
+            endpoint(
+                self,
+                domain=self.get_config_later("MCP_PUSH_DOMAIN"),
                 template=self.get_source_path("nginx.conf"),
                 waf=False,
                 auth=False,
-            )},
-        )
+                extensions=[],
+            ),
+        ]
 
     @subcommand("show", help="print MCP server JSON configuration, optionally with a channel example")
     @subcommand_argument("channel", nargs="?", choices=tuple(PUSH_CHANNEL_HEADERS),

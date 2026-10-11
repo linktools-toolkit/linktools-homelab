@@ -29,7 +29,7 @@
 from typing import Iterable
 
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, Flare, load_port_url, load_nginx_url
+from linktools.cntr.ext import Nginx, Flare, load_port_url, endpoint
 from linktools.core import ConfigField, AliasProvider
 from linktools.decorator import cached_property
 
@@ -53,16 +53,21 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return (
-            {"web": Nginx.site(
-                server_name=self.get_config_later("SUBLINK_DOMAIN"),
+        return [
+            endpoint(
+                self,
+                domain=self.get_config_later("SUBLINK_DOMAIN"),
                 template=self.get_source_path("nginx.conf"),
                 auth=None,
                 waf_bypass=(r"^/api/v1/script/",),
-            )},
-            Flare.public("SublinkPro", "link", "代理订阅管理", load_nginx_url(self, "web")),
-            Flare.container("SublinkPro", "link", load_port_url(
-                self, "SUBLINK_PORT",
-                https=False
-            ), desc="代理订阅管理"),
-        )
+                extensions=[
+                    Flare.links(
+                        Flare.public(),
+                        Flare.container(url=load_port_url(self, "SUBLINK_PORT", https=False)),
+                        name="SublinkPro",
+                        icon="link",
+                        desc="代理订阅管理",
+                    ),
+                ],
+            ),
+        ]

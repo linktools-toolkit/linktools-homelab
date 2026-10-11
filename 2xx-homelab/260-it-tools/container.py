@@ -30,7 +30,7 @@
 from linktools.core import ConfigField
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, Flare, load_nginx_url, load_port_url
+from linktools.cntr.ext import Nginx, Flare, load_nginx_url, load_port_url, Authelia, endpoint
 
 
 class Container(BaseContainer):
@@ -45,18 +45,48 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return (
-            {"web": Nginx.site(
-                server_name=self.get_config_later("IT_TOOLS_DOMAIN"),
+        return [
+            endpoint(
+                self,
+                domain=self.get_config_later("IT_TOOLS_DOMAIN"),
                 proxy="http://it-tools",
                 auth_bypass=(r"\.(css|js|webmanifest)$",),
-                auth_rule={"policy": "one_factor"},
-            )},
-            Flare.public("IT Tools", "tools", "it工具集", load_nginx_url(self, "web")),
-            Flare.category("other")("正则表达式测试", "regex", "", load_nginx_url(self, "web", "regex-tester")),
-            Flare.category("other")("正则表达式手册", "regex", "", load_nginx_url(self, "web", "regex-memo")),
-            Flare.category("other")("在线json解析", "codeJson", "", load_nginx_url(self, "web", "json-prettify")),
-            Flare.category("other")("DNS查询", "dns", "", "https://tool.chinaz.com/dns/"),
-            Flare.category("other")("图标下载", "progressDownload", "", "https://materialdesignicons.com/"),
-            Flare.container("IT Tools", "tools", load_port_url(self, "IT_TOOLS_PORT", https=False), desc="it工具集"),
-        )
+                extensions=[
+                    Authelia.access(policy="one_factor"),
+                    Flare.links(
+                        Flare.public(),
+                        Flare.category("other")(
+                            name="正则表达式测试",
+                            icon="regex",
+                            desc="",
+                            url=load_nginx_url(self, "web", "regex-tester"),
+                        ),
+                        Flare.category("other")(
+                            name="正则表达式手册",
+                            icon="regex",
+                            desc="",
+                            url=load_nginx_url(self, "web", "regex-memo"),
+                        ),
+                        Flare.category("other")(
+                            name="在线json解析",
+                            icon="codeJson",
+                            desc="",
+                            url=load_nginx_url(self, "web", "json-prettify"),
+                        ),
+                        Flare.category("other")(
+                            name="DNS查询", icon="dns", desc="", url="https://tool.chinaz.com/dns/"
+                        ),
+                        Flare.category("other")(
+                            name="图标下载",
+                            icon="progressDownload",
+                            desc="",
+                            url="https://materialdesignicons.com/",
+                        ),
+                        Flare.container(url=load_port_url(self, "IT_TOOLS_PORT", https=False)),
+                        name="IT Tools",
+                        icon="tools",
+                        desc="it工具集",
+                    ),
+                ],
+            ),
+        ]

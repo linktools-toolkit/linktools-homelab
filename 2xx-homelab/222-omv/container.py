@@ -49,15 +49,20 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return (
-            *endpoint(
-                self, "web",
-                name="OpenMediaVault", icon="nas", desc="OMV系统",
+        return [
+            endpoint(
+                self,
                 domain=self.get_config_later("OMV_DOMAIN"),
                 proxy=self.get_config_later("OMV_LOCAL_URL"),
                 auth=False,
+                extensions=[
+                    Flare.links(
+                        Flare.public(),
+                        Flare.category("private")(url=load_config_url(self, "OMV_LOCAL_URL")),
+                        name="OpenMediaVault",
+                        icon="nas",
+                        desc="OMV系统",
+                    ),
+                ],
             ),
-            Flare.category("private")("OpenMediaVault", "nas", "OMV系统", load_config_url(
-                self, "OMV_LOCAL_URL"
-            )),
-        )
+        ]

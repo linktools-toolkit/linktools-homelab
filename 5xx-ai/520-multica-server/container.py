@@ -8,7 +8,7 @@ from typing import Any, Iterable
 from linktools.core import ConfigField, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, Flare, load_port_url, load_nginx_url
+from linktools.cntr.ext import Nginx, Flare, load_port_url, endpoint
 
 
 class Container(BaseContainer):
@@ -84,18 +84,26 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return (
-            {"web": Nginx.site(
-                server_name=self.get_config_later("MULTICA_DOMAIN"),
+        return [
+            endpoint(
+                self,
+                domain=self.get_config_later("MULTICA_DOMAIN"),
                 template=self.get_source_path("nginx.conf"),
                 waf=False,
                 auth=None,
-            )},
-            Flare.public("Multica", "robot", "AI Agent Team Platform", load_nginx_url(self, "web")),
-            Flare.container("Multica", "robot", load_port_url(
-                self, "MULTICA_FRONTEND_PORT", https=False,
-            ), desc="AI Agent Team Platform"),
-            Flare.container("Multica API", "robot", load_port_url(
-                self, "MULTICA_BACKEND_PORT", https=False,
-            ), desc="AI Agent Team API"),
-        )
+                extensions=[
+                    Flare.links(
+                        Flare.public(),
+                        Flare.container(url=load_port_url(self, "MULTICA_FRONTEND_PORT", https=False)),
+                        Flare.container(
+                            name="Multica API",
+                            url=load_port_url(self, "MULTICA_BACKEND_PORT", https=False),
+                            desc="AI Agent Team API",
+                        ),
+                        name="Multica",
+                        icon="robot",
+                        desc="AI Agent Team Platform",
+                    ),
+                ],
+            ),
+        ]

@@ -8,7 +8,7 @@ from linktools.cli import subcommand
 from linktools.core import ConfigField, LazyProvider
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, endpoint
+from linktools.cntr.ext import Nginx, endpoint, Flare, Authelia, load_nginx_url, load_port_url
 
 
 class Container(BaseContainer):
@@ -36,18 +36,34 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return endpoint(
-            self, "web",
-            name="LiteLLM", icon="api", desc="LiteLLM Proxy & Web UI",
-            domain=self.get_config_later("LITELLM_DOMAIN"),
-            proxy="http://litellm:4000",
-            auth=None,
-            auth_bypass=("^/v1/", "^/chat/completions", "^/completions", "^/embeddings", "^/health",),
-            path="ui",
-            direct_port="LITELLM_PORT",
-            oidc_paths=("sso/callback",),
-            oidc_enabled=self.get_config_later("NGINX_AUTH_ENABLE"),
-        )
+        return [
+            endpoint(
+                self,
+                domain=self.get_config_later("LITELLM_DOMAIN"),
+                proxy="http://litellm:4000",
+                auth=None,
+                auth_bypass=(
+                    "^/v1/",
+                    "^/chat/completions",
+                    "^/completions",
+                    "^/embeddings",
+                    "^/health",
+                ),
+                extensions=[
+                    Flare.links(
+                        Flare.public(url=load_nginx_url(self, "web", "ui")),
+                        Flare.container(url=load_port_url(self, "LITELLM_PORT", "ui", https=False)),
+                        name="LiteLLM",
+                        icon="api",
+                        desc="LiteLLM Proxy & Web UI",
+                    ),
+                    Authelia.oidc(
+                        redirect_uris=(load_nginx_url(self, "web", "sso/callback"),),
+                        enabled=self.get_config_later("NGINX_AUTH_ENABLE"),
+                    ),
+                ],
+            ),
+        ]
 
     @subcommand("key", help="print the master key for Web UI login")
     def on_exec_key(self):

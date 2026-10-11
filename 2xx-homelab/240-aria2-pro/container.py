@@ -27,7 +27,7 @@
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, Flare, load_port_url
+from linktools.cntr.ext import Nginx, Flare, load_port_url, endpoint
 from linktools.core import ConfigField, PromptProvider
 from linktools.decorator import cached_property
 
@@ -45,11 +45,16 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return (
-            {"web": Nginx.site(
-                server_name=self.get_config_later("ARIA2_DOMAIN"),
+        return [
+            endpoint(
+                self,
+                domain=self.get_config_later("ARIA2_DOMAIN"),
                 proxy="http://aria2-pro:6800",
                 auth=False,
-            )},
-            Flare.container("aria2", "tools", load_port_url(self, "ARIA2_PORT", https=False), desc=""),
-        )
+                extensions=[
+                    Flare.container(
+                        "aria2", "tools", load_port_url(self, "ARIA2_PORT", https=False), desc=""
+                    ),
+                ],
+            ),
+        ]

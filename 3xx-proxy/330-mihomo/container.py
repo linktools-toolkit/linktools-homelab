@@ -3,7 +3,7 @@
 
 from linktools import utils
 from linktools.cntr import BaseContainer, OperationContext, Integrations
-from linktools.cntr.ext import Nginx, Flare, load_nginx_url, load_port_url
+from linktools.cntr.ext import Nginx, Flare, load_nginx_url, load_port_url, endpoint
 from linktools.core import ConfigField, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
 
@@ -29,29 +29,52 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        return (
-            {"web": Nginx.site(
-                server_name=self.get_config_later("MIHOMO_DOMAIN"),
+        return [
+            endpoint(
+                self,
+                domain=self.get_config_later("MIHOMO_DOMAIN"),
                 proxy="http://mihomo:9090",
                 auth=None,
-            )},
-            Flare.public("Mihomo", "vpn", "Mihomo监控", load_nginx_url(self, "web", "ui", "metacubexd", "#", "setup",
-                queries=dict(
-                    hostname=self.get_config_later("MIHOMO_DOMAIN"),
-                    port=self.get_config_later("NGINX_HTTPS_PORT"),
-                    secret=self.get_config_later("MIHOMO_SECRET"),
-                ),
-            )),
-            Flare.container("Mihomo", "vpn", load_port_url(
-                self, "MIHOMO_PORT", "ui", "metacubexd", "#", "setup",
-                queries=dict(
-                    hostname=self.get_config_later("HOST"),
-                    port=self.get_config_later("MIHOMO_PORT"),
-                    secret=self.get_config_later("MIHOMO_SECRET"),
-                ),
-                https=False,
-            ), desc="Mihomo监控"),
-        )
+                extensions=[
+                    Flare.links(
+                        Flare.public(
+                            url=load_nginx_url(
+                                self,
+                                "web",
+                                "ui",
+                                "metacubexd",
+                                "#",
+                                "setup",
+                                queries=dict(
+                                    hostname=self.get_config_later("MIHOMO_DOMAIN"),
+                                    port=self.get_config_later("NGINX_HTTPS_PORT"),
+                                    secret=self.get_config_later("MIHOMO_SECRET"),
+                                ),
+                            )
+                        ),
+                        Flare.container(
+                            url=load_port_url(
+                                self,
+                                "MIHOMO_PORT",
+                                "ui",
+                                "metacubexd",
+                                "#",
+                                "setup",
+                                queries=dict(
+                                    hostname=self.get_config_later("HOST"),
+                                    port=self.get_config_later("MIHOMO_PORT"),
+                                    secret=self.get_config_later("MIHOMO_SECRET"),
+                                ),
+                                https=False,
+                            )
+                        ),
+                        name="Mihomo",
+                        icon="vpn",
+                        desc="Mihomo监控",
+                    ),
+                ],
+            ),
+        ]
 
     def on_starting(self, context: OperationContext):
         if "mihomo" in context.refresh_services:
