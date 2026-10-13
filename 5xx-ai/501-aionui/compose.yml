@@ -12,7 +12,7 @@ services:
       - '{{ AIONUI_PORT }}:3000'
 #   {% endif %}
     volumes:
-      - '{{ (APP_PATH/"home") | mkdir | chown(docker_user) }}:/workspace'
+      - '{{ (APP_PATH/"home") | mkdir | chown(DOCKER_UID, group=DOCKER_GID) }}:/workspace'
 #     {% for name, path in containers["ai"].home_files.items() %}
       - '{{ path | mkdir | chown(docker_user) }}:/workspace/{{ name }}'
 #     {% endfor %}
