@@ -33,7 +33,7 @@ class Container(BaseContainer):
             self,
             domain=self.get_config_later("OMNIROUTE_DOMAIN"),
             proxy="http://omniroute:20128",
-            template_vars={"client_max_body_size": "10m"},
+            template_vars={"client_max_body_size": "100m"},
             auth_bypass=(r"^/(v1|vscode|api/mcp)(/|$)", r"\.(css|js|webmanifest)$"),
             waf_bypass=(r"^/(v1|vscode|api/mcp)(/|$)",),
             extensions=[
