@@ -15,7 +15,7 @@ services:
       - EXTERNAL_UI_URL={{ MIHOMO_EXTERNAL_UI_URL }}
       - GEOIP_METADB_URL={{ MIHOMO_GEOIP_METADB_URL }}
     volumes:
-      - '{{ (APP_PATH/"config") | mkdir | chown }}:/root/.config/mihomo'
+      - '{{ (APP_PATH/"config") | mkdir }}:/root/.config/mihomo'
       - '/etc/localtime:/etc/localtime:ro'
     networks:
       - nginx
