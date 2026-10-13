@@ -281,7 +281,9 @@ Available Jinja2 globals: all `configs` keys, `APP_PATH` (pathlib.Path), `SOURCE
 - `APP_PATH` — runtime data directory (writable, persisted)
 - `SOURCE_PATH` — container source directory (read-only; use for mounting scripts/configs baked into the repo)
 
-The `| mkdir | chown` filters create the host directory and set ownership automatically.
+The `| mkdir` filter creates a host directory; its final permissions depend on the host umask. `| chown` without a user is a no-op. Use `| chown(docker_user)` for a dedicated writable directory consumed by `DOCKER_UID:DOCKER_GID`. This changes only that directory's owner, not existing children; do not recursively change shared projects, credentials, or other persistent data.
+
+Generated files default to mode `0600` and remain owned by the CLI user. A non-root image with a different UID needs an explicit access contract. Xray keeps its image user and receives `DOCKER_GID` as a supplementary group; its generated config uses mode `0640` with that group and a read-only single-file mount. Members of this host group can read the config, so use an appropriate non-privileged group. When the CLI is `DOCKER_USER` and new files already inherit `DOCKER_GID`, no group change is needed. A different CLI user or setgid parent can require a group change; whether this uses privilege depends on the framework version and the CLI user's group memberships. Rootless Docker and user-namespace remapping require checking the actual host/container ID mapping; equal numeric IDs alone do not establish access.
 
 Use `$$` in compose templates to produce a literal `$` in the rendered output (needed when embedding shell variable syntax inside `entrypoint` or `command` YAML blocks).
 

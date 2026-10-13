@@ -96,7 +96,7 @@ class Container(BaseContainer):
     def on_starting(self, context: OperationContext):
         context.write_files(self, {
             "config.json": self.render_template(self.get_source_path("config.json")),
-        })
+        }, mode=0o640, group=self.get_config("DOCKER_GID", type=int))
 
     def on_check(self, context: OperationContext):
         json.loads(context.file_path(self, "config.json").read_text(encoding="utf-8"))
