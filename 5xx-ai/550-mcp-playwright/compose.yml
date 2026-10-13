@@ -19,7 +19,7 @@ services:
 #     {% endif %}
 #   {% endif %}
     volumes:
-      - '{{ (APP_PATH/"home") | mkdir | chown(DOCKER_UID, group=DOCKER_GID) }}:/workspace'
+      - '{{ (APP_PATH/"home") | mkdir | chown }}:/workspace'
     healthcheck:
       test: ['CMD-SHELL', 'curl -fsS http://127.0.0.1:6080/vnc.html >/dev/null && curl -fsS http://127.0.0.1:9222/json/version >/dev/null && curl -sS http://127.0.0.1:8931/mcp >/dev/null']
       interval: 30s
