@@ -53,6 +53,7 @@ class Container(BaseContainer):
             self,
             domain=self.get_config_later("FNOS_DOMAIN"),
             template=self.get_source_path("nginx.conf"),
+            template_vars={"client_max_body_size": "10240m"},
             auth=False,
             extensions=[
                 Flare.links(

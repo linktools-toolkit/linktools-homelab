@@ -104,6 +104,7 @@ class Container(BaseContainer):
                 self,
                 domain=proxy_domain,
                 template=self.get_source_path("proxy.conf"),
+                template_vars={"client_max_body_size": "10240m"},
                 cert_domains=(lazy_load(lambda: "*." + domain),),
             ),
         ]
