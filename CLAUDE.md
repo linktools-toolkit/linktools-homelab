@@ -91,7 +91,7 @@ Common site fields:
 | `server_name` | Lazy hostname; an empty value disables the site |
 | `proxy` | Explicit upstream URL, such as `"http://my-service:8080"` |
 | `template` | Custom native nginx template from `self.get_source_path(...)` |
-| `template_vars` | Values supplied only to the custom template |
+| `template_vars` | Business template values and shared nginx server defaults |
 | `https`, `waf`, `auth` | `None` inherits, `False` disables, `True` requires the global capability |
 | `auth_bypass`, `waf_bypass` | Path regexes bypassing the selected protection |
 | `auth_headers` | Lazy credentials injected only after successful authentication |
@@ -334,7 +334,21 @@ OIDC URLs remain independent of endpoint and global auth settings.
 
 An omitted URL in `Flare.public()` inside either endpoint inherits that endpoint's
 site; it does not select the producer's first or only enabled site.
-Custom nginx templates receive `site`, `container`, `nginx`, `config`, and `template_vars`, plus `route_auth` when the framework groups a shared hostname. Import shared macros with `{% from "nginx/headers.j2" import proxy_headers with context %}` and emit `{{ proxy_headers() }}` in each proxy location. Also import/call `route_authorization()` in protected proxy locations so a shared hostname uses each route's policy; retain explicit `auth_request off` in intentional bypass locations. Use `grpc_headers` for gRPC and pass business-specific header overrides into the macro. Common streaming limits are available through `{% include "nginx/params.conf" %}`. Framework authentication is applied by the generated server; do not include removed native snippets or duplicate its headers.
+Custom nginx templates receive `site`, `container`, `nginx`, `config`, and `template_vars`, plus `route_auth` when the framework groups a shared hostname. Import shared macros with `{% from "nginx/headers.j2" import proxy_headers with context %}` and emit `{{ proxy_headers() }}` in each proxy location. Also import/call `route_authorization()` in protected proxy locations so a shared hostname uses each route's policy; retain explicit `auth_request off` in intentional bypass locations. Use `grpc_headers` for gRPC and pass business-specific header overrides into the macro. The framework includes `nginx/params.conf` once at each business server and WAF origin server. It supplies shared request-body, buffering, cache, and timeout defaults through `template_vars`; custom locations inherit them. Do not include it again inside a business template or location. Keep genuinely different path-specific overrides, protocol settings, and header macros in their locations. Framework authentication is applied by the generated server; do not include removed native snippets or duplicate its headers.
+
+### Migrating custom nginx defaults
+
+Upgrade the paired framework and these templates together. External/custom templates
+that include `nginx/params.conf` must remove those includes: the framework now emits
+it at server scope. Remove same-value buffering/timeout duplicates, but preserve
+intentional location overrides. All business locations now inherit shared streaming
+defaults, including locations that previously omitted the snippet; this intentionally
+changes their former nginx buffering and timeout defaults. Header macros and explicit
+HTTP/gRPC protocol settings remain location-specific. The unused FastCGI temporary-file
+setting is removed from these HTTP proxy templates. Set a site limit with, for example,
+`template_vars={"client_max_body_size": "10m"}`; this applies across WAF hops without
+changing SafeLine or application-specific limits.
+
 
 Use explicit `local/` or `nginx/` Jinja namespaces. Business templates render once into self-contained site blocks in `sites/generated.conf`, and literal data is not evaluated as another template. Use `$original_scheme`, `$original_host`, and the other `$original_*` request variables, never removed `$cntr_*` names. Docker upstreams must use a variable target so isolated validation does not require running services. When replacing a static URI suffix, preserve its prefix/capture/query behavior explicitly. Set backend variables and WebDAV Destination before a `rewrite ... break`, which stops subsequent rewrite directives. fnOS intentionally retains static `proxy_pass` URLs: its defaults are numeric LAN IPs, and native nginx must preserve configured URI prefixes, query strings, and percent encoding. Changing those targets to hostnames is subject to the same isolated DNS validation constraints; it does not enable networked validation.
 
