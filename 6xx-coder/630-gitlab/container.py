@@ -34,7 +34,7 @@ from linktools import utils
 from linktools.cli import subcommand, subcommand_argument
 from linktools.cntr import BaseContainer, Integrations
 from linktools.cntr.ext import Nginx, endpoint, Flare, Authelia
-from linktools.core import ConfigField, PromptProvider
+from linktools.core import ConfigField, PromptProvider, ConfigRef
 from linktools.decorator import cached_property
 
 
@@ -79,7 +79,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return endpoint(
             self,
-            domain=self.get_config_later("GITLAB_DOMAIN"),
+            domain=ConfigRef("GITLAB_DOMAIN"),
             proxy="http://gitlab:8181",
             auth=None,
             extensions=[

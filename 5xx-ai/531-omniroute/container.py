@@ -4,7 +4,7 @@
 import secrets
 from typing import Iterable
 
-from linktools.core import ConfigField, LazyProvider
+from linktools.core import ConfigField, LazyProvider, ConfigRef
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, Integrations
 from linktools.cntr.ext import Nginx, endpoint, Flare, load_port_url
@@ -31,7 +31,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return endpoint(
             self,
-            domain=self.get_config_later("OMNIROUTE_DOMAIN"),
+            domain=ConfigRef("OMNIROUTE_DOMAIN"),
             proxy="http://omniroute:20128",
             template_vars={"client_max_body_size": "100m"},
             auth_bypass=(r"^/(v1|vscode|api/mcp)(/|$)", r"\.(css|js|webmanifest)$"),

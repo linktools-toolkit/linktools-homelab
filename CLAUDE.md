@@ -210,7 +210,7 @@ Minimal template (copy and adapt):
 from typing import Iterable
 from linktools.cntr import BaseContainer, Integrations
 from linktools.cntr.ext import Nginx, Flare, endpoint, load_port_url
-from linktools.core import ConfigField, PromptProvider
+from linktools.core import ConfigField, ConfigRef, PromptProvider
 from linktools.decorator import cached_property
 
 
@@ -233,7 +233,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return endpoint(
             self,
-            domain=self.get_config_later("MY_DOMAIN"),
+            domain=ConfigRef("MY_DOMAIN"),
             proxy="http://my-service:8080",
             auth=None,
             extensions=[
@@ -249,6 +249,9 @@ class Container(BaseContainer):
 The second argument to `Flare.public`/`Flare.bookmark` is a [Material Design Icons](https://pictogrammers.com/library/mdi/) icon name in camelCase (e.g. `"link"`, `"microsoftVisualStudioCode"`).
 
 Key config helpers:
+- `ConfigRef("MY_DOMAIN")` — an unbound reference to an existing configuration key, resolved in the consumer-selected `Config`
+- `ConfigFormat("*.{domain}", domain=ConfigRef("MY_DOMAIN"))` — resolve explicit arguments, then apply one `str.format`
+- `ConfigLazy(lambda config: ...)` — a read-only computation receiving the selected `Config`; it runs on each resolution and must not create persistent secrets
 - `ConfigField(cast=int, default=0)` — typed field with a default value
 - `ConfigField(provider=LazyProvider(lambda cfg: ...))` — computed when resolved from other config values
 - `ConfigField(provider=PromptProvider(cached=True))` — interactive prompt, value stored after first entry
@@ -293,7 +296,7 @@ Navigation stays explicit in `extensions`:
 ```python
 endpoint(
     self,
-    domain=self.get_config_later("MY_DOMAIN"),
+    domain=ConfigRef("MY_DOMAIN"),
     template=self.get_source_path("nginx.conf"),
     extensions=[Flare.public("My Service", "link", "服务描述")],
 ),
@@ -305,8 +308,8 @@ Additional sites also use `endpoint` and can be declared together:
 @cached_property
 def integrations(self) -> Integrations:
     return [
-        endpoint(self, domain=self.get_config_later("APP_DOMAIN"), proxy="http://app:8080"),
-        endpoint(self, domain=self.get_config_later("PROXY_DOMAIN"),
+        endpoint(self, domain=ConfigRef("APP_DOMAIN"), proxy="http://app:8080"),
+        endpoint(self, domain=ConfigRef("PROXY_DOMAIN"),
                  template=self.get_source_path("proxy.conf")),
     ]
 ```
@@ -328,8 +331,10 @@ When the site has no public URL, derived relative URLs are empty; independent
 absolute URLs remain available. Other declaration fields are not interpolated.
 
 Keep URL values lazy when they contain configuration. Mihomo uses
-`lazy_load(utils.join_url, "/ui/metacubexd/#/setup", queries=...)` for its
-fragment-based public navigation, while its direct container URL remains explicit.
+`ConfigLazy` to resolve its nested query values before passing them to
+`utils.join_url("/ui/metacubexd/#/setup", queries=...)` for fragment-based public
+navigation. Its direct container URL uses `load_port_url` with nested `ConfigRef`
+values; the helper resolves them before URL encoding, only when the port is enabled.
 OIDC URLs remain independent of endpoint and global auth settings.
 
 An omitted URL in `Flare.public()` inside either endpoint inherits that endpoint's
@@ -385,9 +390,11 @@ This keeps script logic in the repo (version-controlled, hot-swappable without r
 
 ## Source Verification
 
-This branch follows the matching `linktools` `refactor/cntr-integrations` branch.
-The declared minimum is still the in-development `linktools-cntr` 0.10.0; use a
-matching source checkout rather than an older installation with the same version.
+These declarations require the unbound configuration-value API from the matching
+`linktools` `feat/core-config-values-180` source branch. The declared minimum is
+still the in-development `linktools-cntr` 0.10.0; use a matching source checkout
+rather than an older installation with the same version. Ordinary installations
+require a supporting framework release before adopting these declarations.
 
 This repository has no pull-request source-check CI or retained tests directory.
 Framework regression checks belong to `linktools-cntr`; validate changed homelab

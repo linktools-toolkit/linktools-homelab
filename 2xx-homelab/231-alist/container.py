@@ -31,7 +31,7 @@ from typing import Iterable
 from linktools import utils
 from linktools.cntr import BaseContainer, Integrations
 from linktools.cntr.ext import Nginx, endpoint, Flare, load_port_url
-from linktools.core import ConfigField, AliasProvider, LazyProvider
+from linktools.core import ConfigField, AliasProvider, LazyProvider, ConfigRef
 from linktools.decorator import cached_property
 
 
@@ -55,7 +55,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return endpoint(
             self,
-            domain=self.get_config_later("ALIST_DOMAIN"),
+            domain=ConfigRef("ALIST_DOMAIN"),
             proxy="http://alist:5244",
             auth=False,
             extensions=[

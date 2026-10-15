@@ -30,6 +30,7 @@ from typing import Iterable
 
 from linktools.cntr import BaseContainer, Integrations
 from linktools.cntr.ext import Authelia, Nginx, Flare, load_config_url, endpoint
+from linktools.core import ConfigRef
 from linktools.decorator import cached_property
 from linktools.runtime import lazy_load
 
@@ -76,12 +77,12 @@ class Container(BaseContainer):
                         else ""
                     )
                 ),
-                proxy=self.get_config_later("PVE_LOCAL_URL"),
+                proxy=ConfigRef("PVE_LOCAL_URL"),
                 auth=None,
                 extensions=[
                     Flare.public("Proxmox", "server", "虚拟化环境"),
                     Authelia.oidc(
-                        redirect_uris=("{url}", self.get_config_later("PVE_LOCAL_URL")),
+                        redirect_uris=("{url}", ConfigRef("PVE_LOCAL_URL")),
                     ),
                 ],
             ),
@@ -94,10 +95,10 @@ class Container(BaseContainer):
                         else ""
                     )
                 ),
-                proxy=self.get_config_later("PRIMARY_GATEWAY_LOCAL_URL"),
+                proxy=ConfigRef("PRIMARY_GATEWAY_LOCAL_URL"),
                 auth=None,
                 auth_headers={
-                    "Authorization": self.get_config_later(
+                    "Authorization": ConfigRef(
                         "PRIMARY_GATEWAY_AUTHORIZATION"
                     ),
                 },
@@ -112,10 +113,10 @@ class Container(BaseContainer):
                         else ""
                     )
                 ),
-                proxy=self.get_config_later("BYPASS_GATEWAY_LOCAL_URL"),
+                proxy=ConfigRef("BYPASS_GATEWAY_LOCAL_URL"),
                 auth=None,
                 auth_headers={
-                    "Authorization": self.get_config_later(
+                    "Authorization": ConfigRef(
                         "BYPASS_GATEWAY_AUTHORIZATION"
                     ),
                 },
@@ -130,7 +131,7 @@ class Container(BaseContainer):
                         else ""
                     )
                 ),
-                proxy=self.get_config_later("XIAOYA_ALIST_LOCAL_URL"),
+                proxy=ConfigRef("XIAOYA_ALIST_LOCAL_URL"),
                 auth=False,
                 waf_bypass=(r"^/soutv",),
                 extensions=[Flare.public("Xiaoya-Alist", "folderSync", "小雅Alist")],
@@ -144,7 +145,7 @@ class Container(BaseContainer):
                         else ""
                     )
                 ),
-                proxy=self.get_config_later("EMBY_LOCAL_URL"),
+                proxy=ConfigRef("EMBY_LOCAL_URL"),
                 auth=False,
                 extensions=[Flare.public("Emby", "movie", "Emby")],
             ),
@@ -157,7 +158,7 @@ class Container(BaseContainer):
                         else ""
                     )
                 ),
-                proxy=self.get_config_later("JELLYFIN_LOCAL_URL"),
+                proxy=ConfigRef("JELLYFIN_LOCAL_URL"),
                 auth=False,
                 extensions=[Flare.public("Jellyfin", "movie", "jellyfin")],
             ),

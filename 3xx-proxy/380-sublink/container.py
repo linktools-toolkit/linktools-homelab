@@ -30,7 +30,7 @@ from typing import Iterable
 
 from linktools.cntr import BaseContainer, Integrations
 from linktools.cntr.ext import Nginx, Flare, load_port_url, endpoint
-from linktools.core import ConfigField
+from linktools.core import ConfigField, ConfigRef
 from linktools.decorator import cached_property
 
 
@@ -54,7 +54,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return endpoint(
             self,
-            domain=self.get_config_later("SUBLINK_DOMAIN"),
+            domain=ConfigRef("SUBLINK_DOMAIN"),
             template=self.get_source_path("nginx.conf"),
             auth=None,
             waf_bypass=(r"^/api/v1/script/",),

@@ -9,7 +9,7 @@ from typing import Iterable
 from linktools.cli import subcommand
 from linktools.cntr import BaseContainer, Integrations
 from linktools.cntr.ext import Nginx, Flare, load_nginx_url, load_port_url, endpoint
-from linktools.core import ConfigField, LazyProvider
+from linktools.core import ConfigField, LazyProvider, ConfigRef
 from linktools.decorator import cached_property
 
 
@@ -44,7 +44,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return endpoint(
             self,
-            domain=self.get_config_later("MCP_PLAYWRIGHT_DOMAIN"),
+            domain=ConfigRef("MCP_PLAYWRIGHT_DOMAIN"),
             template=self.get_source_path("nginx.conf"),
             waf=False,
             auth=None,

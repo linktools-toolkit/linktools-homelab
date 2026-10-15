@@ -28,7 +28,7 @@
 """
 from linktools.cntr import BaseContainer, Integrations
 from linktools.cntr.ext import Nginx, Flare, load_port_url, endpoint
-from linktools.core import ConfigField, PromptProvider
+from linktools.core import ConfigField, PromptProvider, ConfigRef
 from linktools.decorator import cached_property
 
 
@@ -47,7 +47,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return endpoint(
             self,
-            domain=self.get_config_later("ARIA2_DOMAIN"),
+            domain=ConfigRef("ARIA2_DOMAIN"),
             proxy="http://aria2-pro:6800",
             auth=False,
             extensions=[

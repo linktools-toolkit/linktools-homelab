@@ -30,7 +30,7 @@ from typing import Iterable
 
 from linktools.cntr import OperationContext, BaseContainer, Integrations
 from linktools.cntr.ext import Nginx, Flare, load_nginx_url, load_port_url, endpoint
-from linktools.core import ConfigField, PromptProvider
+from linktools.core import ConfigField, PromptProvider, ConfigRef
 from linktools.decorator import cached_property
 
 
@@ -55,7 +55,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return endpoint(
             self,
-            domain=self.get_config_later("PYPISERVER_DOMAIN"),
+            domain=ConfigRef("PYPISERVER_DOMAIN"),
             template=self.get_source_path("nginx.conf"),
             auth=False,
             extensions=[

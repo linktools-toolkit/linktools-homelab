@@ -8,7 +8,7 @@ from typing import Any, Iterable
 from linktools.cli import subcommand, subcommand_argument
 from linktools.cntr import BaseContainer, Integrations
 from linktools.cntr.ext import Nginx, load_nginx_url, endpoint
-from linktools.core import ConfigField, LazyProvider, PromptProvider
+from linktools.core import ConfigField, LazyProvider, PromptProvider, ConfigRef
 from linktools.decorator import cached_property
 
 
@@ -63,7 +63,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return endpoint(
             self,
-            domain=self.get_config_later("MCP_PUSH_DOMAIN"),
+            domain=ConfigRef("MCP_PUSH_DOMAIN"),
             template=self.get_source_path("nginx.conf"),
             waf=False,
             auth=False,

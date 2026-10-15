@@ -55,9 +55,9 @@ class Container(BaseContainer):
                             "#",
                             "setup",
                             queries=dict(
-                                hostname=self.get_config_later("HOST"),
-                                port=self.get_config_later("MIHOMO_PORT"),
-                                secret=self.get_config_later("MIHOMO_SECRET"),
+                                hostname=ConfigRef("HOST"),
+                                port=ConfigRef("MIHOMO_PORT"),
+                                secret=ConfigRef("MIHOMO_SECRET"),
                             ),
                             https=False,
                         ),

@@ -35,7 +35,7 @@ import json
 
 from linktools.cntr import OperationContext, BaseContainer, Integrations
 from linktools.cntr.ext import endpoint, Nginx
-from linktools.core import ConfigField, AliasProvider, LazyProvider, PromptProvider
+from linktools.core import ConfigField, AliasProvider, LazyProvider, PromptProvider, ConfigRef
 from linktools.decorator import cached_property
 
 
@@ -73,7 +73,7 @@ class Container(BaseContainer):
         )
         return endpoint(
             self,
-            domain=self.get_config_later("XRAY_DOMAIN"),
+            domain=ConfigRef("XRAY_DOMAIN"),
             template=self.get_source_path("nginx.conf"),
             auth=False,
             waf_bypass=(grpc_pattern, xhttp_pattern),

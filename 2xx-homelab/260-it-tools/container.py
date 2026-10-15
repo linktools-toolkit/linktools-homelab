@@ -27,7 +27,7 @@
  /_==__==========__==_ooo__ooo=_/'   /___________,"
 """
 
-from linktools.core import ConfigField
+from linktools.core import ConfigField, ConfigRef
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, Integrations
 from linktools.cntr.ext import Nginx, Flare, load_nginx_url, load_port_url, Authelia, endpoint
@@ -47,7 +47,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return endpoint(
             self,
-            domain=self.get_config_later("IT_TOOLS_DOMAIN"),
+            domain=ConfigRef("IT_TOOLS_DOMAIN"),
             proxy="http://it-tools",
             auth_bypass=(r"\.(css|js|webmanifest)$",),
             extensions=[
