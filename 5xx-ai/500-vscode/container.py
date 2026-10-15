@@ -33,7 +33,7 @@ from typing import Iterable
 
 from linktools import utils
 from linktools.cli import subcommand
-from linktools.core import ConfigField, LazyProvider
+from linktools.core import Config, ConfigField, ConfigFormat, ConfigLazy, ConfigRef, LazyProvider
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, Integrations
 from linktools.cntr.lifecycle import HookPhase
@@ -77,11 +77,13 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        domain = self.get_config_later("VSCODE_DOMAIN")
-        proxy_domain = lazy_load(
-            lambda: r"~^(?<proxy_port>\d+)\." + re.escape(domain) + "$"
-            if self.get_config("NGINX_WILDCARD_DOMAIN") and domain else ""
-        )
+        def proxy_domain(config: Config) -> str:
+            if not config.get("NGINX_WILDCARD_DOMAIN", type=bool):
+                return ""
+            domain = config.get("VSCODE_DOMAIN")
+            return r"~^(?<proxy_port>\d+)\." + re.escape(domain) + "$" if domain else ""
+
+        domain = ConfigRef("VSCODE_DOMAIN")
         return [
             endpoint(
                 self,
@@ -102,10 +104,10 @@ class Container(BaseContainer):
             ),
             endpoint(
                 self,
-                domain=proxy_domain,
+                domain=ConfigLazy(proxy_domain),
                 template=self.get_source_path("proxy.conf"),
                 template_vars={"client_max_body_size": "10240m"},
-                cert_domains=(lazy_load(lambda: "*." + domain),),
+                cert_domains=(ConfigFormat("*.{domain}", domain=domain),),
             ),
         ]
 

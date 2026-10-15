@@ -29,6 +29,7 @@
 from typing import Iterable
 
 from linktools import utils
+from linktools.core import ConfigRef
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, Integrations
 from linktools.cntr.ext import Flare, load_config_url, endpoint
@@ -51,8 +52,8 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return endpoint(
             self,
-            domain=self.get_config_later("OMV_DOMAIN"),
-            proxy=self.get_config_later("OMV_LOCAL_URL"),
+            domain=ConfigRef("OMV_DOMAIN"),
+            proxy=ConfigRef("OMV_LOCAL_URL"),
             auth=False,
             extensions=[
                 Flare.links(

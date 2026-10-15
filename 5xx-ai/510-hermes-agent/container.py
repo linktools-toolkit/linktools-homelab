@@ -5,7 +5,7 @@ from typing import Iterable
 
 from linktools import utils
 from linktools.cli import subcommand, subcommand_argument
-from linktools.core import ConfigField
+from linktools.core import ConfigField, ConfigRef
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, Integrations
 from linktools.cntr.ext import Nginx, Flare, load_port_url, endpoint
@@ -30,7 +30,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return endpoint(
             self,
-            domain=self.get_config_later("HERMES_AGENT_DOMAIN"),
+            domain=ConfigRef("HERMES_AGENT_DOMAIN"),
             proxy="http://hermes-dashboard:9120",
             template=self.get_source_path("nginx.conf"),
             waf=False,

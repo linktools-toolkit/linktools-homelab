@@ -5,7 +5,7 @@ import secrets
 from typing import AbstractSet, Iterable, Mapping
 
 from linktools.cli import subcommand
-from linktools.core import ConfigField, LazyProvider
+from linktools.core import ConfigField, LazyProvider, ConfigRef
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, Integrations
 from linktools.cntr.ext import Nginx, endpoint, Flare, Authelia, load_port_url
@@ -50,7 +50,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return endpoint(
             self,
-            domain=self.get_config_later("LITELLM_DOMAIN"),
+            domain=ConfigRef("LITELLM_DOMAIN"),
             proxy="http://litellm:4000",
             auth=None,
             auth_bypass=(

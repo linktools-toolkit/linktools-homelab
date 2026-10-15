@@ -30,6 +30,7 @@ from typing import Iterable
 
 from linktools.cntr import BaseContainer, Integrations
 from linktools.cntr.ext import Nginx, Flare, load_config_url, endpoint
+from linktools.core import ConfigRef
 from linktools.decorator import cached_property
 
 
@@ -51,7 +52,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return endpoint(
             self,
-            domain=self.get_config_later("FNOS_DOMAIN"),
+            domain=ConfigRef("FNOS_DOMAIN"),
             template=self.get_source_path("nginx.conf"),
             template_vars={"client_max_body_size": "10240m"},
             auth=False,

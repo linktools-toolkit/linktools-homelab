@@ -9,7 +9,7 @@ import secrets
 import time
 from typing import Iterable
 
-from linktools.core import ConfigField, LazyProvider
+from linktools.core import ConfigField, LazyProvider, ConfigRef
 from linktools.decorator import cached_property
 from linktools.runtime import lazy_load
 from linktools.cntr import BaseContainer, Integrations
@@ -36,7 +36,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return endpoint(
             self,
-            domain=self.get_config_later("AIONUI_DOMAIN"),
+            domain=ConfigRef("AIONUI_DOMAIN"),
             proxy="http://aionui:3000",
             template=self.get_source_path("nginx.conf"),
             auth=None,

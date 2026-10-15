@@ -5,7 +5,7 @@ import base64
 import secrets
 from typing import Any, Iterable
 
-from linktools.core import ConfigField, LazyProvider, PromptProvider
+from linktools.core import ConfigField, LazyProvider, PromptProvider, ConfigRef
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, Integrations
 from linktools.cntr.ext import Nginx, Flare, load_port_url, endpoint
@@ -86,7 +86,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return endpoint(
             self,
-            domain=self.get_config_later("MULTICA_DOMAIN"),
+            domain=ConfigRef("MULTICA_DOMAIN"),
             template=self.get_source_path("nginx.conf"),
             waf=False,
             auth=None,
