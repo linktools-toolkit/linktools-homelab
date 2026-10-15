@@ -48,10 +48,12 @@ class Container(BaseContainer):
     def oidc_provider(self) -> "BaseContainer | None":
         if "authelia" not in self.manager.integration_snapshot:
             return None
-        if not load_nginx_url(self):
-            return None
         provider = self.manager.containers["authelia"]
-        return provider if provider.public_url.startswith("https://") else None
+        if not provider.public_url.startswith("https://"):
+            return None
+        callback = str(load_nginx_url(self, None, "users/auth/openid_connect/callback"))
+        redirects = provider.oidc_redirects
+        return provider if provider.public_url in redirects and callback in redirects else None
 
     def get_runtime_requirements(self, required: AbstractSet[str]) -> Mapping[str, Iterable[str]]:
         if self.name in required and self.oidc_provider is not None:
@@ -91,7 +93,7 @@ class Container(BaseContainer):
                     "代码仓库管理",
                 ),
                 Authelia.oidc(
-                    redirect_uris=("/users/auth/openid_connect/callback",),
+                    redirect_uris=(load_nginx_url(self, None, "users/auth/openid_connect/callback"),),
                 ),
             ],
         )

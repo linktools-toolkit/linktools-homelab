@@ -103,9 +103,11 @@ This contributes only callbacks to the existing shared Authelia OIDC client. It
 never creates another client or credentials. There is no `enabled` argument:
 OIDC declarations are independent of endpoint `auth` and `NGINX_AUTH_ENABLE`.
 Empty URLs are omitted, and nonempty URLs retain their exact trailing slash/query.
-GitLab and LiteLLM declare relative callback URLs in their endpoint extensions;
-Proxmox uses `"{url}"` for the exact public base URL without adding a slash, and
-keeps its configured local URL unchanged.
+GitLab and LiteLLM declare complete lazy callback URLs with `load_nginx_url`.
+Proxmox explicitly references its endpoint for the exact public base URL without
+adding a slash, and keeps its configured local URL unchanged. Relative callback
+strings are not completed by the endpoint; the Authelia consumer omits incomplete
+URLs when assembling its configuration.
 Disabling a public site omits only its empty derived URL; an explicit nonempty
 absolute callback remains declared.
 For the common web-site pattern, use the pure `endpoint` function. It returns
@@ -130,7 +132,7 @@ proxy, and the six homelab sites. VSCode declares both sites in `integrations` a
 keeps one lazy business `proxy_url` for the Compose `VSCODE_PROXY_URI` setting.
 Its regex proxy site has no public navigation or OIDC reference, so it does not
 need an explicit `public_url`. Homelab declares all six endpoints together;
-Proxmox's callback declaration is inside its endpoint's extensions list.
+Proxmox's callback declaration references its original endpoint tuple.
 
 Use `Flare.links(*links, name=..., icon=..., desc=...)` to share omitted metadata
 across a public application and its private/direct-port bookmarks. It returns a
@@ -146,13 +148,12 @@ need an explicit URL. Empty/None URLs disable links.
 Navigation paths remain explicit: use `Flare.public(url="/ui")` inside endpoint
 extensions, or `Flare.public(url=load_nginx_url(self, None, "ui"))` outside them
 for a single-site producer. Declare OIDC separately with
-`Authelia.oidc(redirect_uris=("/sso/callback",))` inside the endpoint.
+`Authelia.oidc(redirect_uris=(load_nginx_url(self, None, "sso/callback"),))`.
 A navigation path never changes a callback or the independent Authelia issuer.
-GitLab and LiteLLM render their OIDC client settings only when their declared
-site has a usable public URL and the installed Authelia provider has a concrete
-HTTPS public URL, including when nginx auth is off. Disabled application sites
-and missing or HTTP-only providers do not produce client settings. Independent
-direct-port navigation remains available without application OIDC. Each app's
+GitLab and LiteLLM render their OIDC client settings whenever the installed
+Authelia provider has a concrete HTTPS public URL and its accepted redirect list
+contains the application's complete callback, including when nginx auth is off.
+Missing callbacks and missing or HTTP-only providers do not produce client settings. Each app's
 read-only `oidc_provider` is shared by its template and runtime requirements, so a
 targeted app start includes the available Authelia service even when nginx auth
 is off. Unrelated selections do not request that provider.
@@ -322,13 +323,15 @@ wildcard routing or the domain is unavailable.
 Only retain an endpoint object in a cached property when another declaration
 actually needs to reference that original object.
 
-Use ordinary extension lists or generators. The endpoint binds only extension
-URL fields: Flare links and Authelia redirect URIs. Relative URLs follow standard
-URL resolution against the site's public URL, so `"/callback"` selects that path
+Use ordinary extension lists or generators. The endpoint binds only Flare link
+URL fields; Authelia redirect URIs are never completed from an endpoint.
+Relative Flare URLs follow standard URL resolution against the site's public URL, so `"/callback"` selects that path
 at the origin and `"/"` retains the trailing root slash. A leading `"{url}"`
 placeholder selects the exact public base, preserving its existing trailing
 slash and query; `"{url}"` alone never adds a slash. Absolute URLs are unchanged.
-Explicit empty/None link URLs stay disabled, and empty callback URLs are omitted.
+Explicit empty/None link URLs stay disabled. Flare skips incomplete resolved URLs.
+OIDC callbacks must be full lazy URLs or absolute strings; empty and incomplete
+callbacks are omitted by Authelia, without endpoint-relative expansion.
 When the site has no public URL, derived relative URLs are empty; independent
 absolute URLs remain available. Other declaration fields are not interpolated.
 

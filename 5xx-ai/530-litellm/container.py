@@ -21,10 +21,12 @@ class Container(BaseContainer):
     def oidc_provider(self) -> "BaseContainer | None":
         if "authelia" not in self.manager.integration_snapshot:
             return None
-        if not load_nginx_url(self):
-            return None
         provider = self.manager.containers["authelia"]
-        return provider if provider.public_url.startswith("https://") else None
+        if not provider.public_url.startswith("https://"):
+            return None
+        callback = str(load_nginx_url(self, None, "sso/callback"))
+        redirects = provider.oidc_redirects
+        return provider if provider.public_url in redirects and callback in redirects else None
 
     def get_runtime_requirements(self, required: AbstractSet[str]) -> Mapping[str, Iterable[str]]:
         if self.name in required and self.oidc_provider is not None:
@@ -65,7 +67,7 @@ class Container(BaseContainer):
             extensions=[
                 Flare.links(
                     Flare.public(
-                        url="/ui",
+                        url=load_nginx_url(self, None, "ui"),
                     ),
                     Flare.container(
                         url=load_port_url(self, "LITELLM_PORT", "ui", https=False),
@@ -75,7 +77,7 @@ class Container(BaseContainer):
                     desc="LiteLLM Proxy & Web UI",
                 ),
                 Authelia.oidc(
-                    redirect_uris=("/sso/callback",),
+                    redirect_uris=(load_nginx_url(self, None, "sso/callback"),),
                 ),
             ],
         )
