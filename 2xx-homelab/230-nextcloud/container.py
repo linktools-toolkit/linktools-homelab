@@ -30,7 +30,7 @@ import random
 import string
 from typing import Iterable
 
-from linktools.core import ConfigField, LazyProvider
+from linktools.core import ConfigField, ConfigRef, LazyProvider
 from linktools.cli import subcommand
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, Integrations
@@ -65,7 +65,7 @@ class Container(BaseContainer):
     def integrations(self) -> Integrations:
         return endpoint(
             self,
-            domain=self.get_config_later("NEXTCLOUD_DOMAIN"),
+            domain=ConfigRef("NEXTCLOUD_DOMAIN"),
             template=self.get_source_path("nginx.conf"),
             template_vars={"client_max_body_size": "10240m"},
             auth=False,
