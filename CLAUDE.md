@@ -331,10 +331,12 @@ When the site has no public URL, derived relative URLs are empty; independent
 absolute URLs remain available. Other declaration fields are not interpolated.
 
 Keep URL values lazy when they contain configuration. Mihomo uses
-`ConfigLazy` to resolve its nested query values before passing them to
-`utils.join_url("/ui/metacubexd/#/setup", queries=...)` for fragment-based public
-navigation. Its direct container URL uses `load_port_url` with nested `ConfigRef`
-values; the helper resolves them before URL encoding, only when the port is enabled.
+`load_nginx_url` for fragment-based public navigation and `load_port_url` for
+its direct container URL. Both take nested configuration query values and resolve
+them before URL encoding, only after the site or port is enabled. The public
+setup port uses `ConfigLazy` to select the port for the resolved site's protocol;
+the hostname and secret use `ConfigRef`. The URL
+helpers cache their successful result for the declaration's command-local lifetime.
 OIDC URLs remain independent of endpoint and global auth settings.
 
 An omitted URL in `Flare.public()` inside either endpoint inherits that endpoint's

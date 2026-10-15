@@ -3,7 +3,7 @@
 
 from linktools import utils
 from linktools.cntr import BaseContainer, OperationContext, Integrations
-from linktools.cntr.ext import Nginx, Flare, load_port_url, endpoint
+from linktools.cntr.ext import Nginx, Flare, ResolvedSite, load_nginx_url, load_port_url, endpoint
 from linktools.core import ConfigField, ConfigLazy, ConfigRef, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
 
@@ -37,14 +37,21 @@ class Container(BaseContainer):
             extensions=[
                 Flare.links(
                     Flare.public(
-                        url=ConfigLazy(lambda config: utils.join_url(
-                            "/ui/metacubexd/#/setup",
-                            queries=config.resolve({
-                                "hostname": ConfigRef("MIHOMO_DOMAIN"),
-                                "port": ConfigRef("NGINX_HTTPS_PORT"),
-                                "secret": ConfigRef("MIHOMO_SECRET"),
-                            }),
-                        )),
+                        url=load_nginx_url(
+                            self,
+                            None,
+                            "ui",
+                            "metacubexd",
+                            "#",
+                            "setup",
+                            queries=dict(
+                                hostname=ConfigRef("MIHOMO_DOMAIN"),
+                                port=ConfigLazy(lambda config: config.get(
+                                    "NGINX_HTTPS_PORT" if ResolvedSite.find(self).https else "NGINX_HTTP_PORT"
+                                )),
+                                secret=ConfigRef("MIHOMO_SECRET"),
+                            ),
+                        ),
                     ),
                     Flare.container(
                         url=load_port_url(
