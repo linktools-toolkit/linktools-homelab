@@ -8,7 +8,7 @@ from linktools.cli import subcommand
 from linktools.core import ConfigField, LazyProvider, ConfigRef
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, endpoint, Flare, Authelia, load_port_url
+from linktools.cntr.ext import Nginx, endpoint, Flare, Authelia, load_nginx_url, load_port_url
 
 
 class Container(BaseContainer):
@@ -20,6 +20,8 @@ class Container(BaseContainer):
     @cached_property
     def oidc_provider(self) -> "BaseContainer | None":
         if "authelia" not in self.manager.integration_snapshot:
+            return None
+        if not load_nginx_url(self):
             return None
         provider = self.manager.containers["authelia"]
         return provider if provider.public_url.startswith("https://") else None

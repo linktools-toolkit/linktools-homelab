@@ -148,9 +148,11 @@ extensions, or `Flare.public(url=load_nginx_url(self, None, "ui"))` outside them
 for a single-site producer. Declare OIDC separately with
 `Authelia.oidc(redirect_uris=("/sso/callback",))` inside the endpoint.
 A navigation path never changes a callback or the independent Authelia issuer.
-GitLab and LiteLLM render their OIDC client settings whenever the installed
-Authelia provider has a concrete HTTPS public URL, including when nginx auth is
-off; missing or HTTP-only providers do not produce client settings. Each app's
+GitLab and LiteLLM render their OIDC client settings only when their declared
+site has a usable public URL and the installed Authelia provider has a concrete
+HTTPS public URL, including when nginx auth is off. Disabled application sites
+and missing or HTTP-only providers do not produce client settings. Independent
+direct-port navigation remains available without application OIDC. Each app's
 read-only `oidc_provider` is shared by its template and runtime requirements, so a
 targeted app start includes the available Authelia service even when nginx auth
 is off. Unrelated selections do not request that provider.

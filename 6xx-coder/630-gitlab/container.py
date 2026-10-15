@@ -33,7 +33,7 @@ from typing import AbstractSet, Iterable, Mapping
 from linktools import utils
 from linktools.cli import subcommand, subcommand_argument
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, endpoint, Flare, Authelia
+from linktools.cntr.ext import Nginx, endpoint, Flare, Authelia, load_nginx_url
 from linktools.core import ConfigField, PromptProvider, ConfigRef
 from linktools.decorator import cached_property
 
@@ -47,6 +47,8 @@ class Container(BaseContainer):
     @cached_property
     def oidc_provider(self) -> "BaseContainer | None":
         if "authelia" not in self.manager.integration_snapshot:
+            return None
+        if not load_nginx_url(self):
             return None
         provider = self.manager.containers["authelia"]
         return provider if provider.public_url.startswith("https://") else None
