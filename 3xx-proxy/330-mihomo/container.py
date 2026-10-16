@@ -54,7 +54,7 @@ class Container(BaseContainer):
                     ),
                     Flare.container(
                         url=load_port_url(
-                            ConfigRef("MIHOMO_PORT", type=int, default=0),
+                            ConfigRef("MIHOMO_PORT"),
                             "ui",
                             "metacubexd",
                             "#",

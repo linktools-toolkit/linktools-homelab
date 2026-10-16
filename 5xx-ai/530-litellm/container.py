@@ -70,7 +70,7 @@ class Container(BaseContainer):
                         url="{base_url}/ui",
                     ),
                     Flare.container(
-                        url=load_port_url(ConfigRef("LITELLM_PORT", type=int, default=0), "ui", https=False),
+                        url=load_port_url(ConfigRef("LITELLM_PORT"), "ui", https=False),
                     ),
                     name="LiteLLM",
                     icon="api",

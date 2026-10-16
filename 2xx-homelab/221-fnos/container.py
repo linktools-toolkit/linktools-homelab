@@ -60,7 +60,7 @@ class Container(BaseContainer):
                 Flare.links(
                     Flare.public(),
                     Flare.category("private")(
-                        url=load_config_url(ConfigRef("FNOS_LOCAL_URL", type=str, default=None)),
+                        url=load_config_url(ConfigRef("FNOS_LOCAL_URL", type=str)),
                     ),
                     name="fnOS",
                     icon="nas",

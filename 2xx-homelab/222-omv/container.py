@@ -59,7 +59,7 @@ class Container(BaseContainer):
                 Flare.links(
                     Flare.public(),
                     Flare.category("private")(
-                        url=load_config_url(ConfigRef("OMV_LOCAL_URL", type=str, default=None)),
+                        url=load_config_url(ConfigRef("OMV_LOCAL_URL", type=str)),
                     ),
                     name="OpenMediaVault",
                     icon="nas",

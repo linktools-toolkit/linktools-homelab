@@ -54,7 +54,7 @@ class Container(BaseContainer):
                 Flare.container(
                     "aria2",
                     "tools",
-                    load_port_url(ConfigRef("ARIA2_PORT", type=int, default=0), https=False),
+                    load_port_url(ConfigRef("ARIA2_PORT"), https=False),
                     desc="",
                 ),
             ],

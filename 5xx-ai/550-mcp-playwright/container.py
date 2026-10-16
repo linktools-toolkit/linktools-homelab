@@ -53,7 +53,7 @@ class Container(BaseContainer):
                     Flare.public(),
                     Flare.container(
                         url=load_port_url(
-                            ConfigRef("MCP_PLAYWRIGHT_NOVNC_PORT", type=int, default=0), https=False
+                            ConfigRef("MCP_PLAYWRIGHT_NOVNC_PORT"), https=False
                         ),
                         desc="noVNC 浏览器",
                     ),

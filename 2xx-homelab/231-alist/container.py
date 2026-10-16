@@ -62,7 +62,7 @@ class Container(BaseContainer):
                 Flare.links(
                     Flare.public(),
                     Flare.container(
-                        url=load_port_url(ConfigRef("ALIST_PORT", type=int, default=0), https=False),
+                        url=load_port_url(ConfigRef("ALIST_PORT"), https=False),
                     ),
                     name="Alist",
                     icon="folderSync",
