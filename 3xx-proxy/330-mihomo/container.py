@@ -4,7 +4,7 @@
 from linktools import utils
 from linktools.cntr import BaseContainer, OperationContext, Integrations
 from linktools.cntr.ext import Nginx, Flare, ResolvedSite, load_nginx_url, load_port_url, endpoint
-from linktools.core import ConfigField, ConfigLazy, ConfigRef, LazyProvider, PromptProvider
+from linktools.core import ConfigField, ConfigRef, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
 
 
@@ -39,15 +39,10 @@ class Container(BaseContainer):
                     Flare.public(
                         url=load_nginx_url(
                             ResolvedSite.find(self),
-                            "ui",
-                            "metacubexd",
-                            "#",
-                            "setup",
+                            "/ui/metacubexd/#/setup",
                             queries=dict(
                                 hostname=ConfigRef("MIHOMO_DOMAIN"),
-                                port=ConfigLazy(lambda config: config.get(
-                                    "NGINX_HTTPS_PORT" if config.resolve(ResolvedSite.find(self)).https else "NGINX_HTTP_PORT"
-                                )),
+                                port=ConfigRef("NGINX_DEFAULT_PORT"),
                                 secret=ConfigRef("MIHOMO_SECRET"),
                             ),
                         ),
@@ -55,10 +50,7 @@ class Container(BaseContainer):
                     Flare.container(
                         url=load_port_url(
                             ConfigRef("MIHOMO_PORT"),
-                            "ui",
-                            "metacubexd",
-                            "#",
-                            "setup",
+                            "/ui/metacubexd/#/setup",
                             queries=dict(
                                 hostname=ConfigRef("HOST"),
                                 port=ConfigRef("MIHOMO_PORT"),
