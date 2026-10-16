@@ -40,13 +40,13 @@ class Container(BaseContainer):
                     Flare.public(),
                     Flare.container(
                         name="Hermes API",
-                        url=load_port_url("HERMES_AGENT_PORT", https=False),
+                        url=load_port_url(ConfigRef("HERMES_AGENT_PORT", type=int, default=0), https=False),
                         desc="AI Agent Gateway API",
                     ),
                     Flare.container(
                         name="Hermes Dashboard",
                         url=load_port_url(
-                            "HERMES_AGENT_DASHBOARD_PORT", https=False
+                            ConfigRef("HERMES_AGENT_DASHBOARD_PORT", type=int, default=0), https=False
                         ),
                     ),
                     name="Hermes Agent",

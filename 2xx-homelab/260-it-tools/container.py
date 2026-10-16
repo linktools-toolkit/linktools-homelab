@@ -87,7 +87,7 @@ class Container(BaseContainer):
                         url="https://materialdesignicons.com/",
                     ),
                     Flare.container(
-                        url=load_port_url("IT_TOOLS_PORT", https=False),
+                        url=load_port_url(ConfigRef("IT_TOOLS_PORT", type=int, default=0), https=False),
                     ),
                     name="IT Tools",
                     icon="tools",

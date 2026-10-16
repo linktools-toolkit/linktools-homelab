@@ -28,7 +28,7 @@ class Container(BaseContainer):
     def _prompt_url(self, config, name):
         server = self.manager.containers.get("multica-server")
         if server is not None and server.enable:
-            default = ResolvedSite.find(server).get_url(default="")
+            default = server.env_config.resolve(ResolvedSite.find(server)).get_url(default="")
             return prompt(name, default=default)
         return prompt(name)
 

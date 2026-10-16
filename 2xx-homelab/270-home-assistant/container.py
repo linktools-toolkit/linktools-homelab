@@ -59,7 +59,7 @@ class Container(BaseContainer):
                 Flare.links(
                     Flare.public(),
                     Flare.container(
-                        url=load_port_url("HOME_ASSISTANT_PORT", https=False),
+                        url=load_port_url(ConfigRef("HOME_ASSISTANT_PORT", type=int, default=0), https=False),
                     ),
                     name="HomeAssistant",
                     icon="homeAssistant",

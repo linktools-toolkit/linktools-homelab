@@ -30,7 +30,7 @@ import yaml
 
 from linktools.cntr import SourceContainer, OperationContext, Integrations
 from linktools.cntr.ext import Flare, load_port_url
-from linktools.core import ConfigField
+from linktools.core import ConfigRef, ConfigField
 from linktools.decorator import cached_property
 
 
@@ -49,7 +49,7 @@ class Container(SourceContainer):
         return (
             Flare.container(
                 "ws-scrcpy", "cellphone",
-                load_port_url("WS_SCRCPY_PORT", https=False),
+                load_port_url(ConfigRef("WS_SCRCPY_PORT", type=int, default=0), https=False),
                 desc="ws-scrcpy",
             ),
         )

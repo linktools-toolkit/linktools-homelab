@@ -75,12 +75,13 @@ never site-key dictionaries. `Nginx.site(server_name=..., ...)` is also a direct
 leaf declaration, with no author-supplied identity or navigation fields.
 
 URL helpers return unbound ConfigLazy values and take no container argument.
-Config and port helpers read their keys (and HOST for valid ports) through the
-consuming Config. `load_nginx_url(site, "ui", queries=...)` accepts a ResolvedSite
-or ConfigValue resolving to one. During declaration construction, defer lookup:
-`load_nginx_url(ConfigLazy(lambda config: ResolvedSite.find(self)), "ui")`.
-ResolvedSite.find uses the sole declared site, or an explicit original site/endpoint
-for multi-site producers; ambiguous/foreign references fail. Ordinary endpoint
+Config and port helpers accept values or ConfigValue declarations. Use explicit
+ConfigRef for configuration keys; a plain string is a literal URL, never a key.
+ConfigRef owns the cast/default, and valid ports read HOST through the consuming Config. `load_nginx_url(site, "ui", queries=...)` accepts a ResolvedSite
+or ConfigValue resolving to one. During declaration construction, use the lazy lookup:
+`load_nginx_url(ResolvedSite.find(self), "ui")`.
+ResolvedSite.find returns ConfigLazy for the sole declared site, or an explicit original site/endpoint
+for multi-site producers; ambiguous/foreign references fail when Config.resolve consumes them. Ordinary endpoint
 links use `{base_url}/ui`. Immediate callers use `self.env_config.resolve(...)`;
 Jinja callers use `config.resolve(urls.load_nginx_url(urls.ResolvedSite.find(container)))`.
 No helper registers a proxy or changes ACL/OIDC state. Disabled sites and absent
@@ -142,13 +143,13 @@ tuple of independent declarations that can sit directly in `extensions`, includi
 nested lists, without `*`. Per-link metadata overrides the group; blank descriptions retain
 the normal fallback to the link name. For example, `Flare.public()` inherits the
 site URL only when included in an endpoint's extensions, while
-`Flare.container(url=load_port_url("MY_PORT", https=False))` keeps its
+`Flare.container(url=load_port_url(ConfigRef("MY_PORT", type=int, default=0), https=False))` keeps its
 explicit direct URL. Omitted public URLs inherit; explicitly supplied `None`,
 empty strings, and custom URLs are preserved. Outside an endpoint, public links
 need an explicit URL. Empty/None URLs disable links.
 
 Navigation paths remain explicit: use `Flare.public(url="{base_url}/ui")` inside endpoint
-extensions, or `Flare.public(url=load_nginx_url(ConfigLazy(lambda config: ResolvedSite.find(self)), "ui"))` outside them
+extensions, or `Flare.public(url=load_nginx_url(ResolvedSite.find(self), "ui"))` outside them
 for a single-site producer. Declare OIDC separately with
 `Authelia.oidc(redirect_uris=("{base_url}/sso/callback",))` inside the endpoint.
 Flare also retains its existing relative navigation support; OIDC does not
@@ -246,7 +247,7 @@ class Container(BaseContainer):
             extensions=[
                 Flare.links(
                     Flare.public(),
-                    Flare.container(url=load_port_url("MY_PORT", https=False)),
+                    Flare.container(url=load_port_url(ConfigRef("MY_PORT", type=int, default=0), https=False)),
                     name="My Service", icon="link", desc="服务描述",
                 ),
             ],

@@ -64,7 +64,7 @@ class Container(BaseContainer):
                         url="{base_url}/simple",
                     ),
                     Flare.container(
-                        url=load_port_url("PYPISERVER_PORT", https=False),
+                        url=load_port_url(ConfigRef("PYPISERVER_PORT", type=int, default=0), https=False),
                     ),
                     name="pypiserver",
                     icon="languagePython",

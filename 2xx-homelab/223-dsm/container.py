@@ -61,7 +61,7 @@ class Container(BaseContainer):
                 Flare.links(
                     Flare.public(),
                     Flare.category("private")(
-                        url=load_port_url("DSM_PORT", https=False),
+                        url=load_port_url(ConfigRef("DSM_PORT", type=int, default=0), https=False),
                     ),
                     name="DSM",
                     icon="nas",

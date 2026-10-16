@@ -38,7 +38,7 @@ class Container(BaseContainer):
                 Flare.links(
                     Flare.public(
                         url=load_nginx_url(
-                            ConfigLazy(lambda config: ResolvedSite.find(self)),
+                            ResolvedSite.find(self),
                             "ui",
                             "metacubexd",
                             "#",
@@ -46,7 +46,7 @@ class Container(BaseContainer):
                             queries=dict(
                                 hostname=ConfigRef("MIHOMO_DOMAIN"),
                                 port=ConfigLazy(lambda config: config.get(
-                                    "NGINX_HTTPS_PORT" if ResolvedSite.find(self).https else "NGINX_HTTP_PORT"
+                                    "NGINX_HTTPS_PORT" if config.resolve(ResolvedSite.find(self)).https else "NGINX_HTTP_PORT"
                                 )),
                                 secret=ConfigRef("MIHOMO_SECRET"),
                             ),
@@ -54,7 +54,7 @@ class Container(BaseContainer):
                     ),
                     Flare.container(
                         url=load_port_url(
-                            "MIHOMO_PORT",
+                            ConfigRef("MIHOMO_PORT", type=int, default=0),
                             "ui",
                             "metacubexd",
                             "#",
