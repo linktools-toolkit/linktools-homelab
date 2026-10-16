@@ -41,7 +41,7 @@ class Container(BaseContainer):
         return ["nginx"]
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             PYPISERVER_TAG="latest",
             PYPISERVER_DOMAIN=Nginx.domain(self, "pypi"),

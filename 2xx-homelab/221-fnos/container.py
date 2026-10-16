@@ -41,7 +41,7 @@ class Container(BaseContainer):
         return ["homelab"]
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             FNOS_DOMAIN=Nginx.domain(self, "fn"),
             FNOS_LOCAL_URL="http://10.10.10.1:5666",

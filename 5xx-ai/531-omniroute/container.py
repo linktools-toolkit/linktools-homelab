@@ -17,7 +17,7 @@ class Container(BaseContainer):
         return ["nginx"]
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             OMNIROUTE_TAG="latest",
             OMNIROUTE_DOMAIN=Nginx.domain(self),

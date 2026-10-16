@@ -37,19 +37,27 @@ ct-cntr exec <container-name> <subcommand> [args]
 Every service folder contains at minimum a `container.py` that defines a `Container(BaseContainer)` class. This class declares:
 
 - **`dependencies`** — other container names that must be deployed first (e.g. `["nginx", "coder"]`)
-- **`configs`** (cached_property) — a dict of config keys with defaults, using `ConfigField`, `LazyProvider`, and `PromptProvider` helpers from `linktools.core`
+- **`fields`** (cached_property) — a dict of config keys with defaults, using `ConfigField`, `LazyProvider`, and `PromptProvider` helpers from `linktools.core`
 - **`integrations`** (cached_property) — a reusable, optionally nested tuple/list annotated `Integrations`, containing `Nginx`, `Flare`, and `Authelia` declarations directly. Import these declarations, `endpoint`, and URL helpers from `linktools.cntr.ext`; root `linktools.cntr` supplies `BaseContainer`, `SourceContainer`, `Integrations`, and `OperationContext`. Each declaration identifies its consumer. Use `endpoint(self, domain=..., extensions=[...])` for sites; its plain tuple contains one `Nginx` declaration followed by its leaf extensions. An endpoint tuple or `Flare.links(...)` group can be an array element without `*`. The common integration normalizer recursively preserves declaration order; consumers do not implement separate flattening. Keep values lazy; no key/value declaration dictionaries, consumer-keyed mappings, or directly imported declaration implementation types
 - **Custom subcommands** — methods decorated with `@subcommand(...)` and `@subcommand_argument(...)` become CLI subcommands under `exec <container>`
 
+`fields` declares the container's configuration schema; `extra_fields` supplies
+additional field declarations discovered lazily at the existing consumption and
+registration points. `config` is the runtime Config used to read and resolve
+values. Use `register_fields` for explicit field registration. These names replace
+`configs`, `extend_configs`, `env_config`, and `register_configs` respectively;
+there are no compatibility aliases. `environ.config` is unchanged. Renaming does
+not make `extra_fields` eager or change when its declarations are registered.
+
 ### `compose.yml` as Jinja2 Templates
 
-The `compose.yml` in each folder is a **Jinja2 template**, not plain Docker Compose YAML. The framework renders it before passing to docker compose. Template variables include all `configs` keys plus framework-provided globals like `APP_PATH`, `DOCKER_UID`, `DOCKER_GID`, `DOCKER_USER`, and `containers["<name>"]` object access. Comments starting with `#` can contain Jinja2 control flow (e.g. `# {% if PORT > 0 %}`).
+The `compose.yml` in each folder is a **Jinja2 template**, not plain Docker Compose YAML. The framework renders it before passing to docker compose. Template variables include all `fields` keys plus framework-provided globals like `APP_PATH`, `DOCKER_UID`, `DOCKER_GID`, `DOCKER_USER`, and `containers["<name>"]` object access. Comments starting with `#` can contain Jinja2 control flow (e.g. `# {% if PORT > 0 %}`).
 
 ### Applying Configuration Changes
 
 A targeted `ct-cntr up <container-name>` compares the selected services with their last successfully applied configuration. It includes required providers and running declared integration consumers; real Compose restart and namespace dependencies can also require actions outside the requested containers. These collateral changes are warned about before execution. Unrelated services are not applied merely because their current configuration differs.
 
-Ordinary container authors declare `configs`, `dependencies`, and `integrations`; the framework handles configuration comparison and ordered application. Keep runtime dependencies explicit, including dependencies implied by cross-container template values, and declare nginx sites and independent Flare links in `integrations`. Native Compose profiles determine active full-project services; disabled running services retain their existing configuration unless a real dependency requires rebinding.
+Ordinary container authors declare `fields`, `dependencies`, and `integrations`; the framework handles configuration comparison and ordered application. Keep runtime dependencies explicit, including dependencies implied by cross-container template values, and declare nginx sites and independent Flare links in `integrations`. Native Compose profiles determine active full-project services; disabled running services retain their existing configuration unless a real dependency requires rebinding.
 
 ### `Dockerfile` as Jinja2 Templates
 
@@ -91,7 +99,7 @@ raises without reading queries. For an explicit lazy lookup:
 `load_nginx_url(ResolvedSite.find(self), "ui")`.
 ResolvedSite.find returns ConfigLazy for the sole declared site, or an explicit original site/endpoint
 for multi-site producers; ambiguous/foreign references fail when Config.resolve consumes them. Ordinary endpoint
-links use `{base_url}/ui`. Immediate callers use `self.env_config.resolve(...)`;
+links use `{base_url}/ui`. Immediate callers use `self.config.resolve(...)`;
 Jinja callers use `config.resolve(urls.load_nginx_url(urls.ResolvedSite.find(container)))`.
 No helper registers a proxy or changes ACL/OIDC state. Disabled sites and absent
 nginx leave the URL empty before query/secret values are read.
@@ -238,7 +246,7 @@ class Container(BaseContainer):
         return ["nginx"]
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             MY_TAG="latest",
             MY_DOMAIN=Nginx.domain(self),
@@ -296,7 +304,7 @@ networks:
   nginx:
 ```
 
-Available Jinja2 globals: all `configs` keys, `APP_PATH` (pathlib.Path), `SOURCE_PATH` (pathlib.Path), `DOCKER_UID`, `DOCKER_GID`, `DOCKER_USER`, `container` (the owning container), `containers["name"]`, and `urls` (the module containing lazy URL functions).
+Available Jinja2 globals: all `fields` keys, `APP_PATH` (pathlib.Path), `SOURCE_PATH` (pathlib.Path), `DOCKER_UID`, `DOCKER_GID`, `DOCKER_USER`, `container` (the owning container), `containers["name"]`, and `urls` (the module containing lazy URL functions).
 
 - `APP_PATH` — runtime data directory (writable, persisted)
 - `SOURCE_PATH` — container source directory (read-only; use for mounting scripts/configs baked into the repo)

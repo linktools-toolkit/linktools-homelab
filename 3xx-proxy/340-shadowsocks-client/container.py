@@ -37,7 +37,7 @@ from linktools.decorator import cached_property
 class Container(BaseContainer):
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             SHADOWSOCKS_CLIENT_TAG="latest",
             SHADOWSOCKS_CLIENT_PORT=ConfigField(cast=int, provider=PromptProvider(default=1080, cached=True)),

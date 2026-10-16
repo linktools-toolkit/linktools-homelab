@@ -11,7 +11,7 @@ from linktools.decorator import cached_property
 class Container(BaseContainer):
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             MIHOMO_TAG="Alpha",
             MIHOMO_DOMAIN=Nginx.domain(self),

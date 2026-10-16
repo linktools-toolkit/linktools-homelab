@@ -42,7 +42,7 @@ class Container(BaseContainer):
         return ["homelab", "nextcloud", "qbittorrent"]
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             OMV_DOMAIN="",
             OMV_LOCAL_URL="http://10.10.10.1:80",

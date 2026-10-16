@@ -36,7 +36,7 @@ from linktools.decorator import cached_property
 class Container(BaseContainer):
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             AI_HOME_PATH=ConfigField(cast="path", default=self.get_app_path("home")),
         )

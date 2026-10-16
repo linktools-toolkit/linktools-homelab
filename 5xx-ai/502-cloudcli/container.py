@@ -16,7 +16,7 @@ class Container(BaseContainer):
         return ["nginx", "coder", "ai"]
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             CLOUD_CLI_TAG="latest",
             CLOUD_CLI_DOMAIN=Nginx.domain(self),

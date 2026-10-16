@@ -24,7 +24,7 @@ class Container(BaseContainer):
         provider = self.manager.containers["authelia"]
         if not provider.public_url.startswith("https://"):
             return None
-        callback = self.env_config.resolve(load_nginx_url(ResolvedSite.find(self), "sso/callback"))
+        callback = self.config.resolve(load_nginx_url(ResolvedSite.find(self), "sso/callback"))
         redirects = provider.oidc_redirects
         return provider if provider.public_url in redirects and callback in redirects else None
 
@@ -34,7 +34,7 @@ class Container(BaseContainer):
         return {}
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             LITELLM_TAG="main-latest",
             LITELLM_DOMAIN=Nginx.domain(self),

@@ -42,7 +42,7 @@ class Container(BaseContainer):
         return ["nginx"]
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             ALIST_TAG="latest",
             ALIST_DATA_PATH=ConfigField(cast="path", provider=AliasProvider("DOCKER_USER_DATA_PATH")),

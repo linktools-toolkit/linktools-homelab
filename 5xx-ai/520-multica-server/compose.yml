@@ -54,7 +54,7 @@ services:
       - 'MULTICA_DINGTALK_SECRET_KEY={{ MULTICA_DINGTALK_SECRET_KEY }}'
       - 'MULTICA_WECOM_SECRET_KEY={{ MULTICA_WECOM_SECRET_KEY }}'
       - 'MULTICA_TELEGRAM_SECRET_KEY={{ MULTICA_TELEGRAM_SECRET_KEY }}'
-#     {% for name, field in container.extend_configs.items() | sort %}
+#     {% for name, field in container.extra_fields.items() | sort %}
 #     {% set value = config.get(field) %}
       - {{ (name ~ "=" ~ (value | lower if value is boolean else value)) | replace("$", "$$") | tojson }}
 #     {% endfor %}

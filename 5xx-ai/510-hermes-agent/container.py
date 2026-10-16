@@ -18,7 +18,7 @@ class Container(BaseContainer):
         return ["nginx"]
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             HERMES_AGENT_TAG="latest",
             HERMES_AGENT_DOMAIN=Nginx.domain(self),

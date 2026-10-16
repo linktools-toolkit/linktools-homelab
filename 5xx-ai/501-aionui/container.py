@@ -23,7 +23,7 @@ class Container(BaseContainer):
         return ["nginx", "coder", "ai"]
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             AIONUI_TAG="latest",
             AIONUI_DOMAIN=Nginx.domain(self),

@@ -37,7 +37,7 @@ from linktools.decorator import cached_property
 class Container(SourceContainer):
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             WS_SCRCPY_TAG="master",
             WS_SCRCPY_URL="https://github.com/redroid-rockchip/ws-scrcpy/archive/refs/heads/{tag}.zip",

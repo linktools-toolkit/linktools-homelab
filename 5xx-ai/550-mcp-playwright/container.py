@@ -26,7 +26,7 @@ class Container(BaseContainer):
         return ["nginx"]
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             MCP_PLAYWRIGHT_TAG="latest",
             MCP_PLAYWRIGHT_DOMAIN=Nginx.domain(self),
@@ -69,7 +69,7 @@ class Container(BaseContainer):
         config = {
             "mcpServers": {
                 "playwright": {
-                    "url": self.env_config.resolve(load_nginx_url(ResolvedSite.find(self), "mcp")),
+                    "url": self.config.resolve(load_nginx_url(ResolvedSite.find(self), "mcp")),
                     "headers": {
                         "Authorization": f"Bearer {self.get_config('MCP_PLAYWRIGHT_TOKEN')}",
                     },

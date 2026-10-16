@@ -41,7 +41,7 @@ class Container(BaseContainer):
         return ["nginx"]
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             SUBLINK_TAG="latest",
             SUBLINK_DOMAIN=Nginx.domain(self),

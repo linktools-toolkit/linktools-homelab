@@ -28,12 +28,12 @@ class Container(BaseContainer):
     def _prompt_url(self, config, name):
         server = self.manager.containers.get("multica-server")
         if server is not None and server.enable:
-            default = server.env_config.resolve(ResolvedSite.find(server)).get_url(default="")
+            default = server.config.resolve(ResolvedSite.find(server)).get_url(default="")
             return prompt(name, default=default)
         return prompt(name)
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             MULTICA_DAEMON_ID=ConfigField(provider=LazyProvider(lambda r: str(uuid.uuid4()), cached=True)),
             MULTICA_APP_URL=ConfigField(provider=LazyProvider(

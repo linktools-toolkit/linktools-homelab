@@ -42,7 +42,7 @@ class Container(BaseContainer):
         return ["flare"]
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             PVE_DOMAIN=Nginx.domain(self, "pve"),
             PVE_LOCAL_URL="",

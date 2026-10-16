@@ -64,7 +64,7 @@ class Container(BaseContainer):
         return ["nginx", "coder", "ai"]
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             VSCODE_TAG="latest",
             VSCODE_DOMAIN=Nginx.domain(self),

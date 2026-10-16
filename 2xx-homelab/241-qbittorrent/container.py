@@ -35,7 +35,7 @@ from linktools.decorator import cached_property
 class Container(BaseContainer):
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             QBITTORRENT_TAG="latest",
             QBITTORRENT_DOMAIN=Nginx.domain(self),

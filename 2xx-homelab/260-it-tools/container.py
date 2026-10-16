@@ -36,7 +36,7 @@ from linktools.cntr.ext import Nginx, Flare, load_port_url, Authelia, endpoint
 class Container(BaseContainer):
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             IT_TOOLS_TAG="latest",
             IT_TOOLS_DOMAIN=Nginx.domain(self),

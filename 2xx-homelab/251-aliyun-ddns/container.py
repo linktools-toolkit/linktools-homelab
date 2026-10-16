@@ -35,7 +35,7 @@ from linktools.decorator import cached_property
 class Container(BaseContainer):
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             ALI_DDNS_TAG="latest",
             ALI_DDNS_DOMAIN=ConfigField.chain(
