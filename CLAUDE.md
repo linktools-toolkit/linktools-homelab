@@ -74,13 +74,17 @@ Declare domain defaults with `Nginx.domain(self, name=None)` and proxy sites wit
 never site-key dictionaries. `Nginx.site(server_name=..., ...)` is also a direct
 leaf declaration, with no author-supplied identity or navigation fields.
 
-URL helpers return unbound ConfigLazy values and take no container argument.
+URL helpers return ConfigValue declarations and take no container argument.
 Config and port helpers accept values or ConfigValue declarations. Use explicit
 ConfigRef for configuration keys; a plain string is a literal URL, never a key.
 Use key-only ConfigRef when the declared ConfigField already owns its cast/default.
 For plain-string defaults without a schema cast, retain type=str when string
 conversion is required. Valid ports read HOST through the consuming Config. `load_nginx_url(site, "ui", queries=...)` accepts a ResolvedSite
-or ConfigValue resolving to one. During declaration construction, use the lazy lookup:
+or ConfigValue resolving to one. Inside endpoint Flare extensions,
+`load_nginx_url(path="/ui", queries=...)` binds the current endpoint's site; no
+unique-site guess is made, and shared declarations are copied per endpoint.
+Outside that scope an explicit reference is required; an unbound declaration
+raises without reading queries. For an explicit lazy lookup:
 `load_nginx_url(ResolvedSite.find(self), "ui")`.
 ResolvedSite.find returns ConfigLazy for the sole declared site, or an explicit original site/endpoint
 for multi-site producers; ambiguous/foreign references fail when Config.resolve consumes them. Ordinary endpoint

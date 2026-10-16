@@ -3,7 +3,7 @@
 
 from linktools import utils
 from linktools.cntr import BaseContainer, OperationContext, Integrations
-from linktools.cntr.ext import Nginx, Flare, ResolvedSite, load_nginx_url, load_port_url, endpoint
+from linktools.cntr.ext import Nginx, Flare, load_nginx_url, load_port_url, endpoint
 from linktools.core import ConfigField, ConfigRef, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
 
@@ -38,8 +38,7 @@ class Container(BaseContainer):
                 Flare.links(
                     Flare.public(
                         url=load_nginx_url(
-                            ResolvedSite.find(self),
-                            "/ui/metacubexd/#/setup",
+                            path="/ui/metacubexd/#/setup",
                             queries=dict(
                                 hostname=ConfigRef("MIHOMO_DOMAIN"),
                                 port=ConfigRef("NGINX_DEFAULT_PORT"),
