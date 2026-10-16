@@ -46,7 +46,7 @@ class Container(BaseContainer):
         return ["coder"]
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             REDROID_BUILD_PATH=ConfigField(provider=LazyProvider(
                 lambda r: utils.join_path(r.get("CODER_PROJECT_PATH"), "redroid")

@@ -41,7 +41,7 @@ class Container(BaseContainer):
         return ["nginx"]
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             DSM_TAG="latest",
             DSM_DOMAIN="",
@@ -61,7 +61,7 @@ class Container(BaseContainer):
                 Flare.links(
                     Flare.public(),
                     Flare.category("private")(
-                        url=load_port_url(self, "DSM_PORT", https=False),
+                        url=load_port_url(ConfigRef("DSM_PORT"), https=False),
                     ),
                     name="DSM",
                     icon="nas",

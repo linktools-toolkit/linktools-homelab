@@ -18,7 +18,7 @@ class Container(BaseContainer):
         return ["nginx"]
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             MULTICA_TAG="latest",
             MULTICA_DOMAIN=Nginx.domain(self, "multica"),
@@ -66,14 +66,14 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def extend_configs(self) -> "dict[str, Any]":
-        excluded = set(self.configs)
+    def extra_fields(self) -> "dict[str, Any]":
+        excluded = set(self.fields)
         multica = self.containers.get("multica")
         if multica is not None and multica.enable:
-            excluded.update(multica.configs)
+            excluded.update(multica.fields)
 
         configs = {}
-        for key in self.env_config.keys():
+        for key in self.config.keys():
             if not key.startswith("MULTICA_") or key in excluded:
                 continue
             configs[key] = ConfigField.chain(
@@ -95,13 +95,13 @@ class Container(BaseContainer):
                     Flare.public(),
                     Flare.container(
                         url=load_port_url(
-                            self, "MULTICA_FRONTEND_PORT", https=False
+                            ConfigRef("MULTICA_FRONTEND_PORT"), https=False
                         ),
                     ),
                     Flare.container(
                         name="Multica API",
                         url=load_port_url(
-                            self, "MULTICA_BACKEND_PORT", https=False
+                            ConfigRef("MULTICA_BACKEND_PORT"), https=False
                         ),
                         desc="AI Agent Team API",
                     ),

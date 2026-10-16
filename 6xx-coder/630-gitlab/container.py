@@ -33,7 +33,7 @@ from typing import AbstractSet, Iterable, Mapping
 from linktools import utils
 from linktools.cli import subcommand, subcommand_argument
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, endpoint, Flare, Authelia
+from linktools.cntr.ext import ResolvedSite, Nginx, endpoint, Flare, Authelia, load_nginx_url
 from linktools.core import ConfigField, PromptProvider, ConfigRef
 from linktools.decorator import cached_property
 
@@ -49,7 +49,11 @@ class Container(BaseContainer):
         if "authelia" not in self.manager.integration_snapshot:
             return None
         provider = self.manager.containers["authelia"]
-        return provider if provider.public_url.startswith("https://") else None
+        if not provider.public_url.startswith("https://"):
+            return None
+        callback = self.config.resolve(load_nginx_url(ResolvedSite.find(self), "users/auth/openid_connect/callback"))
+        redirects = provider.oidc_redirects
+        return provider if provider.public_url in redirects and callback in redirects else None
 
     def get_runtime_requirements(self, required: AbstractSet[str]) -> Mapping[str, Iterable[str]]:
         if self.name in required and self.oidc_provider is not None:
@@ -57,7 +61,7 @@ class Container(BaseContainer):
         return {}
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             GITLAB_TAG="latest",
             GITLAB_DOMAIN=Nginx.domain(self),
@@ -89,7 +93,7 @@ class Container(BaseContainer):
                     "代码仓库管理",
                 ),
                 Authelia.oidc(
-                    redirect_uris=("/users/auth/openid_connect/callback",),
+                    redirect_uris=("{base_url}/users/auth/openid_connect/callback",),
                 ),
             ],
         )

@@ -42,7 +42,7 @@ class Container(BaseContainer):
         return ["flare"]
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             PVE_DOMAIN=Nginx.domain(self, "pve"),
             PVE_LOCAL_URL="",
@@ -82,7 +82,7 @@ class Container(BaseContainer):
                 extensions=[
                     Flare.public("Proxmox", "server", "虚拟化环境"),
                     Authelia.oidc(
-                        redirect_uris=("{url}", ConfigRef("PVE_LOCAL_URL")),
+                        redirect_uris=("{base_url}", ConfigRef("PVE_LOCAL_URL")),
                     ),
                 ],
             ),
@@ -166,36 +166,36 @@ class Container(BaseContainer):
                 "Proxmox",
                 "server",
                 "虚拟化环境",
-                load_config_url(self, "PVE_LOCAL_URL"),
+                load_config_url(ConfigRef("PVE_LOCAL_URL", type=str)),
             ),
             Flare.category("private")(
                 "GW1",
                 "RouterNetwork",
                 "主路由管理",
-                load_config_url(self, "PRIMARY_GATEWAY_LOCAL_URL"),
+                load_config_url(ConfigRef("PRIMARY_GATEWAY_LOCAL_URL", type=str)),
             ),
             Flare.category("private")(
                 "GW2",
                 "RouterNetwork",
                 "旁路由管理",
-                load_config_url(self, "BYPASS_GATEWAY_LOCAL_URL"),
+                load_config_url(ConfigRef("BYPASS_GATEWAY_LOCAL_URL", type=str)),
             ),
             Flare.category("private")(
                 "Xiaoya-Alist",
                 "folderSync",
                 "小雅Alist",
-                load_config_url(self, "XIAOYA_ALIST_LOCAL_URL"),
+                load_config_url(ConfigRef("XIAOYA_ALIST_LOCAL_URL", type=str)),
             ),
             Flare.category("private")(
                 "Emby",
                 "movie",
                 "Emby",
-                load_config_url(self, "EMBY_LOCAL_URL"),
+                load_config_url(ConfigRef("EMBY_LOCAL_URL", type=str)),
             ),
             Flare.category("private")(
                 "Jellyfin",
                 "movie",
                 "jellyfin",
-                load_config_url(self, "JELLYFIN_LOCAL_URL"),
+                load_config_url(ConfigRef("JELLYFIN_LOCAL_URL", type=str)),
             ),
         ]

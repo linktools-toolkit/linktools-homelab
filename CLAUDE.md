@@ -37,19 +37,27 @@ ct-cntr exec <container-name> <subcommand> [args]
 Every service folder contains at minimum a `container.py` that defines a `Container(BaseContainer)` class. This class declares:
 
 - **`dependencies`** — other container names that must be deployed first (e.g. `["nginx", "coder"]`)
-- **`configs`** (cached_property) — a dict of config keys with defaults, using `ConfigField`, `LazyProvider`, and `PromptProvider` helpers from `linktools.core`
+- **`fields`** (cached_property) — a dict of config keys with defaults, using `ConfigField`, `LazyProvider`, and `PromptProvider` helpers from `linktools.core`
 - **`integrations`** (cached_property) — a reusable, optionally nested tuple/list annotated `Integrations`, containing `Nginx`, `Flare`, and `Authelia` declarations directly. Import these declarations, `endpoint`, and URL helpers from `linktools.cntr.ext`; root `linktools.cntr` supplies `BaseContainer`, `SourceContainer`, `Integrations`, and `OperationContext`. Each declaration identifies its consumer. Use `endpoint(self, domain=..., extensions=[...])` for sites; its plain tuple contains one `Nginx` declaration followed by its leaf extensions. An endpoint tuple or `Flare.links(...)` group can be an array element without `*`. The common integration normalizer recursively preserves declaration order; consumers do not implement separate flattening. Keep values lazy; no key/value declaration dictionaries, consumer-keyed mappings, or directly imported declaration implementation types
 - **Custom subcommands** — methods decorated with `@subcommand(...)` and `@subcommand_argument(...)` become CLI subcommands under `exec <container>`
 
+`fields` declares the container's configuration schema; `extra_fields` supplies
+additional field declarations discovered lazily at the existing consumption and
+registration points. `config` is the runtime Config used to read and resolve
+values. Use `register_fields` for explicit field registration. These names replace
+`configs`, `extend_configs`, `env_config`, and `register_configs` respectively;
+there are no compatibility aliases. `environ.config` is unchanged. Renaming does
+not make `extra_fields` eager or change when its declarations are registered.
+
 ### `compose.yml` as Jinja2 Templates
 
-The `compose.yml` in each folder is a **Jinja2 template**, not plain Docker Compose YAML. The framework renders it before passing to docker compose. Template variables include all `configs` keys plus framework-provided globals like `APP_PATH`, `DOCKER_UID`, `DOCKER_GID`, `DOCKER_USER`, and `containers["<name>"]` object access. Comments starting with `#` can contain Jinja2 control flow (e.g. `# {% if PORT > 0 %}`).
+The `compose.yml` in each folder is a **Jinja2 template**, not plain Docker Compose YAML. The framework renders it before passing to docker compose. Template variables include all `fields` keys plus framework-provided globals like `APP_PATH`, `DOCKER_UID`, `DOCKER_GID`, `DOCKER_USER`, and `containers["<name>"]` object access. Comments starting with `#` can contain Jinja2 control flow (e.g. `# {% if PORT > 0 %}`).
 
 ### Applying Configuration Changes
 
 A targeted `ct-cntr up <container-name>` compares the selected services with their last successfully applied configuration. It includes required providers and running declared integration consumers; real Compose restart and namespace dependencies can also require actions outside the requested containers. These collateral changes are warned about before execution. Unrelated services are not applied merely because their current configuration differs.
 
-Ordinary container authors declare `configs`, `dependencies`, and `integrations`; the framework handles configuration comparison and ordered application. Keep runtime dependencies explicit, including dependencies implied by cross-container template values, and declare nginx sites and independent Flare links in `integrations`. Native Compose profiles determine active full-project services; disabled running services retain their existing configuration unless a real dependency requires rebinding.
+Ordinary container authors declare `fields`, `dependencies`, and `integrations`; the framework handles configuration comparison and ordered application. Keep runtime dependencies explicit, including dependencies implied by cross-container template values, and declare nginx sites and independent Flare links in `integrations`. Native Compose profiles determine active full-project services; disabled running services retain their existing configuration unless a real dependency requires rebinding.
 
 ### `Dockerfile` as Jinja2 Templates
 
@@ -74,16 +82,27 @@ Declare domain defaults with `Nginx.domain(self, name=None)` and proxy sites wit
 never site-key dictionaries. `Nginx.site(server_name=..., ...)` is also a direct
 leaf declaration, with no author-supplied identity or navigation fields.
 
-`load_nginx_url(self)` lazily reads the sole declared nginx site, including when
-that site is disabled. It is ambiguous when the producer declares multiple sites,
-even if only one is currently enabled. To select among multiple sites, retain an
-endpoint in a `cached_property`, include that same tuple in `integrations`, and
-pass it as `load_nginx_url(self, self.proxy_endpoint)`. An original declared
-`Nginx` object is also accepted. References use object identity, so never recreate
-an equivalent declaration or use a string key. The helper never registers a proxy
-or changes ACL/OIDC state. For a single-site subpage, use
-`load_nginx_url(self, None, "ui", queries=...)`. In general templates, use
-`urls.load_nginx_url(container, ...)`.
+URL helpers return ConfigValue declarations and take no container argument.
+All three use a single path parameter (second positional or keyword), accepting
+a string or an array of components, including ConfigValue declarations. There
+is no variadic path interface; queries and the port helper's https are keyword-only.
+Config and port helpers accept values or ConfigValue declarations. Use explicit
+ConfigRef for configuration keys; a plain string is a literal URL, never a key.
+Use key-only ConfigRef when the declared ConfigField already owns its cast/default.
+For plain-string defaults without a schema cast, retain type=str when string
+conversion is required. Valid ports read HOST through the consuming Config. `load_nginx_url(site, "ui", queries=...)` accepts a ResolvedSite
+or ConfigValue resolving to one. Inside endpoint Flare extensions,
+`load_nginx_url(path="/ui", queries=...)` binds the current endpoint's site; no
+unique-site guess is made, and shared declarations are copied per endpoint.
+Outside that scope an explicit reference is required; an unbound declaration
+raises without reading queries. For an explicit lazy lookup:
+`load_nginx_url(ResolvedSite.find(self), "ui")`.
+ResolvedSite.find returns ConfigLazy for the sole declared site, or an explicit original site/endpoint
+for multi-site producers; ambiguous/foreign references fail when Config.resolve consumes them. Ordinary endpoint
+links use `{base_url}/ui`. Immediate callers use `self.config.resolve(...)`;
+Jinja callers use `config.resolve(urls.load_nginx_url(urls.ResolvedSite.find(container)))`.
+No helper registers a proxy or changes ACL/OIDC state. Disabled sites and absent
+nginx leave the URL empty before query/secret values are read.
 Common site fields:
 
 | Field | Description |
@@ -98,14 +117,17 @@ Common site fields:
 | `public_url` | Explicit public URL for a regex/nonliteral hostname |
 | `default_server` | Explicit default-server policy; `server_name="_"` alone is insufficient |
 
-Declare callbacks explicitly with `Authelia.oidc(redirect_uris=(lazy_absolute_url,...))`.
+Declare callbacks explicitly with `Authelia.oidc(redirect_uris=("{base_url}/callback",...))`
+inside an endpoint, or supply an independent complete lazy URL.
 This contributes only callbacks to the existing shared Authelia OIDC client. It
 never creates another client or credentials. There is no `enabled` argument:
 OIDC declarations are independent of endpoint `auth` and `NGINX_AUTH_ENABLE`.
 Empty URLs are omitted, and nonempty URLs retain their exact trailing slash/query.
-GitLab and LiteLLM declare relative callback URLs in their endpoint extensions;
-Proxmox uses `"{url}"` for the exact public base URL without adding a slash, and
-keeps its configured local URL unchanged.
+GitLab and LiteLLM use endpoint URL templates for their callbacks. Proxmox uses
+`{base_url}` for its endpoint's exact public base and retains its configured local URL.
+URL templates are formatted with the lazy endpoint URL before final scheme/host
+validation. Plain path-only callbacks are not completed; incomplete final URLs
+are omitted when Authelia assembles its configuration.
 Disabling a public site omits only its empty derived URL; an explicit nonempty
 absolute callback remains declared.
 For the common web-site pattern, use the pure `endpoint` function. It returns
@@ -130,7 +152,7 @@ proxy, and the six homelab sites. VSCode declares both sites in `integrations` a
 keeps one lazy business `proxy_url` for the Compose `VSCODE_PROXY_URI` setting.
 Its regex proxy site has no public navigation or OIDC reference, so it does not
 need an explicit `public_url`. Homelab declares all six endpoints together;
-Proxmox's callback declaration is inside its endpoint's extensions list.
+Proxmox's callback declaration is an extension of its own endpoint.
 
 Use `Flare.links(*links, name=..., icon=..., desc=...)` to share omitted metadata
 across a public application and its private/direct-port bookmarks. It returns a
@@ -138,19 +160,22 @@ tuple of independent declarations that can sit directly in `extensions`, includi
 nested lists, without `*`. Per-link metadata overrides the group; blank descriptions retain
 the normal fallback to the link name. For example, `Flare.public()` inherits the
 site URL only when included in an endpoint's extensions, while
-`Flare.container(url=load_port_url(self, "MY_PORT", https=False))` keeps its
+`Flare.container(url=load_port_url(ConfigRef("MY_PORT"), https=False))` keeps its
 explicit direct URL. Omitted public URLs inherit; explicitly supplied `None`,
 empty strings, and custom URLs are preserved. Outside an endpoint, public links
 need an explicit URL. Empty/None URLs disable links.
 
-Navigation paths remain explicit: use `Flare.public(url="/ui")` inside endpoint
-extensions, or `Flare.public(url=load_nginx_url(self, None, "ui"))` outside them
+Navigation paths remain explicit: use `Flare.public(url="{base_url}/ui")` inside endpoint
+extensions, or `Flare.public(url=load_nginx_url(ResolvedSite.find(self), "ui"))` outside them
 for a single-site producer. Declare OIDC separately with
-`Authelia.oidc(redirect_uris=("/sso/callback",))` inside the endpoint.
+`Authelia.oidc(redirect_uris=("{base_url}/sso/callback",))` inside the endpoint.
+Flare also retains its existing relative navigation support; OIDC does not
+implicitly complete a path-only callback.
 A navigation path never changes a callback or the independent Authelia issuer.
 GitLab and LiteLLM render their OIDC client settings whenever the installed
-Authelia provider has a concrete HTTPS public URL, including when nginx auth is
-off; missing or HTTP-only providers do not produce client settings. Each app's
+Authelia provider has a concrete HTTPS public URL and its accepted redirect list
+contains the application's complete callback, including when nginx auth is off.
+Missing callbacks and missing or HTTP-only providers do not produce client settings. Each app's
 read-only `oidc_provider` is shared by its template and runtime requirements, so a
 targeted app start includes the available Authelia service even when nginx auth
 is off. Unrelated selections do not request that provider.
@@ -221,7 +246,7 @@ class Container(BaseContainer):
         return ["nginx"]
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             MY_TAG="latest",
             MY_DOMAIN=Nginx.domain(self),
@@ -239,7 +264,7 @@ class Container(BaseContainer):
             extensions=[
                 Flare.links(
                     Flare.public(),
-                    Flare.container(url=load_port_url(self, "MY_PORT", https=False)),
+                    Flare.container(url=load_port_url(ConfigRef("MY_PORT"), https=False)),
                     name="My Service", icon="link", desc="服务描述",
                 ),
             ],
@@ -279,7 +304,7 @@ networks:
   nginx:
 ```
 
-Available Jinja2 globals: all `configs` keys, `APP_PATH` (pathlib.Path), `SOURCE_PATH` (pathlib.Path), `DOCKER_UID`, `DOCKER_GID`, `DOCKER_USER`, `container` (the owning container), `containers["name"]`, and `urls` (the module containing lazy URL functions).
+Available Jinja2 globals: all `fields` keys, `APP_PATH` (pathlib.Path), `SOURCE_PATH` (pathlib.Path), `DOCKER_UID`, `DOCKER_GID`, `DOCKER_USER`, `container` (the owning container), `containers["name"]`, and `urls` (the module containing lazy URL functions).
 
 - `APP_PATH` — runtime data directory (writable, persisted)
 - `SOURCE_PATH` — container source directory (read-only; use for mounting scripts/configs baked into the repo)
@@ -320,13 +345,15 @@ wildcard routing or the domain is unavailable.
 Only retain an endpoint object in a cached property when another declaration
 actually needs to reference that original object.
 
-Use ordinary extension lists or generators. The endpoint binds only extension
-URL fields: Flare links and Authelia redirect URIs. Relative URLs follow standard
-URL resolution against the site's public URL, so `"/callback"` selects that path
-at the origin and `"/"` retains the trailing root slash. A leading `"{url}"`
+Use ordinary extension lists or generators. The endpoint binds only Flare link
+URL fields; Authelia redirect URIs are never completed from an endpoint.
+Relative Flare URLs follow standard URL resolution against the site's public URL, so `"/callback"` selects that path
+at the origin and `"/"` retains the trailing root slash. A leading `"{base_url}"`
 placeholder selects the exact public base, preserving its existing trailing
-slash and query; `"{url}"` alone never adds a slash. Absolute URLs are unchanged.
-Explicit empty/None link URLs stay disabled, and empty callback URLs are omitted.
+slash and query; `"{base_url}"` alone never adds a slash. Absolute URLs are unchanged.
+Explicit empty/None link URLs stay disabled. Flare skips incomplete resolved URLs.
+OIDC callbacks must be full lazy URLs or absolute strings; empty and incomplete
+callbacks are omitted by Authelia, without endpoint-relative expansion.
 When the site has no public URL, derived relative URLs are empty; independent
 absolute URLs remain available. Other declaration fields are not interpolated.
 

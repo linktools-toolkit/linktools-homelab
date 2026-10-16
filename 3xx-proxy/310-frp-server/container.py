@@ -38,7 +38,7 @@ from linktools.decorator import cached_property
 class Container(BaseContainer):
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             FRPS_TAG="latest",
             FRPS_BIND_PORT=ConfigField(cast=int, provider=PromptProvider(default=7000, cached=True)),

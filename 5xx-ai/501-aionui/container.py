@@ -23,7 +23,7 @@ class Container(BaseContainer):
         return ["nginx", "coder", "ai"]
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             AIONUI_TAG="latest",
             AIONUI_DOMAIN=Nginx.domain(self),
@@ -50,7 +50,7 @@ class Container(BaseContainer):
                 Flare.links(
                     Flare.public(),
                     Flare.container(
-                        url=load_port_url(self, "AIONUI_PORT", https=False),
+                        url=load_port_url(ConfigRef("AIONUI_PORT"), https=False),
                     ),
                     name="AionUI",
                     icon="robot",

@@ -64,7 +64,7 @@ class Container(BaseContainer):
             return ""
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             CODER_HOME_PATH=ConfigField(cast="path", provider=LazyProvider(lambda r: self._get_home_path(r))),
             CODER_GIT_NAME=ConfigField(provider=LazyProvider(lambda r: self._get_git_name())),

@@ -30,13 +30,13 @@
 from linktools.core import ConfigField, ConfigRef
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, Flare, load_nginx_url, load_port_url, Authelia, endpoint
+from linktools.cntr.ext import Nginx, Flare, load_port_url, Authelia, endpoint
 
 
 class Container(BaseContainer):
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             IT_TOOLS_TAG="latest",
             IT_TOOLS_DOMAIN=Nginx.domain(self),
@@ -60,19 +60,19 @@ class Container(BaseContainer):
                         name="正则表达式测试",
                         icon="regex",
                         desc="",
-                        url=load_nginx_url(self, None, "regex-tester"),
+                        url="{base_url}/regex-tester",
                     ),
                     Flare.category("other")(
                         name="正则表达式手册",
                         icon="regex",
                         desc="",
-                        url=load_nginx_url(self, None, "regex-memo"),
+                        url="{base_url}/regex-memo",
                     ),
                     Flare.category("other")(
                         name="在线json解析",
                         icon="codeJson",
                         desc="",
-                        url=load_nginx_url(self, None, "json-prettify"),
+                        url="{base_url}/json-prettify",
                     ),
                     Flare.category("other")(
                         name="DNS查询",
@@ -87,7 +87,7 @@ class Container(BaseContainer):
                         url="https://materialdesignicons.com/",
                     ),
                     Flare.container(
-                        url=load_port_url(self, "IT_TOOLS_PORT", https=False),
+                        url=load_port_url(ConfigRef("IT_TOOLS_PORT"), https=False),
                     ),
                     name="IT Tools",
                     icon="tools",

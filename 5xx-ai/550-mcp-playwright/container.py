@@ -8,7 +8,7 @@ from typing import Iterable
 
 from linktools.cli import subcommand
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, Flare, load_nginx_url, load_port_url, endpoint
+from linktools.cntr.ext import ResolvedSite, Nginx, Flare, load_nginx_url, load_port_url, endpoint
 from linktools.core import ConfigField, LazyProvider, ConfigRef
 from linktools.decorator import cached_property
 
@@ -26,7 +26,7 @@ class Container(BaseContainer):
         return ["nginx"]
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             MCP_PLAYWRIGHT_TAG="latest",
             MCP_PLAYWRIGHT_DOMAIN=Nginx.domain(self),
@@ -53,7 +53,7 @@ class Container(BaseContainer):
                     Flare.public(),
                     Flare.container(
                         url=load_port_url(
-                            self, "MCP_PLAYWRIGHT_NOVNC_PORT", https=False
+                            ConfigRef("MCP_PLAYWRIGHT_NOVNC_PORT"), https=False
                         ),
                         desc="noVNC 浏览器",
                     ),
@@ -69,7 +69,7 @@ class Container(BaseContainer):
         config = {
             "mcpServers": {
                 "playwright": {
-                    "url": str(load_nginx_url(self, None, "mcp")),
+                    "url": self.config.resolve(load_nginx_url(ResolvedSite.find(self), "mcp")),
                     "headers": {
                         "Authorization": f"Bearer {self.get_config('MCP_PLAYWRIGHT_TOKEN')}",
                     },

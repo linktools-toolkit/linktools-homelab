@@ -64,7 +64,7 @@ class Container(BaseContainer):
         return ["nginx", "coder", "ai"]
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             VSCODE_TAG="latest",
             VSCODE_DOMAIN=Nginx.domain(self),
@@ -94,7 +94,7 @@ class Container(BaseContainer):
                     Flare.links(
                         Flare.public(),
                         Flare.container(
-                            url=load_port_url(self, "VSCODE_PORT", https=False),
+                            url=load_port_url(ConfigRef("VSCODE_PORT"), https=False),
                         ),
                         name="VS Code",
                         icon="microsoftVisualStudioCode",

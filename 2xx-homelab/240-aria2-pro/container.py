@@ -35,7 +35,7 @@ from linktools.decorator import cached_property
 class Container(BaseContainer):
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             ARIA2_TAG="latest",
             ARIA2_DOMAIN=Nginx.domain(self),
@@ -54,7 +54,7 @@ class Container(BaseContainer):
                 Flare.container(
                     "aria2",
                     "tools",
-                    load_port_url(self, "ARIA2_PORT", https=False),
+                    load_port_url(ConfigRef("ARIA2_PORT"), https=False),
                     desc="",
                 ),
             ],

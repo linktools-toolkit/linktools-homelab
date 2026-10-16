@@ -35,7 +35,7 @@ from linktools.decorator import cached_property
 class Container(BaseContainer):
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             QBITTORRENT_TAG="latest",
             QBITTORRENT_DOMAIN=Nginx.domain(self),
@@ -54,7 +54,7 @@ class Container(BaseContainer):
                 Flare.links(
                     Flare.public(),
                     Flare.container(
-                        url=load_port_url(self, "QBITTORRENT_PORT", https=False),
+                        url=load_port_url(ConfigRef("QBITTORRENT_PORT"), https=False),
                     ),
                     name="qBittorrent",
                     icon="tools",

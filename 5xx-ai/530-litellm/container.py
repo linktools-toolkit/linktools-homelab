@@ -8,7 +8,7 @@ from linktools.cli import subcommand
 from linktools.core import ConfigField, LazyProvider, ConfigRef
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, endpoint, Flare, Authelia, load_port_url
+from linktools.cntr.ext import ResolvedSite, Nginx, endpoint, Flare, Authelia, load_nginx_url, load_port_url
 
 
 class Container(BaseContainer):
@@ -22,7 +22,11 @@ class Container(BaseContainer):
         if "authelia" not in self.manager.integration_snapshot:
             return None
         provider = self.manager.containers["authelia"]
-        return provider if provider.public_url.startswith("https://") else None
+        if not provider.public_url.startswith("https://"):
+            return None
+        callback = self.config.resolve(load_nginx_url(ResolvedSite.find(self), "sso/callback"))
+        redirects = provider.oidc_redirects
+        return provider if provider.public_url in redirects and callback in redirects else None
 
     def get_runtime_requirements(self, required: AbstractSet[str]) -> Mapping[str, Iterable[str]]:
         if self.name in required and self.oidc_provider is not None:
@@ -30,7 +34,7 @@ class Container(BaseContainer):
         return {}
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             LITELLM_TAG="main-latest",
             LITELLM_DOMAIN=Nginx.domain(self),
@@ -63,17 +67,17 @@ class Container(BaseContainer):
             extensions=[
                 Flare.links(
                     Flare.public(
-                        url="/ui",
+                        url="{base_url}/ui",
                     ),
                     Flare.container(
-                        url=load_port_url(self, "LITELLM_PORT", "ui", https=False),
+                        url=load_port_url(ConfigRef("LITELLM_PORT"), "ui", https=False),
                     ),
                     name="LiteLLM",
                     icon="api",
                     desc="LiteLLM Proxy & Web UI",
                 ),
                 Authelia.oidc(
-                    redirect_uris=("/sso/callback",),
+                    redirect_uris=("{base_url}/sso/callback",),
                 ),
             ],
         )

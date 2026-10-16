@@ -16,7 +16,7 @@ class Container(BaseContainer):
         return ["nginx", "coder", "ai"]
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             CLOUD_CLI_TAG="latest",
             CLOUD_CLI_DOMAIN=Nginx.domain(self),
@@ -34,7 +34,7 @@ class Container(BaseContainer):
                 Flare.links(
                     Flare.public(),
                     Flare.container(
-                        url=load_port_url(self, "CLOUD_CLI_PORT", https=False),
+                        url=load_port_url(ConfigRef("CLOUD_CLI_PORT"), https=False),
                     ),
                     name="CloudCLI",
                     icon="messageOutline",

@@ -41,7 +41,7 @@ class Container(BaseContainer):
         return ["nginx"]
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             SUBLINK_TAG="latest",
             SUBLINK_DOMAIN=Nginx.domain(self),
@@ -62,7 +62,7 @@ class Container(BaseContainer):
                 Flare.links(
                     Flare.public(),
                     Flare.container(
-                        url=load_port_url(self, "SUBLINK_PORT", https=False),
+                        url=load_port_url(ConfigRef("SUBLINK_PORT"), https=False),
                     ),
                     name="SublinkPro",
                     icon="link",

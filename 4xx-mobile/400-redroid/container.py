@@ -39,7 +39,7 @@ from linktools.rich import confirm
 class Container(BaseContainer):
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             REDROID_IMAGE="iceblacktea/redroid-arm64:12.0.0-241218",
             REDROID_COUNT=ConfigField(cast=int, provider=PromptProvider(default=3, cached=True)),

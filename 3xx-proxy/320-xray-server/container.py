@@ -46,7 +46,7 @@ class Container(BaseContainer):
         return ["nginx"]
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             XRAY_TAG="latest",
             XRAY_DOMAIN=Nginx.domain(self),

@@ -42,7 +42,7 @@ class Container(BaseContainer):
         return ["homelab", "nextcloud", "qbittorrent"]
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             OMV_DOMAIN="",
             OMV_LOCAL_URL="http://10.10.10.1:80",
@@ -59,7 +59,7 @@ class Container(BaseContainer):
                 Flare.links(
                     Flare.public(),
                     Flare.category("private")(
-                        url=load_config_url(self, "OMV_LOCAL_URL"),
+                        url=load_config_url(ConfigRef("OMV_LOCAL_URL", type=str)),
                     ),
                     name="OpenMediaVault",
                     icon="nas",

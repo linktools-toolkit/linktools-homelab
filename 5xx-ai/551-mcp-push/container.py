@@ -7,7 +7,7 @@ from typing import Any, Iterable
 
 from linktools.cli import subcommand, subcommand_argument
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, load_nginx_url, endpoint
+from linktools.cntr.ext import ResolvedSite, Nginx, load_nginx_url, endpoint
 from linktools.core import ConfigField, LazyProvider, PromptProvider, ConfigRef
 from linktools.decorator import cached_property
 
@@ -38,7 +38,7 @@ class Container(BaseContainer):
         return ["nginx"]
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             MCP_PUSH_TAG="latest",
             MCP_PUSH_DOMAIN=Nginx.domain(self),
@@ -49,14 +49,14 @@ class Container(BaseContainer):
         )
 
     @cached_property
-    def extend_configs(self) -> "dict[str, Any]":
+    def extra_fields(self) -> "dict[str, Any]":
         return {
             key: ConfigField.chain(
                 PromptProvider(cached=True, allow_empty=True), name=key,
                 secret=key != "MCP_PUSH_ALLOWED_ORIGINS",
             )
-            for key in self.env_config.keys()
-            if key in PUSH_RUNTIME_CONFIGS and key not in self.configs
+            for key in self.config.keys()
+            if key in PUSH_RUNTIME_CONFIGS and key not in self.fields
         }
 
     @cached_property
@@ -86,7 +86,7 @@ class Container(BaseContainer):
         config = {
             "mcpServers": {
                 "push": {
-                    "url": str(load_nginx_url(self, None, "mcp")),
+                    "url": self.config.resolve(load_nginx_url(ResolvedSite.find(self), "mcp")),
                     "headers": headers,
                 },
             },

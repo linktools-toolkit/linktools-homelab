@@ -41,7 +41,7 @@ class Container(BaseContainer):
         return ["homelab"]
 
     @cached_property
-    def configs(self):
+    def fields(self):
         return dict(
             FNOS_DOMAIN=Nginx.domain(self, "fn"),
             FNOS_LOCAL_URL="http://10.10.10.1:5666",
@@ -60,7 +60,7 @@ class Container(BaseContainer):
                 Flare.links(
                     Flare.public(),
                     Flare.category("private")(
-                        url=load_config_url(self, "FNOS_LOCAL_URL"),
+                        url=load_config_url(ConfigRef("FNOS_LOCAL_URL", type=str)),
                     ),
                     name="fnOS",
                     icon="nas",
