@@ -29,7 +29,7 @@
 from typing import Iterable
 
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Authelia, Nginx, Flare, load_config_url, load_nginx_url, endpoint
+from linktools.cntr.ext import Authelia, Nginx, Flare, load_config_url, endpoint
 from linktools.core import ConfigRef
 from linktools.decorator import cached_property
 from linktools.runtime import lazy_load
@@ -67,24 +67,25 @@ class Container(BaseContainer):
 
     @cached_property
     def integrations(self) -> Integrations:
-        pve_endpoint = endpoint(
-            self,
-            domain=lazy_load(
-                lambda: (
-                    self.get_config("PVE_DOMAIN")
-                    if self.get_config("PVE_LOCAL_URL")
-                    else ""
-                )
-            ),
-            proxy=ConfigRef("PVE_LOCAL_URL"),
-            auth=None,
-            extensions=[
-                Flare.public("Proxmox", "server", "虚拟化环境"),
-            ],
-        )
         return [
-            pve_endpoint,
-            Authelia.oidc(redirect_uris=(load_nginx_url(self, pve_endpoint), ConfigRef("PVE_LOCAL_URL"))),
+            endpoint(
+                self,
+                domain=lazy_load(
+                    lambda: (
+                        self.get_config("PVE_DOMAIN")
+                        if self.get_config("PVE_LOCAL_URL")
+                        else ""
+                    )
+                ),
+                proxy=ConfigRef("PVE_LOCAL_URL"),
+                auth=None,
+                extensions=[
+                    Flare.public("Proxmox", "server", "虚拟化环境"),
+                    Authelia.oidc(
+                        redirect_uris=("{base_url}", ConfigRef("PVE_LOCAL_URL")),
+                    ),
+                ],
+            ),
             endpoint(
                 self,
                 domain=lazy_load(

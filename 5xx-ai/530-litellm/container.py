@@ -67,7 +67,7 @@ class Container(BaseContainer):
             extensions=[
                 Flare.links(
                     Flare.public(
-                        url=load_nginx_url(self, None, "ui"),
+                        url="{base_url}/ui",
                     ),
                     Flare.container(
                         url=load_port_url(self, "LITELLM_PORT", "ui", https=False),
@@ -77,7 +77,7 @@ class Container(BaseContainer):
                     desc="LiteLLM Proxy & Web UI",
                 ),
                 Authelia.oidc(
-                    redirect_uris=(load_nginx_url(self, None, "sso/callback"),),
+                    redirect_uris=("{base_url}/sso/callback",),
                 ),
             ],
         )

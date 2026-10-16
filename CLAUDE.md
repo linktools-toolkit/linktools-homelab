@@ -98,16 +98,17 @@ Common site fields:
 | `public_url` | Explicit public URL for a regex/nonliteral hostname |
 | `default_server` | Explicit default-server policy; `server_name="_"` alone is insufficient |
 
-Declare callbacks explicitly with `Authelia.oidc(redirect_uris=(lazy_absolute_url,...))`.
+Declare callbacks explicitly with `Authelia.oidc(redirect_uris=("{base_url}/callback",...))`
+inside an endpoint, or supply an independent complete lazy URL.
 This contributes only callbacks to the existing shared Authelia OIDC client. It
 never creates another client or credentials. There is no `enabled` argument:
 OIDC declarations are independent of endpoint `auth` and `NGINX_AUTH_ENABLE`.
 Empty URLs are omitted, and nonempty URLs retain their exact trailing slash/query.
-GitLab and LiteLLM declare complete lazy callback URLs with `load_nginx_url`.
-Proxmox explicitly references its endpoint for the exact public base URL without
-adding a slash, and keeps its configured local URL unchanged. Relative callback
-strings are not completed by the endpoint; the Authelia consumer omits incomplete
-URLs when assembling its configuration.
+GitLab and LiteLLM use endpoint URL templates for their callbacks. Proxmox uses
+`{base_url}` for its endpoint's exact public base and retains its configured local URL.
+URL templates are formatted with the lazy endpoint URL before final scheme/host
+validation. Plain path-only callbacks are not completed; incomplete final URLs
+are omitted when Authelia assembles its configuration.
 Disabling a public site omits only its empty derived URL; an explicit nonempty
 absolute callback remains declared.
 For the common web-site pattern, use the pure `endpoint` function. It returns
@@ -132,7 +133,7 @@ proxy, and the six homelab sites. VSCode declares both sites in `integrations` a
 keeps one lazy business `proxy_url` for the Compose `VSCODE_PROXY_URI` setting.
 Its regex proxy site has no public navigation or OIDC reference, so it does not
 need an explicit `public_url`. Homelab declares all six endpoints together;
-Proxmox's callback declaration references its original endpoint tuple.
+Proxmox's callback declaration is an extension of its own endpoint.
 
 Use `Flare.links(*links, name=..., icon=..., desc=...)` to share omitted metadata
 across a public application and its private/direct-port bookmarks. It returns a
@@ -145,10 +146,12 @@ explicit direct URL. Omitted public URLs inherit; explicitly supplied `None`,
 empty strings, and custom URLs are preserved. Outside an endpoint, public links
 need an explicit URL. Empty/None URLs disable links.
 
-Navigation paths remain explicit: use `Flare.public(url="/ui")` inside endpoint
+Navigation paths remain explicit: use `Flare.public(url="{base_url}/ui")` inside endpoint
 extensions, or `Flare.public(url=load_nginx_url(self, None, "ui"))` outside them
 for a single-site producer. Declare OIDC separately with
-`Authelia.oidc(redirect_uris=(load_nginx_url(self, None, "sso/callback"),))`.
+`Authelia.oidc(redirect_uris=("{base_url}/sso/callback",))` inside the endpoint.
+Flare also retains its existing relative navigation support; OIDC does not
+implicitly complete a path-only callback.
 A navigation path never changes a callback or the independent Authelia issuer.
 GitLab and LiteLLM render their OIDC client settings whenever the installed
 Authelia provider has a concrete HTTPS public URL and its accepted redirect list
@@ -326,9 +329,9 @@ actually needs to reference that original object.
 Use ordinary extension lists or generators. The endpoint binds only Flare link
 URL fields; Authelia redirect URIs are never completed from an endpoint.
 Relative Flare URLs follow standard URL resolution against the site's public URL, so `"/callback"` selects that path
-at the origin and `"/"` retains the trailing root slash. A leading `"{url}"`
+at the origin and `"/"` retains the trailing root slash. A leading `"{base_url}"`
 placeholder selects the exact public base, preserving its existing trailing
-slash and query; `"{url}"` alone never adds a slash. Absolute URLs are unchanged.
+slash and query; `"{base_url}"` alone never adds a slash. Absolute URLs are unchanged.
 Explicit empty/None link URLs stay disabled. Flare skips incomplete resolved URLs.
 OIDC callbacks must be full lazy URLs or absolute strings; empty and incomplete
 callbacks are omitted by Authelia, without endpoint-relative expansion.

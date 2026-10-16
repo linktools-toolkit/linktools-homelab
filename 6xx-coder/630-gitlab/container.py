@@ -93,7 +93,7 @@ class Container(BaseContainer):
                     "代码仓库管理",
                 ),
                 Authelia.oidc(
-                    redirect_uris=(load_nginx_url(self, None, "users/auth/openid_connect/callback"),),
+                    redirect_uris=("{base_url}/users/auth/openid_connect/callback",),
                 ),
             ],
         )
