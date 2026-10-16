@@ -29,7 +29,7 @@
 from typing import Iterable
 
 from linktools.cntr import OperationContext, BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, Flare, load_nginx_url, load_port_url, endpoint
+from linktools.cntr.ext import Nginx, Flare, load_port_url, endpoint
 from linktools.core import ConfigField, PromptProvider, ConfigRef
 from linktools.decorator import cached_property
 
@@ -61,10 +61,10 @@ class Container(BaseContainer):
             extensions=[
                 Flare.links(
                     Flare.public(
-                        url=load_nginx_url(self, None, "simple"),
+                        url="{base_url}/simple",
                     ),
                     Flare.container(
-                        url=load_port_url(self, "PYPISERVER_PORT", https=False),
+                        url=load_port_url("PYPISERVER_PORT", https=False),
                     ),
                     name="pypiserver",
                     icon="languagePython",

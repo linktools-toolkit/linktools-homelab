@@ -95,13 +95,13 @@ class Container(BaseContainer):
                     Flare.public(),
                     Flare.container(
                         url=load_port_url(
-                            self, "MULTICA_FRONTEND_PORT", https=False
+                            "MULTICA_FRONTEND_PORT", https=False
                         ),
                     ),
                     Flare.container(
                         name="Multica API",
                         url=load_port_url(
-                            self, "MULTICA_BACKEND_PORT", https=False
+                            "MULTICA_BACKEND_PORT", https=False
                         ),
                         desc="AI Agent Team API",
                     ),

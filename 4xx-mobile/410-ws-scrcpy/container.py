@@ -49,7 +49,7 @@ class Container(SourceContainer):
         return (
             Flare.container(
                 "ws-scrcpy", "cellphone",
-                load_port_url(self, "WS_SCRCPY_PORT", https=False),
+                load_port_url("WS_SCRCPY_PORT", https=False),
                 desc="ws-scrcpy",
             ),
         )

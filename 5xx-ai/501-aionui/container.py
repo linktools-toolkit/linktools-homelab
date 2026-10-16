@@ -50,7 +50,7 @@ class Container(BaseContainer):
                 Flare.links(
                     Flare.public(),
                     Flare.container(
-                        url=load_port_url(self, "AIONUI_PORT", https=False),
+                        url=load_port_url("AIONUI_PORT", https=False),
                     ),
                     name="AionUI",
                     icon="robot",

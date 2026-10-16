@@ -8,7 +8,7 @@ from linktools.cli import subcommand
 from linktools.core import ConfigField, LazyProvider, ConfigRef
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, endpoint, Flare, Authelia, load_nginx_url, load_port_url
+from linktools.cntr.ext import ResolvedSite, Nginx, endpoint, Flare, Authelia, load_nginx_url, load_port_url
 
 
 class Container(BaseContainer):
@@ -24,7 +24,7 @@ class Container(BaseContainer):
         provider = self.manager.containers["authelia"]
         if not provider.public_url.startswith("https://"):
             return None
-        callback = str(load_nginx_url(self, None, "sso/callback"))
+        callback = self.env_config.resolve(load_nginx_url(ResolvedSite.find(self), "sso/callback"))
         redirects = provider.oidc_redirects
         return provider if provider.public_url in redirects and callback in redirects else None
 
@@ -70,7 +70,7 @@ class Container(BaseContainer):
                         url="{base_url}/ui",
                     ),
                     Flare.container(
-                        url=load_port_url(self, "LITELLM_PORT", "ui", https=False),
+                        url=load_port_url("LITELLM_PORT", "ui", https=False),
                     ),
                     name="LiteLLM",
                     icon="api",

@@ -40,7 +40,7 @@ class Container(BaseContainer):
                 Flare.links(
                     Flare.public(),
                     Flare.container(
-                        url=load_port_url(self, "OMNIROUTE_PORT", https=False),
+                        url=load_port_url("OMNIROUTE_PORT", https=False),
                     ),
                     name="OmniRoute",
                     icon="transitConnectionVariant",

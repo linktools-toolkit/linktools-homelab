@@ -33,7 +33,7 @@ from typing import AbstractSet, Iterable, Mapping
 from linktools import utils
 from linktools.cli import subcommand, subcommand_argument
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, endpoint, Flare, Authelia, load_nginx_url
+from linktools.cntr.ext import ResolvedSite, Nginx, endpoint, Flare, Authelia, load_nginx_url
 from linktools.core import ConfigField, PromptProvider, ConfigRef
 from linktools.decorator import cached_property
 
@@ -51,7 +51,7 @@ class Container(BaseContainer):
         provider = self.manager.containers["authelia"]
         if not provider.public_url.startswith("https://"):
             return None
-        callback = str(load_nginx_url(self, None, "users/auth/openid_connect/callback"))
+        callback = self.env_config.resolve(load_nginx_url(ResolvedSite.find(self), "users/auth/openid_connect/callback"))
         redirects = provider.oidc_redirects
         return provider if provider.public_url in redirects and callback in redirects else None
 

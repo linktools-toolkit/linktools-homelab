@@ -59,7 +59,7 @@ class Container(BaseContainer):
                 Flare.links(
                     Flare.public(),
                     Flare.container(
-                        url=load_port_url(self, "PROXY_POOL_PORT", https=False),
+                        url=load_port_url("PROXY_POOL_PORT", https=False),
                     ),
                     name="Proxy Pool",
                     icon="tools",

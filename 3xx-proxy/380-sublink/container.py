@@ -62,7 +62,7 @@ class Container(BaseContainer):
                 Flare.links(
                     Flare.public(),
                     Flare.container(
-                        url=load_port_url(self, "SUBLINK_PORT", https=False),
+                        url=load_port_url("SUBLINK_PORT", https=False),
                     ),
                     name="SublinkPro",
                     icon="link",

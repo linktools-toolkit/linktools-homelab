@@ -38,8 +38,7 @@ class Container(BaseContainer):
                 Flare.links(
                     Flare.public(
                         url=load_nginx_url(
-                            self,
-                            None,
+                            ConfigLazy(lambda config: ResolvedSite.find(self)),
                             "ui",
                             "metacubexd",
                             "#",
@@ -55,7 +54,6 @@ class Container(BaseContainer):
                     ),
                     Flare.container(
                         url=load_port_url(
-                            self,
                             "MIHOMO_PORT",
                             "ui",
                             "metacubexd",

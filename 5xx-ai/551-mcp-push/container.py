@@ -7,7 +7,7 @@ from typing import Any, Iterable
 
 from linktools.cli import subcommand, subcommand_argument
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, load_nginx_url, endpoint
+from linktools.cntr.ext import ResolvedSite, Nginx, load_nginx_url, endpoint
 from linktools.core import ConfigField, LazyProvider, PromptProvider, ConfigRef
 from linktools.decorator import cached_property
 
@@ -86,7 +86,7 @@ class Container(BaseContainer):
         config = {
             "mcpServers": {
                 "push": {
-                    "url": str(load_nginx_url(self, None, "mcp")),
+                    "url": self.env_config.resolve(load_nginx_url(ResolvedSite.find(self), "mcp")),
                     "headers": headers,
                 },
             },

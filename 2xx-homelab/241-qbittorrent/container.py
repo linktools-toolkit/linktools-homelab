@@ -54,7 +54,7 @@ class Container(BaseContainer):
                 Flare.links(
                     Flare.public(),
                     Flare.container(
-                        url=load_port_url(self, "QBITTORRENT_PORT", https=False),
+                        url=load_port_url("QBITTORRENT_PORT", https=False),
                     ),
                     name="qBittorrent",
                     icon="tools",
