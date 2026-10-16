@@ -75,6 +75,9 @@ never site-key dictionaries. `Nginx.site(server_name=..., ...)` is also a direct
 leaf declaration, with no author-supplied identity or navigation fields.
 
 URL helpers return ConfigValue declarations and take no container argument.
+All three use a single path parameter (second positional or keyword), accepting
+a string or an array of components, including ConfigValue declarations. There
+is no variadic path interface; queries and the port helper's https are keyword-only.
 Config and port helpers accept values or ConfigValue declarations. Use explicit
 ConfigRef for configuration keys; a plain string is a literal URL, never a key.
 Use key-only ConfigRef when the declared ConfigField already owns its cast/default.
