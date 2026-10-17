@@ -31,6 +31,7 @@ import yaml
 from linktools.cntr import SourceContainer, OperationContext, Integrations
 from linktools.cntr.ext import Flare, load_port_url
 from linktools.core import ConfigRef, ConfigField
+from linktools.cntr.artifacts import prepare_files
 from linktools.decorator import cached_property
 
 
@@ -65,8 +66,9 @@ class Container(SourceContainer):
         tag = self.get_config("WS_SCRCPY_TAG")
         return f"ws-scrcpy-{tag.lstrip('v')}"
 
-    def on_starting(self, context: OperationContext):
-        context.write_files(self, {
+    @cached_property
+    def config_path(self):
+        return prepare_files(self, {
             "config.yaml": yaml.safe_dump({
                 "server": [{"secure": False, "port": self.get_config("WS_SCRCPY_PORT")}],
             }),

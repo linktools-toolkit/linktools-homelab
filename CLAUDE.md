@@ -195,13 +195,19 @@ producer's standalone links. Navigation never creates a runtime dependency.
 validates them before services are replaced; `on_started(context)` runs afterward.
 `on_prepare()` is available after installed config registration and before execution
 selection; it must support repeated entries. Read-only planning/config commands do
-not call it. Generate selected operation inputs in `on_starting(context)` instead.
+not call it. Prepare selected persistent/runtime inputs in `on_starting(context)` instead.
 Do not start another service from a hook or overwrite active generated config during preparation.
 
-Use `context.write_files(self, {"config.json": rendered_text})` once per operation.
-Compose mounts the logical `APP_PATH/"generated/current/config.json"`; the
-framework substitutes the immutable prepared file before checks/application.
-Read it in `on_check` with `context.file_path(self, "config.json")`.
+Generated-config consumers may define a local `@cached_property config_path` that
+returns `prepare_files(self, {"config.json": rendered_text})` from
+`linktools.cntr.artifacts`. Compose mounts `container.config_path/"config.json"`
+directly. Rendering captures the complete configuration and registers an existing
+start hook without writing files; that hook writes the captured bytes without
+resolving configuration again. Installed consumers resolve during Compose rendering,
+including those outside the selected service scope; uninstalled consumers do not.
+No base-class property or separate revision callback is required. There is no
+`generated/current` pointer or mount-source rewriting. Read the prepared file in
+`on_check` with `context.file_path(self, "config.json")`.
 `context.project_containers` is the complete installed project selection;
 `context.target_containers` identifies the operation targets. `context.prepared_dirs`
 maps container names to their immutable prepared directories. Persistent

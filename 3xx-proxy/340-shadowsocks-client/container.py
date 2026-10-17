@@ -31,6 +31,7 @@ import json
 
 from linktools.cntr import OperationContext, BaseContainer
 from linktools.core import ConfigField, PromptProvider
+from linktools.cntr.artifacts import prepare_files
 from linktools.decorator import cached_property
 
 
@@ -47,8 +48,9 @@ class Container(BaseContainer):
             SHADOWSOCKS_SERVER_METHOD=ConfigField(provider=PromptProvider(default="aes-256-gcm", cached=True)),
         )
 
-    def on_starting(self, context: OperationContext):
-        context.write_files(self, {
+    @cached_property
+    def config_path(self):
+        return prepare_files(self, {
             "config.json": self.render_template(self.get_source_path("config.json")),
         })
 

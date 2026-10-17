@@ -36,6 +36,7 @@ import json
 from linktools.cntr import OperationContext, BaseContainer, Integrations
 from linktools.cntr.ext import endpoint, Nginx
 from linktools.core import ConfigField, AliasProvider, LazyProvider, PromptProvider, ConfigRef
+from linktools.cntr.artifacts import prepare_files
 from linktools.decorator import cached_property
 
 
@@ -93,8 +94,9 @@ class Container(BaseContainer):
         """Use one root-relative path in the proxy and application config."""
         return "/" + self.get_config(key).strip("/")
 
-    def on_starting(self, context: OperationContext):
-        context.write_files(self, {
+    @cached_property
+    def config_path(self):
+        return prepare_files(self, {
             "config.json": self.render_template(self.get_source_path("config.json")),
         }, mode=0o644)
 
