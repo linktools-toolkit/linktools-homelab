@@ -11,7 +11,7 @@ from types import SimpleNamespace
 import pytest
 import yaml
 
-from linktools.cntr import OperationContext
+from linktools.cntr import BaseContainer, OperationContext
 from linktools.cntr.artifacts import prepared_hooks
 from linktools.core import Config, ConfigSchema
 
@@ -88,6 +88,32 @@ def test_compose_captures_exact_immutable_inputs_before_start(tmp_path, monkeypa
     next_container, _ = make_container(folder, tmp_path, {key: new_value})
     assert next_container.config_path != path
     assert not next_container.config_path.exists()
+
+
+@pytest.mark.parametrize("folder,filename,mode,key,new_value", CASES)
+def test_config_path_uses_inherited_prepare_files(tmp_path, monkeypatch, folder, filename, mode, key, new_value):
+    calls = []
+    prepared_path = tmp_path / "prepared"
+
+    def prepare_files(self, files, *, revision=None, mode=0o600, group=None):
+        calls.append((self, files, revision, mode, group))
+        return prepared_path
+
+    monkeypatch.setattr(BaseContainer, "prepare_files", prepare_files)
+    container, records = make_container(folder, tmp_path)
+    assert container.config_path is prepared_path
+    assert container.config_path is prepared_path
+    assert len(calls) == 1
+    owner, files, revision, actual_mode, group = calls[0]
+    assert owner is container
+    assert set(files) == {filename}
+    assert isinstance(files[filename], str) and files[filename]
+    assert revision is None
+    assert actual_mode == mode
+    assert group is None
+    assert not prepared_hooks(container)
+    assert not records
+    assert not prepared_path.exists()
 
 
 @pytest.mark.parametrize("folder,filename,mode,key,new_value", CASES)
