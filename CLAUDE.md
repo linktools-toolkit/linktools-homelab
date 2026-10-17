@@ -200,8 +200,8 @@ Do not start another service from a hook or overwrite active generated config du
 
 Generated-config consumers may define a local `@cached_property config_path` that
 returns `self.prepare_files({"config.json": rendered_text})`. This inherited
-`BaseContainer` method accepts keyword-only `revision` (default `None`), `mode`
-(default `0o600`), and `group` (default `None`); no standalone helper import is needed. Compose mounts
+`BaseContainer` method accepts keyword-only `revision` (default `None`) and `mode`
+(default `0o600`); no standalone helper import is needed. Compose mounts
 `container.config_path/"config.json"` directly. Rendering captures the complete configuration and registers an existing
 start hook without writing files; that hook writes the captured bytes without
 resolving configuration again. Installed consumers resolve during Compose rendering,

@@ -77,7 +77,7 @@ def test_compose_captures_exact_immutable_inputs_before_start(tmp_path, monkeypa
     container.on_check(context)
 
     content = (path / filename).read_text(encoding="utf-8")
-    payload = json.dumps([mode, None, 0o755, [(filename, content)]], ensure_ascii=True, separators=(",", ":"))
+    payload = json.dumps([mode, 0o755, [(filename, content)]], ensure_ascii=True, separators=(",", ":"))
     assert path.name == hashlib.sha256(payload.encode("utf-8")).hexdigest()
     assert context.file_path(container, filename) == path / filename
     assert (path / filename).stat().st_mode & 0o777 == mode
@@ -110,8 +110,8 @@ def test_config_path_uses_inherited_prepare_files(tmp_path, monkeypatch, folder,
     calls = []
     prepared_path = tmp_path / "prepared"
 
-    def prepare_files(self, files, *, revision=None, mode=0o600, group=None):
-        calls.append((self, files, revision, mode, group))
+    def prepare_files(self, files, *, revision=None, mode=0o600):
+        calls.append((self, files, revision, mode))
         return prepared_path
 
     monkeypatch.setattr(BaseContainer, "prepare_files", prepare_files)
@@ -119,13 +119,12 @@ def test_config_path_uses_inherited_prepare_files(tmp_path, monkeypatch, folder,
     assert container.config_path is prepared_path
     assert container.config_path is prepared_path
     assert len(calls) == 1
-    owner, files, revision, actual_mode, group = calls[0]
+    owner, files, revision, actual_mode = calls[0]
     assert owner is container
     assert set(files) == {filename}
     assert isinstance(files[filename], str) and files[filename]
     assert revision is None
     assert actual_mode == mode
-    assert group is None
     assert not prepared_hooks(container)
     assert not records
     assert not prepared_path.exists()
