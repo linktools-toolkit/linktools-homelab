@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import secrets
-from typing import AbstractSet, Iterable, Mapping
+from typing import Iterable
 
 from linktools.cli import subcommand
 from linktools.core import ConfigField, LazyProvider, ConfigRef
@@ -27,11 +27,6 @@ class Container(BaseContainer):
         callback = self.config.resolve(load_nginx_url(ResolvedSite.find(self), "sso/callback"))
         redirects = provider.oidc_redirects
         return provider if provider.public_url in redirects and callback in redirects else None
-
-    def get_runtime_requirements(self, required: AbstractSet[str]) -> Mapping[str, Iterable[str]]:
-        if self.name in required and self.oidc_provider is not None:
-            return {"authelia": ("authelia",)}
-        return {}
 
     @cached_property
     def fields(self):

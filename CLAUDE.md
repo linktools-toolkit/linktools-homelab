@@ -55,7 +55,7 @@ The `compose.yml` in each folder is a **Jinja2 template**, not plain Docker Comp
 
 ### Applying Configuration Changes
 
-A targeted `ct-cntr up <container-name>` compares the selected services with their last successfully applied configuration. It includes required providers and running declared integration consumers; real Compose restart and namespace dependencies can also require actions outside the requested containers. These collateral changes are warned about before execution. Unrelated services are not applied merely because their current configuration differs.
+A targeted `ct-cntr up <container-name>` compares the selected services with their last successfully applied configuration. It includes changed running integration consumers; real Compose restart and namespace dependencies can also require actions outside the requested containers. These collateral changes are warned about before execution. Unrelated services are not applied merely because their current configuration differs.
 
 Ordinary container authors declare `fields`, `dependencies`, and `integrations`; the framework handles configuration comparison and ordered application. Keep runtime dependencies explicit, including dependencies implied by cross-container template values, and declare nginx sites and independent Flare links in `integrations`. Native Compose profiles determine active full-project services; disabled running services retain their existing configuration unless a real dependency requires rebinding.
 
@@ -175,10 +175,11 @@ A navigation path never changes a callback or the independent Authelia issuer.
 GitLab and LiteLLM render their OIDC client settings whenever the installed
 Authelia provider has a concrete HTTPS public URL and its accepted redirect list
 contains the application's complete callback, including when nginx auth is off.
-Missing callbacks and missing or HTTP-only providers do not produce client settings. Each app's
-read-only `oidc_provider` is shared by its template and runtime requirements, so a
-targeted app start includes the available Authelia service even when nginx auth
-is off. Unrelated selections do not request that provider.
+Missing callbacks and missing or HTTP-only providers do not produce client settings.
+Each app's read-only `oidc_provider` is used by its template. Runtime prerequisites
+come from explicit container or Compose dependencies; integration declarations
+do not add an implicit provider-start requirement. Changed running integration
+consumers apply their generated configuration through the framework lifecycle.
 
 Direct-port links and external bookmarks can also remain standalone Flare
 declarations. `Flare.bookmark(name, icon, url, category="private"/"container"/"other")`
@@ -194,13 +195,19 @@ producer's standalone links. Navigation never creates a runtime dependency.
 validates them before services are replaced; `on_started(context)` runs afterward.
 `on_prepare()` is available after installed config registration and before execution
 selection; it must support repeated entries. Read-only planning/config commands do
-not call it. Generate selected operation inputs in `on_starting(context)` instead.
+not call it. Prepare selected persistent/runtime inputs in `on_starting(context)` instead.
 Do not start another service from a hook or overwrite active generated config during preparation.
 
-Use `context.write_files(self, {"config.json": rendered_text})` once per operation.
-Compose mounts the logical `APP_PATH/"generated/current/config.json"`; the
-framework substitutes the immutable prepared file before checks/application.
-Read it in `on_check` with `context.file_path(self, "config.json")`.
+Generated-config consumers may define a local `@cached_property config_path` that
+returns `prepare_files(self, {"config.json": rendered_text})` from
+`linktools.cntr.artifacts`. Compose mounts `container.config_path/"config.json"`
+directly. Rendering captures the complete configuration and registers an existing
+start hook without writing files; that hook writes the captured bytes without
+resolving configuration again. Installed consumers resolve during Compose rendering,
+including those outside the selected service scope; uninstalled consumers do not.
+No base-class property or separate revision callback is required. There is no
+`generated/current` pointer or mount-source rewriting. Read the prepared file in
+`on_check` with `context.file_path(self, "config.json")`.
 `context.project_containers` is the complete installed project selection;
 `context.target_containers` identifies the operation targets. `context.prepared_dirs`
 maps container names to their immutable prepared directories. Persistent
