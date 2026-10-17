@@ -32,7 +32,6 @@ from configparser import RawConfigParser
 from linktools import utils
 from linktools.cntr import OperationContext, BaseContainer
 from linktools.core import ConfigField, PromptProvider
-from linktools.cntr.artifacts import prepare_files
 from linktools.decorator import cached_property
 
 
@@ -50,7 +49,7 @@ class Container(BaseContainer):
 
     @cached_property
     def config_path(self):
-        return prepare_files(self, {
+        return self.prepare_files({
             "frps.ini": self.render_template(self.get_source_path("frps.ini")),
         })
 

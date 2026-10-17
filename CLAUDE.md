@@ -199,9 +199,10 @@ not call it. Prepare selected persistent/runtime inputs in `on_starting(context)
 Do not start another service from a hook or overwrite active generated config during preparation.
 
 Generated-config consumers may define a local `@cached_property config_path` that
-returns `prepare_files(self, {"config.json": rendered_text})` from
-`linktools.cntr.artifacts`. Compose mounts `container.config_path/"config.json"`
-directly. Rendering captures the complete configuration and registers an existing
+returns `self.prepare_files({"config.json": rendered_text})`. This inherited
+`BaseContainer` method accepts keyword-only `revision` (default `None`) and `mode`
+(default `0o600`); no standalone helper import is needed. Compose mounts
+`container.config_path/"config.json"` directly. Rendering captures the complete configuration and registers an existing
 start hook without writing files; that hook writes the captured bytes without
 resolving configuration again. Installed consumers resolve during Compose rendering,
 including those outside the selected service scope; uninstalled consumers do not.
@@ -432,10 +433,12 @@ still the in-development `linktools-cntr` 0.10.0; use a matching source checkout
 rather than an older installation with the same version. Ordinary installations
 require a supporting framework release before adopting these declarations.
 
-This repository has no pull-request source-check CI or retained tests directory.
-Framework regression checks belong to `linktools-cntr`; validate changed homelab
-definitions locally against the matching framework checkout. The following
-standard-library checks parse Python and repository metadata without creating
+This repository has no pull-request source-check CI. The focused generated-config
+contracts in `tests/test_generated_config.py` validate these consumers against a
+matching framework source checkout that provides `BaseContainer.prepare_files`.
+Run them with `python -m pytest -q tests/test_generated_config.py` using that
+checkout on `PYTHONPATH`; framework regression checks belong to `linktools-cntr`.
+The following standard-library checks parse Python and repository metadata without creating
 bytecode files:
 
 ```sh

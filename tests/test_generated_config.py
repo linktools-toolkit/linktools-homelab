@@ -11,7 +11,7 @@ from types import SimpleNamespace
 import pytest
 import yaml
 
-from linktools.cntr import OperationContext
+from linktools.cntr import BaseContainer, OperationContext
 from linktools.cntr.artifacts import prepared_hooks
 from linktools.core import Config, ConfigSchema
 
@@ -77,17 +77,57 @@ def test_compose_captures_exact_immutable_inputs_before_start(tmp_path, monkeypa
     container.on_check(context)
 
     content = (path / filename).read_text(encoding="utf-8")
-    payload = json.dumps([mode, None, 0o755, [(filename, content)]], ensure_ascii=True, separators=(",", ":"))
+    payload = json.dumps([mode, 0o755, [(filename, content)]], ensure_ascii=True, separators=(",", ":"))
     assert path.name == hashlib.sha256(payload.encode("utf-8")).hexdigest()
     assert context.file_path(container, filename) == path / filename
     assert (path / filename).stat().st_mode & 0o777 == mode
     assert not (path.parent / "current").exists()
-    assert len(records) == 1
-    assert next(iter(records.values()))["sha256"] == hashlib.sha256(content.encode("utf-8")).hexdigest()
+    tree = os.path.relpath(path, container.manager.data_path)
+    file_records = {key: entry for key, entry in records.items() if entry["kind"] == "generated-config"}
+    tree_records = {key: entry for key, entry in records.items() if entry["kind"] == "generated-config-tree"}
+    assert len(records) == 2
+    assert file_records == {
+        os.path.relpath(path / filename, container.manager.data_path): {
+            "kind": "generated-config", "container": container.name,
+            "sha256": hashlib.sha256(content.encode("utf-8")).hexdigest(),
+            "tree": tree, "producers": [],
+        },
+    }
+    assert tree_records == {
+        tree: {
+            "kind": "generated-config-tree", "container": container.name,
+            "tree": tree, "producers": [],
+        },
+    }
 
     next_container, _ = make_container(folder, tmp_path, {key: new_value})
     assert next_container.config_path != path
     assert not next_container.config_path.exists()
+
+
+@pytest.mark.parametrize("folder,filename,mode,key,new_value", CASES)
+def test_config_path_uses_inherited_prepare_files(tmp_path, monkeypatch, folder, filename, mode, key, new_value):
+    calls = []
+    prepared_path = tmp_path / "prepared"
+
+    def prepare_files(self, files, *, revision=None, mode=0o600):
+        calls.append((self, files, revision, mode))
+        return prepared_path
+
+    monkeypatch.setattr(BaseContainer, "prepare_files", prepare_files)
+    container, records = make_container(folder, tmp_path)
+    assert container.config_path is prepared_path
+    assert container.config_path is prepared_path
+    assert len(calls) == 1
+    owner, files, revision, actual_mode = calls[0]
+    assert owner is container
+    assert set(files) == {filename}
+    assert isinstance(files[filename], str) and files[filename]
+    assert revision is None
+    assert actual_mode == mode
+    assert not prepared_hooks(container)
+    assert not records
+    assert not prepared_path.exists()
 
 
 @pytest.mark.parametrize("folder,filename,mode,key,new_value", CASES)

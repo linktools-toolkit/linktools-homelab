@@ -31,7 +31,6 @@ import json
 
 from linktools.cntr import OperationContext, BaseContainer
 from linktools.core import ConfigField, PromptProvider
-from linktools.cntr.artifacts import prepare_files
 from linktools.decorator import cached_property
 
 
@@ -50,7 +49,7 @@ class Container(BaseContainer):
 
     @cached_property
     def config_path(self):
-        return prepare_files(self, {
+        return self.prepare_files({
             "config.json": self.render_template(self.get_source_path("config.json")),
         })
 
