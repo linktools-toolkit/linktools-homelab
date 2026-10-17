@@ -82,8 +82,23 @@ def test_compose_captures_exact_immutable_inputs_before_start(tmp_path, monkeypa
     assert context.file_path(container, filename) == path / filename
     assert (path / filename).stat().st_mode & 0o777 == mode
     assert not (path.parent / "current").exists()
-    assert len(records) == 1
-    assert next(iter(records.values()))["sha256"] == hashlib.sha256(content.encode("utf-8")).hexdigest()
+    tree = os.path.relpath(path, container.manager.data_path)
+    file_records = {key: entry for key, entry in records.items() if entry["kind"] == "generated-config"}
+    tree_records = {key: entry for key, entry in records.items() if entry["kind"] == "generated-config-tree"}
+    assert len(records) == 2
+    assert file_records == {
+        os.path.relpath(path / filename, container.manager.data_path): {
+            "kind": "generated-config", "container": container.name,
+            "sha256": hashlib.sha256(content.encode("utf-8")).hexdigest(),
+            "tree": tree, "producers": [],
+        },
+    }
+    assert tree_records == {
+        tree: {
+            "kind": "generated-config-tree", "container": container.name,
+            "tree": tree, "producers": [],
+        },
+    }
 
     next_container, _ = make_container(folder, tmp_path, {key: new_value})
     assert next_container.config_path != path
