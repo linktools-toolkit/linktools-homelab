@@ -1,0 +1,51 @@
+services:
+  guacamole:
+    image: guacamole/guacamole:{{ GUACAMOLE_TAG }}
+    environment:
+      GUACD_HOSTNAME: guacd
+      POSTGRESQL_HOSTNAME: guacamole-postgres
+      POSTGRESQL_DATABASE: guacamole
+      POSTGRESQL_USERNAME: guacamole
+      POSTGRESQL_PASSWORD: {{ GUACAMOLE_DB_PASSWORD | tojson }}
+      POSTGRESQL_ENABLED: 'true'
+      POSTGRESQL_AUTO_CREATE_ACCOUNTS: 'true'
+      HTTP_AUTH_ENABLED: 'true'
+      HTTP_AUTH_HEADER: REMOTE_USER
+      EXTENSION_PRIORITY: header,postgresql
+      WEBAPP_CONTEXT: ROOT
+    depends_on:
+      guacd:
+        condition: service_started
+      guacamole-postgres:
+        condition: service_healthy
+    networks:
+      - nginx
+      - guacamole
+
+  guacd:
+    image: guacamole/guacd:{{ GUACAMOLE_TAG }}
+    networks:
+      - guacamole
+
+  guacamole-postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: guacamole
+      POSTGRES_USER: guacamole
+      POSTGRES_PASSWORD: {{ GUACAMOLE_DB_PASSWORD | tojson }}
+      GUACAMOLE_ADMIN_USERNAME: {{ GUACAMOLE_ADMIN_USERNAME | tojson }}
+    volumes:
+      - '{{ (APP_PATH/"postgres") | mkdir | chown }}:/var/lib/postgresql/data'
+      - '{{ SOURCE_PATH/"001-create-schema.sql" }}:/docker-entrypoint-initdb.d/001-create-schema.sql:ro'
+      - '{{ SOURCE_PATH/"002-bootstrap-admin.sh" }}:/docker-entrypoint-initdb.d/002-bootstrap-admin.sh:ro'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h localhost -U guacamole -d guacamole']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - guacamole
+
+networks:
+  nginx:
+  guacamole:
