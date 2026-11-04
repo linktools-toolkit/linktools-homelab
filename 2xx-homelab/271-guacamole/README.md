@@ -13,7 +13,7 @@
 
 ## 单用户身份与权限
 
-- Nginx 先执行 Authelia 认证，再覆盖客户端传入的 `REMOTE_USER`，固定传递 `guacadmin`。客户端不能通过伪造同名请求头切换身份。
+- 通过 endpoint 的 `auth_headers` 声明 `REMOTE_USER=guacadmin`；Nginx 框架仅在 Authelia 认证成功后注入该固定身份，并覆盖客户端传入的同名请求头。客户端不能通过伪造请求头切换身份。无需自定义 Nginx 模板。
 - PostgreSQL 初始化脚本创建 `guacadmin` 并授予 Guacamole 管理权限。账号使用随机不可知的密码哈希，只通过 Header Auth 登录，不设置或暴露默认密码。
 - `on_started` 每次部署后幂等执行同一初始化 SQL，因此已经存在的 PostgreSQL 数据卷也会自动补齐管理员，不会删除既有用户、连接、权限或凭据。
 - **所有能够通过该 Authelia 站点认证的用户都会映射到同一个 Guacamole 管理员。** 此配置仅适用于单人使用；不要将该站点授权给其他用户。
