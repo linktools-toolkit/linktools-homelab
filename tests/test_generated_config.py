@@ -94,10 +94,14 @@ def test_guacamole_bootstraps_admin_for_new_and_existing_databases(tmp_path):
     assert streams[0].closed
     dockerfile = container.get_source_path("Dockerfile").read_text(encoding="utf-8")
     assert "gen_random_uuid()" in sql
-    assert "ON CONFLICT (entity_id) DO NOTHING" in sql
+    assert "ON CONFLICT (entity_id) DO UPDATE" in sql
+    assert "guacamole_user.password_hash =" in sql
+    assert "guacamole_user.password_salt =" in sql
+    assert "ON CONFLICT DO NOTHING" in sql
     assert "'ADMINISTER'" in sql
-    assert "001-create-schema.sql /docker-entrypoint-initdb.d/001-create-schema.sql" in dockerfile
-    assert "scripts/admin.sql /docker-entrypoint-initdb.d/admin.sql" in dockerfile
+    assert "RUN /opt/guacamole/bin/initdb.sh --postgresql > /tmp/guacamole.sql" in dockerfile
+    assert "COPY --from=schema /tmp/guacamole.sql /docker-entrypoint-initdb.d/guacamole.sql" in dockerfile
+    assert "COPY scripts/admin.sql /docker-entrypoint-initdb.d/secure-admin.sql" in dockerfile
 
 
 def test_guacamole_admin_stream_closes_after_process_failure(tmp_path):
