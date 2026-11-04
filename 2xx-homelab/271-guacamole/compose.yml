@@ -6,7 +6,7 @@ services:
       POSTGRESQL_HOSTNAME: guacamole-postgres
       POSTGRESQL_DATABASE: guacamole
       POSTGRESQL_USERNAME: guacamole
-      POSTGRESQL_PASSWORD: {{ config.get('GUACAMOLE_DB_PASSWORD') | tojson }}
+      POSTGRESQL_PASSWORD: '{{ GUACAMOLE_DB_PASSWORD }}'
       POSTGRESQL_ENABLED: 'true'
       POSTGRESQL_AUTO_CREATE_ACCOUNTS: 'true'
       HTTP_AUTH_ENABLED: 'true'
@@ -31,7 +31,7 @@ services:
     environment:
       POSTGRES_DB: guacamole
       POSTGRES_USER: guacamole
-      POSTGRES_PASSWORD: {{ config.get('GUACAMOLE_DB_PASSWORD') | tojson }}
+      POSTGRES_PASSWORD: '{{ GUACAMOLE_DB_PASSWORD }}'
     volumes:
       - '{{ (APP_PATH/"postgres") | mkdir | chown }}:/var/lib/postgresql/data'
     healthcheck:
