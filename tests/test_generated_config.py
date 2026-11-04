@@ -54,6 +54,36 @@ def make_container(folder, tmp_path, values=None):
     return container, records
 
 
+def test_guacamole_uses_native_authenticated_header_declaration(tmp_path):
+    container, _ = make_container("2xx-homelab/271-guacamole", tmp_path)
+    site = container.integrations[0]
+    compose = container.get_source_path("compose.yml").read_text(encoding="utf-8")
+
+    assert site.proxy == "http://guacamole:8080"
+    assert site.template is None
+    assert site.https is True
+    assert site.auth is True
+    assert site.auth_bypass == ()
+    assert site.auth_headers == {"REMOTE_USER": "guacadmin"}
+    assert not (ROOT / "2xx-homelab/271-guacamole/nginx.conf").exists()
+    assert "POSTGRESQL_AUTO_CREATE_ACCOUNTS" not in compose
+
+
+def test_guacamole_bootstraps_new_database_only(tmp_path):
+    container, _ = make_container("2xx-homelab/271-guacamole", tmp_path)
+    dockerfile = container.get_source_path("Dockerfile").read_text(encoding="utf-8")
+    sql = container.get_source_path("scripts/admin.sql").read_text(encoding="utf-8")
+
+    assert type(container).on_started is BaseContainer.on_started
+    assert "RUN /opt/guacamole/bin/initdb.sh --postgresql > /tmp/guacamole.sql" in dockerfile
+    assert "COPY --from=schema /tmp/guacamole.sql /docker-entrypoint-initdb.d/001-guacamole.sql" in dockerfile
+    assert "COPY scripts/admin.sql /docker-entrypoint-initdb.d/002-admin.sql" in dockerfile
+    assert "UPDATE guacamole_user" in sql
+    assert "gen_random_uuid()" in sql
+    assert "INSERT INTO guacamole_user" not in sql
+    assert "guacadmin" in sql
+
+
 @pytest.mark.parametrize("folder,filename,mode,key,new_value", CASES)
 def test_compose_captures_exact_immutable_inputs_before_start(tmp_path, monkeypatch, folder, filename, mode, key, new_value):
     container, records = make_container(folder, tmp_path)
