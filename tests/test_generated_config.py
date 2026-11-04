@@ -67,6 +67,8 @@ def test_guacamole_uses_native_authenticated_header_declaration(tmp_path):
     assert site.auth_headers == {"REMOTE_USER": "guacadmin"}
     assert not (ROOT / "2xx-homelab/271-guacamole/nginx.conf").exists()
     assert "POSTGRESQL_AUTO_CREATE_ACCOUNTS" not in compose
+
+
 def test_guacamole_bootstraps_admin_for_new_and_existing_databases(tmp_path):
     container, _ = make_container("2xx-homelab/271-guacamole", tmp_path)
     container.manager.project_name = "test"
