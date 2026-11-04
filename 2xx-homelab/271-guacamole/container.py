@@ -41,12 +41,10 @@ class Container(BaseContainer):
         )
 
     def on_started(self, context: OperationContext) -> None:
-        self.manager.runtime.create_docker_process(
-            "exec",
-            self.get_service_name("guacamole-postgres"),
-            "psql",
-            "-U", "guacamole",
-            "-d", "guacamole",
-            "-v", "ON_ERROR_STOP=1",
-            "-f", "/docker-entrypoint-initdb.d/002-create-admin-user.sql",
-        ).check_call()
+        with self.get_source_path("scripts", "admin.sql").open("rb") as script:
+            self.manager.runtime.create_docker_process(
+                "exec", "-i", self.get_service_name("guacamole-postgres"),
+                "psql", "-U", "guacamole", "-d", "guacamole",
+                "-v", "ON_ERROR_STOP=1",
+                stdin=script,
+            ).check_call()
