@@ -28,14 +28,12 @@ services:
       - guacamole
 
   guacamole-postgres:
-    image: postgres:16-alpine
     environment:
       POSTGRES_DB: guacamole
       POSTGRES_USER: guacamole
       POSTGRES_PASSWORD: {{ GUACAMOLE_DB_PASSWORD | tojson }}
     volumes:
       - '{{ (APP_PATH/"postgres") | mkdir | chown }}:/var/lib/postgresql/data'
-      - '{{ SOURCE_PATH/"001-create-schema.sql" }}:/docker-entrypoint-initdb.d/001-create-schema.sql:ro'
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -h localhost -U guacamole -d guacamole']
       interval: 10s

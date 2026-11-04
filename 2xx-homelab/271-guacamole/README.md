@@ -55,17 +55,17 @@ SQL
 
 - Nginx 对全部 Guacamole 请求（包括 WebSocket）执行 Authelia `auth_request`；从验证成功的 `Remote-User` 构造身份变量，并通过 `proxy_set_header REMOTE_USER` **覆盖客户端同名请求头**。身份缺失不授予远程桌面连接权限；Authelia 拒绝的请求不会转发。
 - Guacamole Web、guacd 和 PostgreSQL 均不发布宿主机端口。Guacamole 必须加入现有 `nginx` 桥接网络，因此**同一 Docker 网络的其他容器可以直连其 HTTP 服务并伪造头**：该网络必须仅包含可信容器，不可连接不可信工作负载或映射 Guacamole 8080 端口。公网请求只经过 Nginx。
-- PostgreSQL 首次启动仅加载 Apache Guacamole 1.6.0 官方 **`001-create-schema.sql` 表结构**，不运行上游创建 `guacadmin/guacadmin` 的 `002-create-admin-user.sql`，也不创建自定义默认管理员。管理员权限只能在首次登录后通过明确的数据库授权操作授予指定账号。
+- PostgreSQL 的 Dockerfile 在构建时从与 `GUACAMOLE_TAG` 一致的 Guacamole 官方镜像仅复制 `001-create-schema.sql`，不复制创建 `guacadmin/guacadmin` 的 `002-create-admin-user.sql`。数据库首次初始化不会预置任何管理员；管理员权限只能在首次登录后通过明确的授权操作授予指定账号。
 - `POSTGRESQL_AUTO_CREATE_ACCOUNTS` 允许经 Header Auth 登录的新用户在数据库中自动创建账号，但只获得自身 READ 权限；桌面连接与管理权限须管理员显式授予。RDP/VNC 目标账户及密码由 Guacamole 保存在 PostgreSQL，不在浏览器中下发明文凭据。
 - Nginx/Authelia 是唯一的**公网**认证入口，不提供 Guacamole 独立外网登录入口。Authelia 不可用时不能从 Nginx 入口登录。PostgreSQL 不可用时 Web 服务不能正常提供连接数据；guacd 不可用时桌面连接失败。
 
 ## 数据库生命周期
 
-`001-create-schema.sql` 原样来自 [Apache Guacamole 1.6.0 JDBC PostgreSQL schema](https://github.com/apache/guacamole-client/blob/1.6.0/extensions/guacamole-auth-jdbc/modules/guacamole-auth-jdbc-postgresql/schema/001-create-schema.sql)（Apache-2.0）。不执行任何账户或管理员创建 SQL。PostgreSQL initdb 脚本只会在**空数据库目录首次启动**时执行，重启不会重设权限或数据。升级 Guacamole TAG 前须依据官方说明完成 JDBC schema 迁移。对数据库持久卷及备份采取访问限制；应用或数据库重启可能断开已有桌面会话。
+PostgreSQL 服务不使用预构建镜像，而是通过本目录 `Dockerfile` 自动构建：构建阶段从 `guacamole/guacamole:{{ GUACAMOLE_TAG }}` 提取官方 [PostgreSQL 建表脚本](https://github.com/apache/guacamole-client/blob/1.6.0/extensions/guacamole-auth-jdbc/modules/guacamole-auth-jdbc-postgresql/schema/001-create-schema.sql)，运行阶段使用 `postgres:16-alpine`，只将 `001-create-schema.sql` 复制到 `/docker-entrypoint-initdb.d/`。PostgreSQL 只在**空数据目录首次启动**时执行该脚本，不执行任何账户或管理员创建 SQL；重启不会重设权限或数据。升级 `GUACAMOLE_TAG` 不会自动迁移已有数据库，必须依据官方 JDBC schema 迁移说明处理。对数据库持久卷及备份采取访问限制；应用或数据库重启可能断开已有桌面会话。
 
 ## 验收
 
-1. 检查 Compose 渲染无 `ports`；Guacamole 接入 `nginx`、`guacamole` 网络，guacd/数据库仅加入 `guacamole` 网络。
+1. 检查 Compose 渲染无 `ports`；Guacamole 接入 `nginx`、`guacamole` 网络，guacd/数据库仅加入 `guacamole` 网络；仅 PostgreSQL 服务自动注入 `build`，不再挂载仓库中的 SQL 文件。
 2. Nginx 原生 `nginx -t` 通过；所有请求均经过 Authelia 认证，用户伪造 `REMOTE_USER` 不能冒用其他账号。
-3. 首次部署没有任何预置 Guacamole 管理员；Authelia 首次登录仅创建普通 JDBC 账号；管理员显式授权后才可管理连接，其他账号仅可访问显式授权的连接。
+3. 构建生成的 PostgreSQL 镜像只包含官方 `001-create-schema.sql` 初始化脚本；首次部署没有任何预置 Guacamole 管理员；Authelia 首次登录仅创建普通 JDBC 账号，显式授权后才可管理连接，其他账号仅可访问显式授权的连接。
 4. RDP、VNC、WebSocket 与剪贴板按目标系统实测；DB 重启后保留连接、权限、凭据；无默认 Guacamole 密码账号。
