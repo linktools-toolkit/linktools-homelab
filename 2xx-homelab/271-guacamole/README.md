@@ -22,7 +22,7 @@
 
 - Guacamole Web、guacd 和 PostgreSQL 均不发布宿主机端口。Guacamole Web 加入现有 `nginx` 网络；guacd 和 PostgreSQL 只加入私有 `guacamole` 网络。
 - 共享 `nginx` Docker 网络内的其他容器仍可能直连 Guacamole 并伪造身份头；该网络只能容纳受信任的容器，不可连接不可信工作负载或映射 Guacamole 8080 端口。
-- PostgreSQL 的 Dockerfile 从与 `GUACAMOLE_TAG` 一致的 Guacamole 官方镜像复制 `001-create-schema.sql`，并复制本项目的 `002-create-admin-user.sql`。新数据卷首次初始化时按顺序执行；已有数据卷由容器启动后的生命周期钩子执行同一脚本。
+- PostgreSQL 的 Dockerfile 从与 `GUACAMOLE_TAG` 一致的 Guacamole 官方镜像复制 `001-create-schema.sql`，并把本项目的 `scripts/admin.sql` 复制为 `admin.sql`；PostgreSQL 初始化时按文件名排序先建表再创建管理员。已有数据卷通过 `on_started` 将同一源 SQL 经 `docker exec -i ... psql` 的标准输入执行，不依赖容器内的编号脚本路径。
 - 数据库脚本只创建固定管理员并补齐权限，使用 `ON CONFLICT DO NOTHING`，不会覆盖既有密码或权限。升级 `GUACAMOLE_TAG` 不会自动迁移已有数据库，须依据官方 JDBC schema 迁移说明处理。
 - RDP/VNC 目标账户及密码由 Guacamole 保存在 PostgreSQL；不在浏览器中下发明文凭据。数据库持久卷及备份应限制访问；应用或数据库重启可能断开已有桌面会话。
 
