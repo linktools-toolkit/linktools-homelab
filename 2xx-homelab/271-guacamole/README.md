@@ -14,7 +14,7 @@
 ## 单用户身份与权限
 
 - 通过 endpoint 的 `auth_headers` 声明 `REMOTE_USER=guacadmin`；Nginx 框架仅在 Authelia 认证成功后注入该固定身份，并覆盖客户端传入的同名请求头。客户端不能通过伪造请求头切换身份。无需自定义 Nginx 模板。
-- PostgreSQL 初始化脚本创建 `guacadmin` 并授予 Guacamole 管理权限。账号使用随机不可知的密码哈希，只通过 Header Auth 登录，不设置或暴露默认密码。
+- PostgreSQL 首次初始化通过 Guacamole 官方 `initdb.sh` 生成表结构及默认管理员，再执行 `scripts/admin.sql` 将官方 `guacadmin/guacadmin` 密码替换为随机哈希。账号通过 Header Auth 登录，最终不保留已知默认密码。
 - `on_started` 每次部署后幂等执行同一初始化 SQL，因此已经存在的 PostgreSQL 数据卷也会自动补齐管理员，不会删除既有用户、连接、权限或凭据。
 - **所有能够通过该 Authelia 站点认证的用户都会映射到同一个 Guacamole 管理员。** 此配置仅适用于单人使用；不要将该站点授权给其他用户。
 
@@ -22,8 +22,8 @@
 
 - Guacamole Web、guacd 和 PostgreSQL 均不发布宿主机端口。Guacamole Web 加入现有 `nginx` 网络；guacd 和 PostgreSQL 只加入私有 `guacamole` 网络。
 - 共享 `nginx` Docker 网络内的其他容器仍可能直连 Guacamole 并伪造身份头；该网络只能容纳受信任的容器，不可连接不可信工作负载或映射 Guacamole 8080 端口。
-- PostgreSQL 的 Dockerfile 从与 `GUACAMOLE_TAG` 一致的 Guacamole 官方镜像复制 `001-create-schema.sql`，并把本项目的 `scripts/admin.sql` 复制为 `admin.sql`；PostgreSQL 初始化时按文件名排序先建表再创建管理员。已有数据卷通过 `on_started` 将同一源 SQL 经 `docker exec -i ... psql` 的标准输入执行，不依赖容器内的编号脚本路径。
-- 数据库脚本只创建固定管理员并补齐权限，使用 `ON CONFLICT DO NOTHING`，不会覆盖既有密码或权限。升级 `GUACAMOLE_TAG` 不会自动迁移已有数据库，须依据官方 JDBC schema 迁移说明处理。
+- PostgreSQL Dockerfile 构建阶段调用官方 `/opt/guacamole/bin/initdb.sh --postgresql`，将完整输出保存为 `guacamole.sql`；镜像初始化先执行该文件，再执行 `secure-admin.sql`（源文件 `scripts/admin.sql`）。已有数据卷由 `on_started` 通过 `docker exec -i ... psql` 的标准输入执行同一份 `scripts/admin.sql`，无需重建或清空数据库。
+- 管理员脚本对缺失的账号与权限幂等补齐；仅当 `guacadmin` 的密码哈希和盐与 Guacamole 1.6.0 官方已知默认值一致时，才替换为随机值，不覆盖其他已有密码或连接。升级 `GUACAMOLE_TAG` 不会自动迁移已有数据库；变更官方初始化 SQL 时须重新核对默认凭据及 JDBC schema 迁移要求。
 - RDP/VNC 目标账户及密码由 Guacamole 保存在 PostgreSQL；不在浏览器中下发明文凭据。数据库持久卷及备份应限制访问；应用或数据库重启可能断开已有桌面会话。
 
 ## 验收
