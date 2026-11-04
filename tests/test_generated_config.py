@@ -77,7 +77,7 @@ def test_guacamole_bootstraps_new_database_only(tmp_path):
     assert type(container).on_started is BaseContainer.on_started
     assert "RUN /opt/guacamole/bin/initdb.sh --postgresql > /tmp/guacamole.sql" in dockerfile
     assert "COPY --from=schema /tmp/guacamole.sql /docker-entrypoint-initdb.d/001-guacamole.sql" in dockerfile
-    assert "COPY scripts/admin.sql /docker-entrypoint-initdb.d/002-secure-admin.sql" in dockerfile
+    assert "COPY scripts/admin.sql /docker-entrypoint-initdb.d/002-admin.sql" in dockerfile
     assert "UPDATE guacamole_user" in sql
     assert "gen_random_uuid()" in sql
     assert "INSERT INTO guacamole_user" not in sql
