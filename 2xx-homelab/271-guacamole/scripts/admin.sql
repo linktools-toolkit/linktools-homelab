@@ -21,7 +21,15 @@ SELECT
     CURRENT_TIMESTAMP
 FROM guacamole_entity
 WHERE name = 'guacadmin' AND type = 'USER'
-ON CONFLICT (entity_id) DO NOTHING;
+ON CONFLICT (entity_id) DO UPDATE
+SET password_hash = EXCLUDED.password_hash,
+    password_salt = EXCLUDED.password_salt,
+    password_date = EXCLUDED.password_date
+-- The upstream initdb creates guacadmin/guacadmin. Replace only that known password.
+WHERE guacamole_user.password_hash =
+    decode('CA458A7D494E3BE824F5E1E175A1556C0F8EEF2C2D7DF3633BEC4A29C4411960', 'hex')
+  AND guacamole_user.password_salt =
+    decode('FE24ADC5E11E2B25288D1704ABE67A79E342ECC26064CE69C5B3177795A82264', 'hex');
 
 INSERT INTO guacamole_system_permission (entity_id, permission)
 SELECT e.entity_id, p.permission::guacamole_system_permission_type
