@@ -54,6 +54,43 @@ def make_container(folder, tmp_path, values=None):
     return container, records
 
 
+def test_guacamole_uses_one_fixed_header_identity(tmp_path):
+    container, _ = make_container("2xx-homelab/271-guacamole", tmp_path)
+    nginx = container.get_source_path("nginx.conf").read_text(encoding="utf-8")
+    compose = container.get_source_path("compose.yml").read_text(encoding="utf-8")
+
+    assert "route_authorization()" in nginx
+    assert "proxy_headers({'REMOTE_USER': 'guacadmin'})" in nginx
+    assert "identity_" not in nginx
+    assert "POSTGRESQL_AUTO_CREATE_ACCOUNTS" not in compose
+
+
+def test_guacamole_bootstraps_admin_for_new_and_existing_databases(tmp_path):
+    container, _ = make_container("2xx-homelab/271-guacamole", tmp_path)
+    container.manager.project_name = "test"
+    calls = []
+
+    def create_process(*args):
+        calls.append(args)
+        return SimpleNamespace(check_call=lambda: calls.append("checked"))
+
+    container.manager.runtime.create_docker_process = create_process
+    context = OperationContext(project_containers=[container], target_containers=[container])
+    container.on_started(context)
+
+    assert calls == [
+        ("exec", "test-guacamole-postgres", "psql", "-U", "guacamole", "-d", "guacamole",
+         "-v", "ON_ERROR_STOP=1", "-f", "/docker-entrypoint-initdb.d/002-create-admin-user.sql"),
+        "checked",
+    ]
+    sql = container.get_source_path("scripts/002-create-admin-user.sql").read_text(encoding="utf-8")
+    dockerfile = container.get_source_path("Dockerfile").read_text(encoding="utf-8")
+    assert "gen_random_uuid()" in sql
+    assert "ON CONFLICT (entity_id) DO NOTHING" in sql
+    assert "'ADMINISTER'" in sql
+    assert "scripts/002-create-admin-user.sql /docker-entrypoint-initdb.d/002-create-admin-user.sql" in dockerfile
+
+
 @pytest.mark.parametrize("folder,filename,mode,key,new_value", CASES)
 def test_compose_captures_exact_immutable_inputs_before_start(tmp_path, monkeypatch, folder, filename, mode, key, new_value):
     container, records = make_container(folder, tmp_path)
