@@ -69,55 +69,19 @@ def test_guacamole_uses_native_authenticated_header_declaration(tmp_path):
     assert "POSTGRESQL_AUTO_CREATE_ACCOUNTS" not in compose
 
 
-def test_guacamole_bootstraps_admin_for_new_and_existing_databases(tmp_path):
+def test_guacamole_bootstraps_new_database_only(tmp_path):
     container, _ = make_container("2xx-homelab/271-guacamole", tmp_path)
-    container.manager.project_name = "test"
-    calls = []
-    streams = []
-
-    def create_process(*args, **kwargs):
-        script = kwargs["stdin"]
-        streams.append(script)
-        calls.append((args, script.read().decode("utf-8")))
-        return SimpleNamespace(check_call=lambda: calls.append("checked"))
-
-    container.manager.runtime.create_docker_process = create_process
-    context = OperationContext(project_containers=[container], target_containers=[container])
-    container.on_started(context)
-
-    sql = container.get_source_path("scripts/admin.sql").read_text(encoding="utf-8")
-    assert calls == [
-        (("exec", "-i", "test-guacamole-postgres", "psql", "-U", "guacamole",
-          "-d", "guacamole", "-v", "ON_ERROR_STOP=1"), sql),
-        "checked",
-    ]
-    assert streams[0].closed
     dockerfile = container.get_source_path("Dockerfile").read_text(encoding="utf-8")
-    assert "gen_random_uuid()" in sql
-    assert "ON CONFLICT (entity_id) DO UPDATE" in sql
-    assert "guacamole_user.password_hash =" in sql
-    assert "guacamole_user.password_salt =" in sql
-    assert "ON CONFLICT DO NOTHING" in sql
-    assert "'ADMINISTER'" in sql
+    sql = container.get_source_path("scripts/admin.sql").read_text(encoding="utf-8")
+
+    assert type(container).on_started is BaseContainer.on_started
     assert "RUN /opt/guacamole/bin/initdb.sh --postgresql > /tmp/guacamole.sql" in dockerfile
     assert "COPY --from=schema /tmp/guacamole.sql /docker-entrypoint-initdb.d/guacamole.sql" in dockerfile
     assert "COPY scripts/admin.sql /docker-entrypoint-initdb.d/secure-admin.sql" in dockerfile
-
-
-def test_guacamole_admin_stream_closes_after_process_failure(tmp_path):
-    container, _ = make_container("2xx-homelab/271-guacamole", tmp_path)
-    streams = []
-
-    def create_process(*args, **kwargs):
-        streams.append(kwargs["stdin"])
-        def fail():
-            raise RuntimeError("psql failed")
-        return SimpleNamespace(check_call=fail)
-
-    container.manager.runtime.create_docker_process = create_process
-    with pytest.raises(RuntimeError, match="psql failed"):
-        container.on_started(OperationContext())
-    assert streams[0].closed
+    assert "UPDATE guacamole_user" in sql
+    assert "gen_random_uuid()" in sql
+    assert "INSERT INTO guacamole_user" not in sql
+    assert "guacadmin" in sql
 
 
 @pytest.mark.parametrize("folder,filename,mode,key,new_value", CASES)
