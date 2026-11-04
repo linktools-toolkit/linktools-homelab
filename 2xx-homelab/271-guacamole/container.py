@@ -4,7 +4,7 @@
 import secrets
 from typing import Iterable
 
-from linktools.cntr import BaseContainer, Integrations, OperationContext
+from linktools.cntr import BaseContainer, Integrations
 from linktools.cntr.ext import Flare, Nginx, endpoint
 from linktools.core import ConfigField, ConfigRef, LazyProvider
 from linktools.decorator import cached_property
@@ -39,12 +39,3 @@ class Container(BaseContainer):
                 Flare.public("Guacamole", "remoteDesktop", "Web 远程桌面（RDP/VNC）"),
             ],
         )
-
-    def on_started(self, context: OperationContext) -> None:
-        with self.get_source_path("scripts", "admin.sql").open("rb") as script:
-            self.manager.runtime.create_docker_process(
-                "exec", "-i", self.get_service_name("guacamole-postgres"),
-                "psql", "-U", "guacamole", "-d", "guacamole",
-                "-v", "ON_ERROR_STOP=1",
-                stdin=script,
-            ).check_call()
