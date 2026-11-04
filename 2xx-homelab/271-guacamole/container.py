@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Web RDP/VNC access through Authelia-authenticated Guacamole."""
+"""Single-user web RDP/VNC access through Authelia-authenticated Guacamole."""
 import secrets
 from typing import Iterable
 
-from linktools.cntr import BaseContainer, Integrations
+from linktools.cntr import BaseContainer, Integrations, OperationContext
 from linktools.cntr.ext import Flare, Nginx, endpoint
 from linktools.core import ConfigField, ConfigRef, LazyProvider
 from linktools.decorator import cached_property
@@ -38,3 +38,14 @@ class Container(BaseContainer):
                 Flare.public("Guacamole", "remoteDesktop", "Web 远程桌面（RDP/VNC）"),
             ],
         )
+
+    def on_started(self, context: OperationContext) -> None:
+        self.manager.runtime.create_docker_process(
+            "exec",
+            self.get_service_name("guacamole-postgres"),
+            "psql",
+            "-U", "guacamole",
+            "-d", "guacamole",
+            "-v", "ON_ERROR_STOP=1",
+            "-f", "/docker-entrypoint-initdb.d/002-create-admin-user.sql",
+        ).check_call()
