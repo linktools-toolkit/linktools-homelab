@@ -33,11 +33,9 @@ services:
       POSTGRES_DB: guacamole
       POSTGRES_USER: guacamole
       POSTGRES_PASSWORD: {{ GUACAMOLE_DB_PASSWORD | tojson }}
-      GUACAMOLE_ADMIN_USERNAME: {{ GUACAMOLE_ADMIN_USERNAME | tojson }}
     volumes:
       - '{{ (APP_PATH/"postgres") | mkdir | chown }}:/var/lib/postgresql/data'
       - '{{ SOURCE_PATH/"001-create-schema.sql" }}:/docker-entrypoint-initdb.d/001-create-schema.sql:ro'
-      - '{{ SOURCE_PATH/"002-bootstrap-admin.sh" }}:/docker-entrypoint-initdb.d/002-bootstrap-admin.sh:ro'
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -h localhost -U guacamole -d guacamole']
       interval: 10s

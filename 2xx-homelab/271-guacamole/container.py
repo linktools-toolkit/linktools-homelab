@@ -21,7 +21,6 @@ class Container(BaseContainer):
         return dict(
             GUACAMOLE_TAG="1.6.0",
             GUACAMOLE_DOMAIN=Nginx.domain(self),
-            GUACAMOLE_ADMIN_USERNAME="admin",
             GUACAMOLE_DB_PASSWORD=ConfigField(provider=LazyProvider(
                 lambda r: secrets.token_urlsafe(32), cached=True,
             )),
