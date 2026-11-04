@@ -31,9 +31,10 @@ class Container(BaseContainer):
         return endpoint(
             self,
             domain=ConfigRef("GUACAMOLE_DOMAIN"),
-            template=self.get_source_path("nginx.conf"),
+            proxy="http://guacamole:8080",
             https=True,
             auth=True,
+            auth_headers={"REMOTE_USER": "guacadmin"},
             extensions=[
                 Flare.public("Guacamole", "remoteDesktop", "Web 远程桌面（RDP/VNC）"),
             ],
