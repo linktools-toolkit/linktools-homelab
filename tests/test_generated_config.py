@@ -54,17 +54,19 @@ def make_container(folder, tmp_path, values=None):
     return container, records
 
 
-def test_guacamole_uses_one_fixed_header_identity(tmp_path):
+def test_guacamole_uses_native_authenticated_header_declaration(tmp_path):
     container, _ = make_container("2xx-homelab/271-guacamole", tmp_path)
-    nginx = container.get_source_path("nginx.conf").read_text(encoding="utf-8")
+    site = container.integrations[0]
     compose = container.get_source_path("compose.yml").read_text(encoding="utf-8")
 
-    assert "route_authorization()" in nginx
-    assert "proxy_headers({'REMOTE_USER': 'guacadmin'})" in nginx
-    assert "identity_" not in nginx
+    assert site.proxy == "http://guacamole:8080"
+    assert site.template is None
+    assert site.https is True
+    assert site.auth is True
+    assert site.auth_bypass == ()
+    assert site.auth_headers == {"REMOTE_USER": "guacadmin"}
+    assert not (ROOT / "2xx-homelab/271-guacamole/nginx.conf").exists()
     assert "POSTGRESQL_AUTO_CREATE_ACCOUNTS" not in compose
-
-
 def test_guacamole_bootstraps_admin_for_new_and_existing_databases(tmp_path):
     container, _ = make_container("2xx-homelab/271-guacamole", tmp_path)
     container.manager.project_name = "test"
