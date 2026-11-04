@@ -73,26 +73,47 @@ def test_guacamole_bootstraps_admin_for_new_and_existing_databases(tmp_path):
     container, _ = make_container("2xx-homelab/271-guacamole", tmp_path)
     container.manager.project_name = "test"
     calls = []
+    streams = []
 
-    def create_process(*args):
-        calls.append(args)
+    def create_process(*args, **kwargs):
+        script = kwargs["stdin"]
+        streams.append(script)
+        calls.append((args, script.read().decode("utf-8")))
         return SimpleNamespace(check_call=lambda: calls.append("checked"))
 
     container.manager.runtime.create_docker_process = create_process
     context = OperationContext(project_containers=[container], target_containers=[container])
     container.on_started(context)
 
+    sql = container.get_source_path("scripts/admin.sql").read_text(encoding="utf-8")
     assert calls == [
-        ("exec", "test-guacamole-postgres", "psql", "-U", "guacamole", "-d", "guacamole",
-         "-v", "ON_ERROR_STOP=1", "-f", "/docker-entrypoint-initdb.d/002-create-admin-user.sql"),
+        (("exec", "-i", "test-guacamole-postgres", "psql", "-U", "guacamole",
+          "-d", "guacamole", "-v", "ON_ERROR_STOP=1"), sql),
         "checked",
     ]
-    sql = container.get_source_path("scripts/002-create-admin-user.sql").read_text(encoding="utf-8")
+    assert streams[0].closed
     dockerfile = container.get_source_path("Dockerfile").read_text(encoding="utf-8")
     assert "gen_random_uuid()" in sql
     assert "ON CONFLICT (entity_id) DO NOTHING" in sql
     assert "'ADMINISTER'" in sql
-    assert "scripts/002-create-admin-user.sql /docker-entrypoint-initdb.d/002-create-admin-user.sql" in dockerfile
+    assert "001-create-schema.sql /docker-entrypoint-initdb.d/001-create-schema.sql" in dockerfile
+    assert "scripts/admin.sql /docker-entrypoint-initdb.d/admin.sql" in dockerfile
+
+
+def test_guacamole_admin_stream_closes_after_process_failure(tmp_path):
+    container, _ = make_container("2xx-homelab/271-guacamole", tmp_path)
+    streams = []
+
+    def create_process(*args, **kwargs):
+        streams.append(kwargs["stdin"])
+        def fail():
+            raise RuntimeError("psql failed")
+        return SimpleNamespace(check_call=fail)
+
+    container.manager.runtime.create_docker_process = create_process
+    with pytest.raises(RuntimeError, match="psql failed"):
+        container.on_started(OperationContext())
+    assert streams[0].closed
 
 
 @pytest.mark.parametrize("folder,filename,mode,key,new_value", CASES)
