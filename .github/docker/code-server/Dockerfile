@@ -8,12 +8,14 @@ USER root
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        nodejs npm \
-        ca-certificates \
         build-essential \
         pkg-config \
-        bubblewrap socat \
     && rm -rf /var/lib/apt/lists/*
+
+# Expose code-server's bundled Node for npm and the shared tools.
+RUN ln -sf /usr/lib/code-server/lib/node /usr/local/bin/node \
+    && ln -sf node /usr/local/bin/nodejs \
+    && node -e "if (parseInt(process.versions.node, 10) < 22) throw new Error('Node.js 22+ is required')"
 
 # INCLUDE install-base-cli.dockerfile
 # INCLUDE install-chrome.dockerfile
@@ -31,10 +33,13 @@ RUN printf '%s\n' \
     curl -fsSL https://astral.sh/uv/install.sh | bash && \
     uv python install 3.13 --default
 
-RUN . "${PREINSTALLED_BASE}/.env" && \
-    npm install -g --omit=dev puppeteer && \
-    npm cache clean --force && \
-    rm -rf "${HOME}/.npm"
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome \
+    PUPPETEER_SKIP_DOWNLOAD=true
+
+RUN . "${PREINSTALLED_BASE}/.env" \
+    && npm install -g --omit=dev puppeteer \
+    && npm --cache="${PREINSTALLED_BASE}/.npm" cache clean --force \
+    && rm -rf "${PREINSTALLED_BASE}/.npm"
 
 RUN node -e " \
   const fs = require('fs'); \

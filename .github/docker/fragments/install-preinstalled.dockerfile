@@ -10,6 +10,13 @@ RUN printf '%s\n' \
     > "${PREINSTALLED_BASE}/.env"
 
 RUN . "${PREINSTALLED_BASE}/.env" && \
+    if ! command -v node >/dev/null 2>&1; then \
+        curl -fsSL https://raw.githubusercontent.com/tj/n/master/bin/n \
+            | N_PREFIX="${PREINSTALLED_BASE}" bash -s install --cleanup lts; \
+    fi && \
+    if ! command -v npm >/dev/null 2>&1; then \
+        curl -fsSL https://www.npmjs.com/install.sh | sh; \
+    fi && \
     npm install -g --omit=dev \
         @openai/codex@latest \
         @google/gemini-cli@latest && \
