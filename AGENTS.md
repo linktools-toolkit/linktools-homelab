@@ -8,7 +8,7 @@ Homelab service definitions for [linktools-cntr](https://github.com/linktools-to
 - Each numbered service directory contains `container.py`, usually with `compose.yml` and optional Dockerfile/scripts. Numbers only group services.
 - Categories: `2xx-homelab`, `3xx-proxy`, `4xx-mobile`, `5xx-ai`, `6xx-coder`, `7xx-builder`, `8xx-base`.
 - `8xx-base` provides shared homelab, AI and developer configuration. Built-ins such as nginx, Authelia and Flare live upstream.
-- VS Code and CloudCLI are in `5xx-ai`. Multica integrates with VS Code; CloudCLI remains standalone.
+- VS Code and CloudCLI are in `5xx-ai`. Multica and CloudCLI run inside VS Code's container; CloudCLI keeps its own domain and web UI.
 
 ## Commands
 

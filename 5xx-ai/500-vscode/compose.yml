@@ -9,11 +9,17 @@ services:
 #     {% if container.proxy_url %}
       - 'VSCODE_PROXY_URI={{ container.proxy_url }}'
 #     {% endif %}
+#     {% for name, value in container.environment.items() %}
+      - '{{ name }}={{ value }}'
+#     {% endfor %}
     cap_add:
       - SYS_ADMIN
-#   {% if VSCODE_PORT > 0 %}
+#   {% set service_ports = (['%d:8080' % (VSCODE_PORT | int)] if VSCODE_PORT | int > 0 else []) + (container.ports.items() | map('join', ':') | list) %}
+#   {% if service_ports %}
     ports:
-      - '{{ VSCODE_PORT }}:8080'
+#     {% for entry in service_ports %}
+      - '{{ entry }}'
+#     {% endfor %}
 #   {% endif %}
     volumes:
       - '{{ (APP_PATH/"home") | mkdir | chown(docker_user) }}:/workspace'
@@ -25,6 +31,9 @@ services:
 #     {% endfor %}
 #     {% for name, path in containers["coder"].project_files.items() %}
       - '{{ path }}:/workspace/projects/{{ name }}'
+#     {% endfor %}
+#     {% for target, source in container.volumes.items() %}
+      - '{{ source }}:{{ target }}'
 #     {% endfor %}
 #   {% if NGINX_AUTH_ENABLE %}
     command: ["--auth", "none"]

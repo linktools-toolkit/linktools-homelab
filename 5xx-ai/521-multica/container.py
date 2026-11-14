@@ -12,6 +12,7 @@ from linktools.cli import subcommand, subcommand_argument
 from linktools.core import ConfigField, LazyProvider, PromptProvider
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, ContainerError
+from linktools.cntr.lifecycle import HookPhase
 from linktools.cntr.ext import ResolvedSite
 from linktools.rich import choose, confirm, prompt
 
@@ -24,6 +25,19 @@ class Container(BaseContainer):
     @property
     def dependencies(self) -> Iterable[str]:
         return ["vscode"]
+
+    def on_init(self):
+        # on_init runs after every container is constructed, so VSCode's hook
+        # registry is reachable here. Register unconditionally: installed
+        # state is only known when Compose is rendered (checked in the hook).
+        vscode = self.containers.get("vscode")
+        if vscode is not None:
+            vscode.hooks.register(
+                HookPhase.BEFORE_COMPOSE_RENDER,
+                self.configure_vscode,
+                key=("multica", "inject_vscode"),
+                name="inject Multica into VSCode Compose",
+            )
 
     def _prompt_url(self, config, name):
         server = self.manager.containers.get("multica-server")
@@ -45,30 +59,22 @@ class Container(BaseContainer):
             MULTICA_PAT=ConfigField(provider=PromptProvider(password=True, cached=True), required=True, secret=True),
         )
 
-    def configure_vscode(self, compose):
+    def configure_vscode(self):
         """Extend the rendered service without writing runtime files."""
+        if not self.enable:
+            return
         script = self.get_source_path("scripts/10-multica.sh")
         if not script.is_file() or not os.access(script, os.X_OK):
             self.logger.warning(f"Skip Multica startup integration: script is unavailable: {script}")
             return
-        self._inject_vscode(compose, script)
 
-    def _inject_vscode(self, compose, script):
         vscode = self.manager.containers["vscode"]
-        secret_dir = self.get_app_path("secrets")
-        environment = ["MULTICA_WORKSPACES_ROOT=/workspace/.multica/workspaces"]
+        vscode.environment["MULTICA_WORKSPACES_ROOT"] = "/workspace/.multica/workspaces"
         for key in ("MULTICA_DAEMON_ID", "MULTICA_SERVER_URL", "MULTICA_APP_URL"):
-            environment.append(f"{key}={self.get_config(key)}")
-
-        volumes = [
-            f"{script}:/entrypoint.d/{script.name}:ro",
-            f"{secret_dir}:/run/secrets/multica:ro",
-            f'{self.get_app_path("home/.multica")}:/workspace/.multica',
-        ]
-
-        service = compose["services"]["code-server"]
-        service["environment"].extend(environment)
-        service["volumes"].extend(volumes)
+            vscode.environment[key] = self.get_config(key)
+        vscode.volumes[f"/entrypoint.d/{script.name}"] = f"{script}:ro"
+        vscode.volumes["/run/secrets/multica"] = f'{self.get_app_path("secrets")}:ro'
+        vscode.volumes["/workspace/.multica"] = str(self.get_app_path("home/.multica"))
 
         # A targeted VSCode start only runs VSCode's start hooks.
         vscode.add_start_hook(

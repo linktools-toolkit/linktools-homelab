@@ -36,7 +36,6 @@ from linktools.cli import subcommand
 from linktools.core import Config, ConfigField, ConfigFormat, ConfigLazy, ConfigRef, LazyProvider
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.lifecycle import HookPhase
 from linktools.cntr.ext import Nginx, endpoint, Flare, load_port_url
 from linktools.rich import prompt
 from linktools.runtime import lazy_load
@@ -44,24 +43,24 @@ from linktools.runtime import lazy_load
 
 class Container(BaseContainer):
 
-    def on_init(self):
-        # Register only the callback during discovery. Installed state and config
-        # are read after all containers are loaded, when Compose is rendered.
-        self.hooks.register(
-            HookPhase.AFTER_COMPOSE_RENDER,
-            self._configure_multica,
-            key=("multica", "inject_vscode"),
-            name="inject Multica into VSCode Compose",
-        )
-
-    def _configure_multica(self, compose):
-        multica = self.containers.get("multica")
-        if multica is not None and multica.enable:
-            multica.configure_vscode(compose)
-
     @property
     def dependencies(self) -> Iterable[str]:
         return ["nginx", "coder", "ai"]
+
+    @cached_property
+    def environment(self) -> "dict[str, str]":
+        """Add-on environment variables (NAME -> value)."""
+        return {}
+
+    @cached_property
+    def volumes(self) -> "dict[str, str]":
+        """Add-on volumes (container path -> source spec)."""
+        return {}
+
+    @cached_property
+    def ports(self) -> "dict[int, int]":
+        """Add-on port mappings (host port -> container port)."""
+        return {}
 
     @cached_property
     def fields(self):
