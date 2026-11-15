@@ -72,8 +72,8 @@ class Container(BaseContainer):
         vscode.environment["MULTICA_WORKSPACES_ROOT"] = "/workspace/.multica/workspaces"
         for key in ("MULTICA_DAEMON_ID", "MULTICA_SERVER_URL", "MULTICA_APP_URL"):
             vscode.environment[key] = self.get_config(key)
-        vscode.volumes[f"/entrypoint.d/{script.name}"] = str(script)
-        vscode.volumes["/run/secrets/multica"] = str(self.get_app_path("secrets"))
+        vscode.volumes[f"/entrypoint.d/{script.name}"] = {"source": str(script), "read_only": True}
+        vscode.volumes["/run/secrets/multica"] = {"source": str(self.get_app_path("secrets")), "read_only": True}
         vscode.volumes["/workspace/.multica"] = str(self.get_app_path("home/.multica"))
 
         # A targeted VSCode start only runs VSCode's start hooks.

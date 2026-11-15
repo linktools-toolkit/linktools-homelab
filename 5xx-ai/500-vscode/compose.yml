@@ -32,8 +32,12 @@ services:
 #     {% for name, path in containers["coder"].project_files.items() %}
       - '{{ path }}:/workspace/projects/{{ name }}'
 #     {% endfor %}
-#     {% for target, source in container.volumes.items() %}
-      - '{{ source }}:{{ target }}:ro'
+#     {% for target, spec in container.volumes.items() %}
+#       {% if spec is mapping %}
+      - '{{ spec.source }}:{{ target }}{{ ":ro" if spec.read_only else "" }}'
+#       {% else %}
+      - '{{ spec }}:{{ target }}'
+#       {% endif %}
 #     {% endfor %}
 #   {% if NGINX_AUTH_ENABLE %}
     command: ["--auth", "none"]

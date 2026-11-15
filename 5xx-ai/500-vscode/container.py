@@ -53,8 +53,13 @@ class Container(BaseContainer):
         return {}
 
     @cached_property
-    def volumes(self) -> "dict[str, str]":
-        """Add-on volumes (container path -> source spec)."""
+    def volumes(self) -> "dict[str, str | dict[str, str | bool]]":
+        """Add-on volumes (container path -> source).
+
+        The source is either a plain host-path string, or a dict with a
+        ``source`` key plus mount options, e.g. ``{"source": path,
+        "read_only": True}``.
+        """
         return {}
 
     @cached_property
