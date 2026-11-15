@@ -33,7 +33,7 @@ services:
       - '{{ path }}:/workspace/projects/{{ name }}'
 #     {% endfor %}
 #     {% for target, source in container.volumes.items() %}
-      - '{{ source }}:{{ target }}'
+      - '{{ source }}:{{ target }}:ro'
 #     {% endfor %}
 #   {% if NGINX_AUTH_ENABLE %}
     command: ["--auth", "none"]

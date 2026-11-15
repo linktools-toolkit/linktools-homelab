@@ -46,7 +46,7 @@ class Container(BaseContainer):
             raise ContainerError(f"CloudCLI startup script is unavailable: {script}")
 
         vscode = self.containers["vscode"]
-        vscode.volumes[f"/entrypoint.d/{script.name}"] = f"{script}:ro"
+        vscode.volumes[f"/entrypoint.d/{script.name}"] = str(script)
         vscode.volumes["/workspace/.cloudcli"] = str(self.get_app_path("home/.cloudcli"))
         port = self.get_config("CLOUD_CLI_PORT")
         if port > 0:
