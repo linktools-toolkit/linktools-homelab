@@ -11,15 +11,15 @@ fi
 # Install into NPM_CONFIG_PREFIX when the environment provides one (VS Code's
 # /workspace/.node_modules), otherwise into CloudCLI's own volume. A cloudcli
 # already resolvable on PATH is used as-is. Node 24's npm blocks dependency
-# install scripts by default, so the native modules (and the package's own
-# node-pty fixup) must be explicitly allowed.
+# install scripts by default; persist the allowlist into npm's global config
+# so both this install and any later manual npm operations keep working.
 install_prefix="${NPM_CONFIG_PREFIX:-/workspace/.cloudcli/app}"
-allow_scripts="--allow-scripts=@cloudcli-ai/cloudcli,bcrypt,better-sqlite3,node-pty"
 
 install_cloudcli() {
     command -v cloudcli >/dev/null 2>&1 && return 0
+    npm config set allow-scripts=@cloudcli-ai/cloudcli,bcrypt,better-sqlite3,node-pty --location=global
     PATH="$install_prefix/bin:$PATH" \
-        npm install -g --omit=dev $allow_scripts @cloudcli-ai/cloudcli@latest || return 1
+        npm install -g --omit=dev @cloudcli-ai/cloudcli@latest || return 1
     command -v cloudcli >/dev/null 2>&1
 }
 
