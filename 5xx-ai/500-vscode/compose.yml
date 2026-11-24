@@ -12,6 +12,17 @@ services:
 #     {% for name, value in container.environment.items() %}
       - '{{ name }}={{ value }}'
 #     {% endfor %}
+
+#     {% set agy_domains = [] %}
+#     {% if VSCODE_DOMAIN %}
+#       {% set agy_domains = [VSCODE_DOMAIN, VSCODE_DOMAIN ~ ':' ~ NGINX_DEFAULT_PORT] %}
+#     {% endif %}
+#     {% if VSCODE_PORT | int > 0 %}
+#       {% set agy_domains = agy_domains + [HOST, HOST ~ ':' ~ VSCODE_PORT] %}
+#     {% endif %}
+#     {% if agy_domains %}
+      - 'AGY_ALLOWED_DOMAINS={{ agy_domains | join(",") }}'
+#     {% endif %}
     cap_add:
       - SYS_ADMIN
 #   {% set service_ports = (['%d:8080' % (VSCODE_PORT | int)] if VSCODE_PORT | int > 0 else []) + (container.ports.items() | map('join', ':') | list) %}
