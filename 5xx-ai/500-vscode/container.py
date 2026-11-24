@@ -30,13 +30,14 @@ import json
 import re
 import shutil
 from typing import Iterable
+from urllib.parse import urlsplit
 
 from linktools import utils
 from linktools.cli import subcommand
 from linktools.core import Config, ConfigField, ConfigFormat, ConfigLazy, ConfigRef, LazyProvider
 from linktools.decorator import cached_property
 from linktools.cntr import BaseContainer, Integrations
-from linktools.cntr.ext import Nginx, endpoint, Flare, load_port_url
+from linktools.cntr.ext import Nginx, ResolvedSite, endpoint, Flare, load_port_url
 from linktools.rich import prompt
 from linktools.runtime import lazy_load
 
@@ -80,6 +81,26 @@ class Container(BaseContainer):
         )
 
     @cached_property
+    def main_endpoint(self) -> Integrations:
+        return endpoint(
+            self,
+            domain=ConfigRef("VSCODE_DOMAIN"),
+            proxy="http://code-server:8080",
+            auth_bypass=(r"\.(css|js)$",),
+            extensions=[
+                Flare.links(
+                    Flare.public(),
+                    Flare.container(
+                        url=load_port_url(ConfigRef("VSCODE_PORT"), https=False),
+                    ),
+                    name="VS Code",
+                    icon="microsoftVisualStudioCode",
+                    desc="在线vscode",
+                ),
+            ],
+        )
+
+    @cached_property
     def integrations(self) -> Integrations:
         def proxy_domain(config: Config) -> str:
             if not config.get("NGINX_WILDCARD_DOMAIN", type=bool):
@@ -87,33 +108,23 @@ class Container(BaseContainer):
             domain = config.get("VSCODE_DOMAIN")
             return r"~^(?<proxy_port>\d+)\." + re.escape(domain) + "$" if domain else ""
 
-        domain = ConfigRef("VSCODE_DOMAIN")
         return [
-            endpoint(
-                self,
-                domain=domain,
-                proxy="http://code-server:8080",
-                auth_bypass=(r"\.(css|js)$",),
-                extensions=[
-                    Flare.links(
-                        Flare.public(),
-                        Flare.container(
-                            url=load_port_url(ConfigRef("VSCODE_PORT"), https=False),
-                        ),
-                        name="VS Code",
-                        icon="microsoftVisualStudioCode",
-                        desc="在线vscode",
-                    ),
-                ],
-            ),
+            self.main_endpoint,
             endpoint(
                 self,
                 domain=ConfigLazy(proxy_domain),
                 template=self.get_source_path("proxy.conf"),
                 template_vars={"client_max_body_size": "10240m"},
-                cert_domains=(ConfigFormat("*.{domain}", domain=domain),),
+                cert_domains=(ConfigFormat("*.{domain}", domain=ConfigRef("VSCODE_DOMAIN")),),
             ),
         ]
+
+    @property
+    def antigravity_domain(self) -> str:
+        if "nginx" not in self.manager.integration_snapshot:
+            return ""
+        site = self.config.resolve(ResolvedSite.find(self, self.main_endpoint))
+        return urlsplit(site.get_url(default="")).netloc.rpartition("@")[2].lower()
 
     @cached_property
     def proxy_url(self):

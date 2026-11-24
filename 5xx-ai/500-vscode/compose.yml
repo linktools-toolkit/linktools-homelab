@@ -9,6 +9,12 @@ services:
 #     {% if container.proxy_url %}
       - 'VSCODE_PROXY_URI={{ container.proxy_url }}'
 #     {% endif %}
+#     {% if "AGY_ALLOWED_DOMAINS" not in container.environment %}
+#       {% set agy_domain = container.antigravity_domain %}
+#       {% if agy_domain %}
+      - 'AGY_ALLOWED_DOMAINS={{ agy_domain }}'
+#       {% endif %}
+#     {% endif %}
 #     {% for name, value in container.environment.items() %}
       - '{{ name }}={{ value }}'
 #     {% endfor %}
